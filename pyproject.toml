@@ -7,7 +7,9 @@ authors = [
     { name = "Sung-jin Brian Hong", email = "serialx@serialx.net" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "textual>=4.0.0",
+]
 
 [project.scripts]
 vibecore = "vibecore.main:main"
