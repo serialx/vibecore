@@ -15,7 +15,11 @@
       "Bash(test:*)",
       "Bash(tree:*)",
       "Bash(uv:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:textual.textualize.io)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "enableAllProjectMcpServers": true,
