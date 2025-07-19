@@ -2,7 +2,7 @@ from typing import ClassVar, override
 
 from textual import events, log
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, VerticalScroll
+from textual.containers import ScrollableContainer, VerticalScroll
 from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Static, TextArea
@@ -25,7 +25,8 @@ class UserMessage(Widget):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the user message."""
-        yield Horizontal(Static("> ", classes="prefix"), Static(self.text))
+        yield Static("> ", classes="prefix")
+        yield Static(self.text)
 
 
 class MyFooter(Widget):
@@ -92,8 +93,13 @@ class InputBox(Widget):
         """Create child widgets for the input box."""
         log("InputBox compose")
         log(TextArea.__init__.__doc__)
-        text_area = MyTextArea(compact=True)
-        yield Horizontal(Static(">", id="input-label"), text_area)
+        text_area = MyTextArea(compact=True, id="input-textarea")
+        yield Static(">", id="input-label")
+        yield text_area
+
+
+class MainScroll(ScrollableContainer):
+    """A container with vertical layout and an automatic scrollbar on the Y axis."""
 
 
 class VibecoreApp(App):
@@ -109,7 +115,7 @@ class VibecoreApp(App):
         yield Header()
         yield MyFooter()
         # yield Footer()
-        yield VerticalScroll(id="timers")
+        yield MainScroll(id="timers")
 
     def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
         """Handle user messages from the text area."""
@@ -117,6 +123,10 @@ class VibecoreApp(App):
         user_message = UserMessage(event.text)
         self.query_one("#timers").mount(user_message)
         user_message.scroll_visible()
+
+    def on_click(self) -> None:
+        """Handle focus events."""
+        self.query_one("#input-textarea").focus()
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""

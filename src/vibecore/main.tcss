@@ -19,24 +19,17 @@ UserMessage {
     height: auto;
     padding-bottom: 1;
     color: $foreground-muted;
+    layout: horizontal;
 
-    Horizontal {
-        height: auto;
-
-        .prefix {
-            width: 2;
-            height: 1;
-        }
+    .prefix {
+        width: 2;
+        height: 1;
     }
 }
 
 InputBox {
     height: auto;
-
-    Horizontal {
-        height: auto;
-        width: auto;
-    }
+    layout: horizontal;
 
     #input-label {
         width: 3;
