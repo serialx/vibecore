@@ -186,11 +186,18 @@ widget.styles.animate("background", "#ff0000", duration=1.0, on_complete=callbac
 ### Common Animation Patterns
 
 ```python
-# Blinking effect
-def blink(self):
-    self.styles.animate("opacity", 0.3, duration=0.25)
-    self.set_timer(0.25, lambda: self.styles.animate("opacity", 1.0, duration=0.25))
-    self.set_timer(0.5, self.blink)  # Repeat
+# Blinking effect using set_interval (recommended for repeating animations)
+def _toggle_blink_visible(self):
+    self._blink_visible = not self._blink_visible
+    self.query_one(".blink-element").visible = self._blink_visible
+
+def _on_mount(self, event):
+    # Blink every 0.5 seconds
+    self.blink_timer = self.set_interval(
+        0.5,
+        self._toggle_blink_visible,
+        pause=(self.status != "executing"),  # Can be controlled dynamically
+    )
 
 # Slide in from right
 widget.styles.offset = (100, 0)
