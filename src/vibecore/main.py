@@ -52,7 +52,7 @@ class VibecoreApp(App):
                 tool_msg.update("success", output)
 
             log("Setting timer to update tool message")
-            self.set_timer(1.0, update_tool_message)
+            self.set_timer(2.0, update_tool_message)
         else:
             agent_message = AgentMessage("Processing your message...")
             self.query_one("#messages").mount(agent_message)

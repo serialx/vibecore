@@ -10,6 +10,7 @@ class MessageHeader(Widget):
 
     text: Reactive[str] = reactive("")
     status: Reactive[str] = reactive("idle")
+    _prefix_visible: Reactive[bool] = reactive(False, init=False)
 
     def __init__(self, prefix: str, text: str, status: str = "idle", **kwargs) -> None:
         """
@@ -36,6 +37,19 @@ class MessageHeader(Widget):
         """Create child widgets for the message header."""
         yield Static(self.prefix, classes="prefix")
         yield Static(self.text)
+
+    def _toggle_cursor_blink_visible(self) -> None:
+        """Toggle visibility of the cursor for the purposes of 'cursor blink'."""
+        self._prefix_visible = not self._prefix_visible
+        log(f"Prefix blink toggled: {self._prefix_visible}")
+        self.query_one(".prefix").visible = self._prefix_visible
+
+    def _on_mount(self, event):
+        self.blink_timer = self.set_interval(
+            0.5,
+            self._toggle_cursor_blink_visible,
+            pause=(self.status != "executing"),
+        )
 
 
 class UserMessage(Widget):
