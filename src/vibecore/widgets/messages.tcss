@@ -3,7 +3,7 @@ MessageHeader {
     height: auto;
     layout: horizontal;
 
-    .prefix {
+    Static.prefix {
         width: 2;
         height: 1;
     }
@@ -13,10 +13,12 @@ MessageHeader {
     }
 
     Markdown {
-        padding: 0 0 0 0;
+        padding: 0;
         background: $background;
 
         MarkdownFence {
+            margin: 0;
+            padding: -1 0 0 0;
             max-height: 100%;
         }
 
@@ -48,11 +50,11 @@ MessageHeader.status-error > .prefix {
 }
 
 UserMessage {
-    color: $foreground-muted;
+    color: $text-muted;
 }
 
 AgentMessage {
-    color: $foreground;
+    color: $text;
 }
 
 ToolMessage {

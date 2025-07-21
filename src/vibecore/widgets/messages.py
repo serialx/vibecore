@@ -14,7 +14,7 @@ class MessageHeader(Widget):
     status: reactive[str] = reactive("idle")
     _prefix_visible: reactive[bool] = reactive(False, init=False)
 
-    def __init__(self, prefix: str, text: str, status: str = "idle", **kwargs) -> None:
+    def __init__(self, prefix: str, text: str, status: str = "idle", use_markdown: bool = False, **kwargs) -> None:
         """
         Construct a MessageHeader.
 
@@ -26,6 +26,7 @@ class MessageHeader(Widget):
         self.prefix = prefix
         self.set_reactive(MessageHeader.text, text)
         self.status = status
+        self.use_markdown = use_markdown
 
     def watch_status(self, status: str) -> None:
         """Watch for changes in the status and update classes accordingly."""
@@ -37,12 +38,18 @@ class MessageHeader(Widget):
 
     def watch_text(self, text: str) -> None:
         """Watch for changes in the text and update the header."""
-        self.query_one(".text", Markdown).update(text)
+        if self.use_markdown:
+            self.query_one(".text", Markdown).update(text)
+        else:
+            self.query_one(".text", Static).update(text)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the message header."""
         yield Static(self.prefix, classes="prefix")
-        yield Markdown(self.text, classes="text")
+        if self.use_markdown:
+            yield Markdown(self.text, classes="text")
+        else:
+            yield Static(self.text, classes="text")
 
     def _toggle_cursor_blink_visible(self) -> None:
         """Toggle visibility of the cursor for the purposes of 'cursor blink'."""
@@ -95,7 +102,7 @@ class AgentMessage(Widget):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the agent message."""
-        yield MessageHeader("⏺", self.text)
+        yield MessageHeader("⏺", self.text, use_markdown=True)
 
     def update(self, text: str) -> None:
         """Update the text of the agent message."""
