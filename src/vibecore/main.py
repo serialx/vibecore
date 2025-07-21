@@ -80,19 +80,19 @@ class VibecoreApp(App):
             match event:
                 case RawResponsesStreamEvent(data=data):
                     match data:
-                        case ResponseTextDeltaEvent(delta=delta):
+                        case ResponseTextDeltaEvent(delta=delta) if delta:
                             message_content += delta
-                            if message_content:
-                                if not agent_message:
-                                    agent_message = AgentMessage(message_content)
-                                    await self.add_message(agent_message)
-                                else:
-                                    agent_message.update(message_content)
+                            if not agent_message:
+                                agent_message = AgentMessage(message_content)
+                                await self.add_message(agent_message)
+                            else:
+                                agent_message.update(message_content)
 
-                        case ResponseOutputItemDoneEvent(item=item) if isinstance(item, ResponseFunctionToolCall):
-                            tool_name = item.name
+                        case ResponseOutputItemDoneEvent(
+                            item=ResponseFunctionToolCall(name=tool_name, arguments=arguments)
+                        ):
                             # TODO(serialx): proper implementation for parallel tool calls
-                            last_tool_message = ToolMessage(tool_name, item.arguments)
+                            last_tool_message = ToolMessage(tool_name, arguments)
                             await self.add_message(last_tool_message)
 
                 case RunItemStreamEvent(item=item):
