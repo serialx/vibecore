@@ -35,10 +35,25 @@ AgentMessage {
 }
 
 ToolMessage {
-    height: 10;
+    Horizontal.tool-output {
+        height: auto;
 
-    .tool-output-first,
-    .tool-output {
-        color: $text-muted;
+        &> .tool-output-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+        }
+
+        &> Vertical.tool-output-content {
+            height: auto;
+
+            &> .tool-output-content {
+                # color: $text-muted;
+            }
+
+            &> .tool-output-content-more {
+            }
+            }
     }
 }

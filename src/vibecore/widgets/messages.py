@@ -1,5 +1,6 @@
 from textual import log
 from textual.app import ComposeResult
+from textual.containers import Horizontal, Vertical
 from textual.reactive import Reactive, reactive
 from textual.widget import Widget
 from textual.widgets import Static
@@ -142,12 +143,14 @@ class ToolMessage(Widget):
 
         # # Output lines (only show if we have output)
         if self.output:
-            output_lines = self.output.strip().split("\n")
-            for i, line in enumerate(output_lines):
-                if i == 0:
-                    # First line with special character
-                    NO_BREAK_SPACE = "\u00a0"  # Non-breaking space
-                    yield Static(f"  ⎿{NO_BREAK_SPACE} {line}", classes="tool-output-first")
-                else:
-                    # Subsequent lines with more indentation
-                    yield Static(f"     {line}", classes="tool-output")
+            lines = self.output.splitlines()
+            N = 3
+            first_n_lines = lines[:N]
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    yield Static("\n".join(first_n_lines), classes="tool-output-content-excerpt")
+                    if len(lines) > N:
+                        yield Static(
+                            f"… +{len(lines) - N} lines (ctrl+r to expand)", classes="tool-output-content-more"
+                        )

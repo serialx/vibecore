@@ -45,9 +45,17 @@ class VibecoreApp(App):
             def update_tool_message():
                 log("Updating tool message to success state")
                 output = (
-                    "[main 557a5e2] docs: add CLAUDE.md for Claude Code guidance\n"
-                    "1 file changed, 78 insertions(+)\n"
-                    "create mode 100644 CLAUDE.md"
+                    "On branch main\n"
+                    "Your branch is ahead of 'origin/main' by 2 commits.\n"
+                    '  (use "git push" to publish your local commits)\n'
+                    "\n"
+                    "Changes not staged for commit:\n"
+                    '  (use "git add <file>..." to update what will be committed)\n'
+                    '  (use "git restore <file>..." to discard changes in working directory)\n'
+                    "        modified:   src/vibecore/widgets/messages.py\n"
+                    "        modified:   src/vibecore/widgets/messages.tcss\n"
+                    "\n"
+                    'no changes added to commit (use "git add" and/or "git commit -a")\n'
                 )
                 tool_msg.update("success", output)
 
