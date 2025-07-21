@@ -7,6 +7,27 @@ MessageHeader {
         width: 2;
         height: 1;
     }
+
+    .text {
+        width: 1fr;
+    }
+
+    Markdown {
+        padding: 0 0 0 0;
+        background: $background;
+
+        MarkdownFence {
+            max-height: 100%;
+        }
+
+        MarkdownFence > * {
+            width: 1fr;
+        }
+
+        &> MarkdownParagraph:last-child {
+            margin: 0 0 0 0;
+        }
+    }
 }
 
 MessageHeader.status-executing > .prefix {

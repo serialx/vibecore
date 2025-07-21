@@ -1,17 +1,18 @@
 from textual import log
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.reactive import Reactive, reactive
+from textual.events import Resize
+from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Static
+from textual.widgets import Markdown, Static
 
 
 class MessageHeader(Widget):
     """A widget to display a message header."""
 
-    text: Reactive[str] = reactive("")
-    status: Reactive[str] = reactive("idle")
-    _prefix_visible: Reactive[bool] = reactive(False, init=False)
+    text: reactive[str] = reactive("")
+    status: reactive[str] = reactive("idle")
+    _prefix_visible: reactive[bool] = reactive(False, init=False)
 
     def __init__(self, prefix: str, text: str, status: str = "idle", **kwargs) -> None:
         """
@@ -23,7 +24,7 @@ class MessageHeader(Widget):
         """
         super().__init__(**kwargs)
         self.prefix = prefix
-        self.text = text
+        self.set_reactive(MessageHeader.text, text)
         self.status = status
 
     def watch_status(self, status: str) -> None:
@@ -34,10 +35,14 @@ class MessageHeader(Widget):
         self.set_class(status == "error", "status-error")
         log(f"Status changed to {status}")
 
+    def watch_text(self, text: str) -> None:
+        """Watch for changes in the text and update the header."""
+        self.query_one(".text", Markdown).update(text)
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the message header."""
         yield Static(self.prefix, classes="prefix")
-        yield Static(self.text)
+        yield Markdown(self.text, classes="text")
 
     def _toggle_cursor_blink_visible(self) -> None:
         """Toggle visibility of the cursor for the purposes of 'cursor blink'."""
@@ -92,14 +97,24 @@ class AgentMessage(Widget):
         """Create child widgets for the agent message."""
         yield MessageHeader("⏺", self.text)
 
+    def update(self, text: str) -> None:
+        """Update the text of the agent message."""
+        self.text = text
+        header = self.query_one(MessageHeader)
+        header.text = text
+
+    def on_resize(self, event: Resize) -> None:
+        # Scroll to the bottom when resized = when new content is added
+        self.scroll_visible(animate=False, top=True)
+
 
 class ToolMessage(Widget):
     """A widget to display tool execution messages."""
 
-    tool_name: Reactive[str] = reactive("")
-    command: Reactive[str] = reactive("")
-    output: Reactive[str] = reactive("", recompose=True)
-    status: Reactive[str] = reactive("executing")
+    tool_name: reactive[str] = reactive("")
+    command: reactive[str] = reactive("")
+    output: reactive[str] = reactive("", recompose=True)
+    status: reactive[str] = reactive("executing")
 
     def __init__(self, tool_name: str, command: str, output: str = "", status: str = "executing", **kwargs) -> None:
         """

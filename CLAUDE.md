@@ -4,11 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**vibecore** is a Textual-based terminal user interface (TUI) application written in Python. It implements a chat-like interface with custom widgets for message display and input.
+**vibecore** is a Textual-based terminal user interface (TUI) application written in Python. It implements an AI-powered chat interface using the openai-agents framework, with custom widgets for message display and input. The application provides various tools for file operations, shell commands, Python execution, and task management.
 
 ## IMPORTANT: Never Run This Application
 
 ⚠️ **WARNING**: This is a TUI application. DO NOT run `vibecore` or attempt to execute the application directly as it will interfere with Claude Code's terminal interface. Only work with the source code.
+
+## Project Structure
+
+```
+vibecore/
+├── src/vibecore/
+│   ├── main.py              # Application entry point
+│   ├── main.tcss            # Main application styles
+│   ├── context.py           # VibecoreContext for state management
+│   ├── settings.py          # Configuration with Pydantic
+│   ├── agents/
+│   │   └── default.py       # Agent configuration and setup
+│   ├── models/
+│   │   └── anthropic.py     # Anthropic model integration
+│   ├── widgets/
+│   │   ├── core.py          # Core UI widgets
+│   │   ├── messages.py      # Message display widgets
+│   │   ├── core.tcss        # Core widget styles
+│   │   └── messages.tcss    # Message widget styles
+│   ├── tools/
+│   │   ├── base.py          # Base tool interfaces
+│   │   ├── file/            # File manipulation tools
+│   │   ├── shell/           # Shell command tools
+│   │   ├── python/          # Python execution tools
+│   │   └── todo/            # Task management tools
+│   └── prompts/
+│       └── common_system_prompt.txt
+├── tests/                   # All test files (root level)
+├── pyproject.toml           # Project configuration
+└── uv.lock                  # Dependency lock file
+```
 
 ## Development Commands
 
@@ -29,7 +60,7 @@ uv run ruff format .             # Format code
 uv run pyright
 
 # Run all quality checks
-uv run ruff check . && uv run ruff format --check . && uv run pyright
+uv run ruff check . && uv run ruff format --check . && uv run pyright .
 ```
 
 ### Testing
@@ -43,30 +74,82 @@ uv run pytest -v
 # Run a specific test file
 uv run pytest tests/test_filename.py
 
+# Run a specific test function
+uv run pytest tests/test_filename.py::test_function_name
+
 # Run tests with coverage
 uv run pytest --cov=vibecore
+
+# Run tests matching a pattern
+uv run pytest -k "test_pattern"
 ```
 
 ## Architecture Overview
 
-### Main Components
+### Core Components
 
 1. **VibecoreApp** (`src/vibecore/main.py`): The main application class that extends Textual's App
    - Manages the overall UI layout with Header, Footer, and scrollable message area
-   - Handles theme toggling (dark/light mode)
+   - Handles theme toggling (dark/light mode) with "d" keybinding
    - Coordinates message flow between widgets
+   - Integrates with openai-agents framework for AI responses
+   - Processes streamed responses from the agent using `@work` decorator
+   - Maintains conversation history in `input_items` list
 
-2. **Custom Widgets**:
-   - **UserMessage**: Displays user messages with a ">" prefix
+2. **Context System** (`src/vibecore/context.py`):
+   - **VibecoreContext**: Central context object that maintains state across the application
+   - Contains managers for todo lists and Python execution environments
+   - Passed to all agent tools for consistent state management
+
+3. **Agent System** (`src/vibecore/agents/default.py`):
+   - Configures the AI agent with appropriate tools and instructions
+   - Supports both OpenAI and Anthropic models via LiteLLM
+   - Includes handoff capabilities for multi-agent workflows
+
+4. **Custom Widgets** (`src/vibecore/widgets/`):
+   - **UserMessage**: Displays user messages
+   - **AgentMessage**: Displays AI agent responses
+   - **ToolMessage**: Shows tool execution status and results
    - **MyTextArea**: Custom TextArea that captures Enter key to post messages
-   - **InputBox**: Container for the text input area
-   - **MyFooter**: Custom footer containing the input box
+   - **AppFooter**: Custom footer containing the input box
+   - **MainScroll**: Scrollable container for messages
 
-3. **Styling**: Uses TCSS (Textual CSS) defined in `stopwatch03.tcss` for visual styling
+5. **Tool System** (`src/vibecore/tools/`):
+   - **File Tools**: read, write, edit, multi_edit operations
+   - **Shell Tools**: bash, glob, grep, ls commands
+   - **Python Tools**: Execute Python code in isolated environments
+   - **Todo Tools**: Task management and tracking
+   - Each tool category has its own executor, rendering, and tool definition modules
+
+6. **Styling**: 
+   - Uses TCSS (Textual CSS) with multiple stylesheets loaded via `CSS_PATH`
+   - CSS files are resolved relative to the module location:
+     - `widgets/core.tcss`: Core widget styles
+     - `widgets/messages.tcss`: Message-specific styles  
+     - `main.tcss`: Main application styles
+   - Order matters: later stylesheets override earlier ones
 
 ### Key Patterns
 
-- **Message Flow**: User types in MyTextArea → Enter key triggers custom Message → VibecoreApp handles message → Creates UserMessage widget → Adds to VerticalScroll container
+- **Message Flow**: 
+  1. User types in MyTextArea
+  2. Enter key triggers `MyTextArea.UserMessage` event
+  3. VibecoreApp handles the event, adds message to input_items
+  4. Creates UserMessage widget and adds to MainScroll
+  5. Runs agent with streamed response using openai-agents Runner
+  6. Processes stream events to update UI in real-time
+
+- **Streaming Architecture**:
+  - Uses `RunResultStreaming` for real-time response processing
+  - Handles multiple event types: `ResponseTextDeltaEvent`, `ResponseOutputItemDoneEvent`, `ToolCallOutputItem`
+  - Updates message widgets incrementally as content streams in
+
+- **Tool Execution Pattern**:
+  - Tools are defined with type hints and Pydantic models
+  - Each tool has executor, rendering, and tool definition modules
+  - Tools receive VibecoreContext for accessing shared state
+  - Tool results are rendered in the UI with status indicators
+
 - **Widget Communication**: Uses Textual's message system for inter-widget communication
 - **Async Operations**: Leverages Python's async/await for responsive UI
 
@@ -76,6 +159,8 @@ uv run pytest --cov=vibecore
 - All widgets follow Textual's composition pattern with `compose()` methods
 - The application uses reactive properties for state management
 - Custom CSS classes are used for styling individual components
+- Uses `@work` decorator for background tasks to keep UI responsive
+- Settings are managed via Pydantic with support for environment variables and YAML config
 
 ## IMPORTANT: Textual Library Source Code
 
@@ -209,3 +294,16 @@ widget.styles.animate("background", "#00ff00", duration=1.0, easing="in_out_sine
 
 ### Available Easing Functions
 `linear`, `in_cubic`, `out_cubic`, `in_out_cubic` (default), `in_bounce`, `out_bounce`, `in_elastic`, `out_elastic`, and 20+ more
+
+### Using the Textual Log
+```python
+from textual import log
+log("Debug message")  # Appears in console when using textual console
+```
+
+### Common Issues
+
+1. **CSS not loading**: Ensure CSS files are in correct paths relative to the module
+2. **Widget not updating**: Check if using `refresh()` or `update()` methods correctly
+3. **Async errors**: Remember all event handlers should be async
+4. **Tool execution failures**: Check VibecoreContext is properly passed to tools

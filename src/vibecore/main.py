@@ -1,9 +1,31 @@
 from typing import ClassVar
 
-from textual import log
+from agents import (
+    Agent,
+    AgentUpdatedStreamEvent,
+    MessageOutputItem,
+    RawResponsesStreamEvent,
+    Runner,
+    RunResultStreaming,
+    ToolCallItem,
+    ToolCallOutputItem,
+    TResponseInputItem,
+)
+from agents.stream_events import (
+    RunItemStreamEvent,
+)
+from openai.types.responses import (
+    ResponseFunctionToolCall,
+    ResponseOutputItemDoneEvent,
+    ResponseTextDeltaEvent,
+)
+from textual import log, work
 from textual.app import App, ComposeResult
 from textual.widgets import Header
 
+from vibecore.agents.default import default_agent
+from vibecore.context import VibecoreContext
+from vibecore.settings import settings
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.messages import AgentMessage, ToolMessage, UserMessage
 
@@ -16,55 +38,78 @@ class VibecoreApp(App):
         ("d", "toggle_dark", "Toggle dark mode"),
     ]
 
+    def __init__(self, context: VibecoreContext, agent: Agent) -> None:
+        """Initialize the Vibecore app with context and agent."""
+        self.context = context
+        self.agent = agent
+        self.input_items: list[TResponseInputItem] = []
+        super().__init__()
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
         yield AppFooter()
         yield MainScroll(id="messages")
 
-    def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
+    async def add_message(self, message: UserMessage | AgentMessage | ToolMessage) -> None:
+        """Add a message widget to the main scroll area."""
+        messages = self.query_one("#messages", MainScroll)
+        await messages.mount(message)
+        message.scroll_visible()
+
+    async def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
         """Handle user messages from the text area."""
-        log(f"User message: {event.text}")
+        self.input_items.append({"role": "user", "content": event.text})
         user_message = UserMessage(event.text)
-        self.query_one("#messages").mount(user_message)
+        await self.add_message(user_message)
 
-        # Example: simulate a tool execution when user types "git commit"
-        if "git commit" in event.text.lower():
-            # Create tool message in executing state
-            tool_msg = ToolMessage(
-                tool_name="Bash", command='git commit -m "docs: add CLAUDE.md for Claude Code guidance"'
-            )
-            self.query_one("#messages").mount(tool_msg)
-            tool_msg.scroll_visible()
+        result = Runner.run_streamed(
+            self.agent, input=self.input_items, context=self.context, max_turns=settings.max_turns
+        )
 
-            agent_message = AgentMessage("Git commiting...")
-            self.query_one("#messages").mount(agent_message)
-            agent_message.scroll_visible()
+        self.handle_streamed_response(result)
 
-            # Simulate execution delay and then show success
-            def update_tool_message():
-                log("Updating tool message to success state")
-                output = (
-                    "On branch main\n"
-                    "Your branch is ahead of 'origin/main' by 2 commits.\n"
-                    '  (use "git push" to publish your local commits)\n'
-                    "\n"
-                    "Changes not staged for commit:\n"
-                    '  (use "git add <file>..." to update what will be committed)\n'
-                    '  (use "git restore <file>..." to discard changes in working directory)\n'
-                    "        modified:   src/vibecore/widgets/messages.py\n"
-                    "        modified:   src/vibecore/widgets/messages.tcss\n"
-                    "\n"
-                    'no changes added to commit (use "git add" and/or "git commit -a")\n'
-                )
-                tool_msg.update("success", output)
+    @work(exclusive=True)
+    async def handle_streamed_response(self, result: RunResultStreaming) -> None:
+        message_content = ""
+        agent_message: AgentMessage | None = None
+        last_tool_message: ToolMessage | None = None
 
-            log("Setting timer to update tool message")
-            self.set_timer(2.0, update_tool_message)
-        else:
-            agent_message = AgentMessage("Processing your message...")
-            self.query_one("#messages").mount(agent_message)
-            agent_message.scroll_visible()
+        async for event in result.stream_events():
+            match event:
+                case RawResponsesStreamEvent(data=data):
+                    match data:
+                        case ResponseTextDeltaEvent(delta=delta):
+                            message_content += delta
+                            if message_content:
+                                if not agent_message:
+                                    agent_message = AgentMessage(message_content)
+                                    await self.add_message(agent_message)
+                                else:
+                                    agent_message.update(message_content)
+
+                        case ResponseOutputItemDoneEvent(item=item) if isinstance(item, ResponseFunctionToolCall):
+                            tool_name = item.name
+                            last_tool_message = ToolMessage(tool_name, item.arguments)
+                            await self.add_message(last_tool_message)
+
+                case RunItemStreamEvent(item=item):
+                    match item:
+                        case ToolCallItem():
+                            pass
+                        case ToolCallOutputItem(output=output):
+                            if last_tool_message:
+                                log(f"Tool call output detected: {output}")
+                                last_tool_message.update("success", output)
+                        case MessageOutputItem():
+                            agent_message = None
+                            message_content = ""
+
+                case AgentUpdatedStreamEvent(new_agent=new_agent):
+                    log(f"Agent updated: {new_agent.name}")
+                    self.agent = new_agent
+
+        self.input_items = result.to_input_list()
 
     def on_click(self) -> None:
         """Handle focus events."""
@@ -76,15 +121,19 @@ class VibecoreApp(App):
 
 
 def main() -> None:
-    """Run the StopwatchApp."""
     import logging
 
     from textual.logging import TextualHandler
 
     logging.basicConfig(
-        level="NOTSET",
+        level="WARNING",
         handlers=[TextualHandler()],
     )
 
-    app = VibecoreApp()
+    logger = logging.getLogger("openai.agents")
+    logger.addHandler(TextualHandler())
+
+    ctx = VibecoreContext()
+
+    app = VibecoreApp(ctx, default_agent)
     app.run()
