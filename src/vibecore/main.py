@@ -27,13 +27,14 @@ from vibecore.agents.default import default_agent
 from vibecore.context import VibecoreContext
 from vibecore.settings import settings
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
+from vibecore.widgets.info import Welcome
 from vibecore.widgets.messages import AgentMessage, ToolMessage, UserMessage
 
 
 class VibecoreApp(App):
     """A Textual app to manage stopwatches."""
 
-    CSS_PATH: ClassVar = ["widgets/core.tcss", "widgets/messages.tcss", "main.tcss"]
+    CSS_PATH: ClassVar = ["widgets/core.tcss", "widgets/messages.tcss", "widgets/info.tcss", "main.tcss"]
     BINDINGS: ClassVar = [
         ("d", "toggle_dark", "Toggle dark mode"),
     ]
@@ -49,7 +50,8 @@ class VibecoreApp(App):
         """Create child widgets for the app."""
         yield Header()
         yield AppFooter()
-        yield MainScroll(id="messages")
+        with MainScroll(id="messages"):
+            yield Welcome()
 
     async def add_message(self, message: UserMessage | AgentMessage | ToolMessage) -> None:
         """Add a message widget to the main scroll area."""

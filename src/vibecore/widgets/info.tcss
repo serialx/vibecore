@@ -1,0 +1,17 @@
+
+Welcome {
+    height: auto;
+    width: auto;
+    padding: 1 2;
+    margin-bottom: 1;
+
+    border: round $border;
+
+    .logo {
+        margin-bottom: 1;
+    }
+
+    Static {
+        width: auto;
+    }
+}
