@@ -59,15 +59,16 @@ class VibecoreApp(App):
 
     async def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
         """Handle user messages from the text area."""
-        self.input_items.append({"role": "user", "content": event.text})
-        user_message = UserMessage(event.text)
-        await self.add_message(user_message)
+        if event.text:
+            self.input_items.append({"role": "user", "content": event.text})
+            user_message = UserMessage(event.text)
+            await self.add_message(user_message)
 
-        result = Runner.run_streamed(
-            self.agent, input=self.input_items, context=self.context, max_turns=settings.max_turns
-        )
+            result = Runner.run_streamed(
+                self.agent, input=self.input_items, context=self.context, max_turns=settings.max_turns
+            )
 
-        self.handle_streamed_response(result)
+            self.handle_streamed_response(result)
 
     @work(exclusive=True)
     async def handle_streamed_response(self, result: RunResultStreaming) -> None:
@@ -100,7 +101,7 @@ class VibecoreApp(App):
                         case ToolCallOutputItem(output=output):
                             if last_tool_message:
                                 log(f"Tool call output detected: {output}")
-                                last_tool_message.update("success", output)
+                                last_tool_message.update("success", str(output))
                         case MessageOutputItem():
                             agent_message = None
                             message_content = ""
