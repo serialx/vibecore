@@ -91,6 +91,7 @@ class VibecoreApp(App):
 
                         case ResponseOutputItemDoneEvent(item=item) if isinstance(item, ResponseFunctionToolCall):
                             tool_name = item.name
+                            # TODO(serialx): proper implementation for parallel tool calls
                             last_tool_message = ToolMessage(tool_name, item.arguments)
                             await self.add_message(last_tool_message)
 
