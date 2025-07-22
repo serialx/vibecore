@@ -21,6 +21,7 @@ from openai.types.responses import (
 )
 from textual import log, work
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.reactive import reactive
 from textual.widgets import Header
 from textual.worker import Worker
@@ -40,8 +41,8 @@ class VibecoreApp(App):
 
     CSS_PATH: ClassVar = ["widgets/core.tcss", "widgets/messages.tcss", "widgets/info.tcss", "main.tcss"]
     BINDINGS: ClassVar = [
-        ("d", "toggle_dark", "Toggle dark mode"),
-        ("escape", "cancel_agent", "Cancel agent"),
+        ("ctrl+shift+d", "toggle_dark", "Toggle dark mode"),
+        Binding("escape", "cancel_agent", "Cancel agent", show=False),
     ]
 
     agent_status = reactive[AgentStatus]("idle")
