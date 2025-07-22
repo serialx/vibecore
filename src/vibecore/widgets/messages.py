@@ -1,7 +1,5 @@
-from textual import log
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.events import Resize
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Markdown, Static
@@ -25,16 +23,25 @@ class MessageHeader(Widget):
         super().__init__(**kwargs)
         self.prefix = prefix
         self.set_reactive(MessageHeader.text, text)
-        self.status = status
+        self.set_reactive(MessageHeader.status, status)
+        self._update_status_class(status)
         self.use_markdown = use_markdown
 
-    def watch_status(self, status: str) -> None:
-        """Watch for changes in the status and update classes accordingly."""
+    def _update_status_class(self, status: str) -> None:
+        """Update the status class based on the current status."""
         self.set_class(status == "idle", "status-idle")
         self.set_class(status == "executing", "status-executing")
         self.set_class(status == "success", "status-success")
         self.set_class(status == "error", "status-error")
-        log(f"Status changed to {status}")
+
+    def watch_status(self, status: str) -> None:
+        """Watch for changes in the status and update classes accordingly."""
+        self._update_status_class(status)
+        if status == "executing":
+            self.blink_timer.resume()
+        else:
+            self._prefix_visible = True
+            self.blink_timer.pause()
 
     def watch_text(self, text: str) -> None:
         """Watch for changes in the text and update the header."""
@@ -42,6 +49,10 @@ class MessageHeader(Widget):
             self.query_one(".text", Markdown).update(text)
         else:
             self.query_one(".text", Static).update(text)
+
+    def watch__prefix_visible(self, visible: bool) -> None:
+        """Watch for changes in the prefix visibility."""
+        self.query_one(".prefix").visible = visible
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the message header."""
@@ -54,8 +65,7 @@ class MessageHeader(Widget):
     def _toggle_cursor_blink_visible(self) -> None:
         """Toggle visibility of the cursor for the purposes of 'cursor blink'."""
         self._prefix_visible = not self._prefix_visible
-        log(f"Prefix blink toggled: {self._prefix_visible}")
-        self.query_one(".prefix").visible = self._prefix_visible
+        # self.query_one(".prefix").visible = self._prefix_visible
 
     def _on_mount(self, event):
         self.blink_timer = self.set_interval(
@@ -88,7 +98,10 @@ class UserMessage(Widget):
 class AgentMessage(Widget):
     """A widget to display agent messages."""
 
-    def __init__(self, text: str, **kwargs) -> None:
+    text: reactive[str] = reactive("")
+    status: reactive[str] = reactive("idle")
+
+    def __init__(self, text: str, status: str, **kwargs) -> None:
         """
         Construct an AgentMessage.
 
@@ -97,19 +110,27 @@ class AgentMessage(Widget):
             **kwargs: Additional keyword arguments for Static.
         """
         super().__init__(**kwargs)
-        self.text = text
+        self.set_reactive(AgentMessage.text, text)
+        self.set_reactive(AgentMessage.status, status)
         self.add_class("message")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the agent message."""
-        yield MessageHeader("⏺", self.text, use_markdown=True)
+        yield MessageHeader("⏺", self.text, status=self.status, use_markdown=True)
 
-    def update(self, text: str) -> None:
+    def update(self, text: str, status: str | None = None) -> None:
         """Update the text of the agent message."""
         self.text = text
-        header = self.query_one(MessageHeader)
-        header.text = text
+        if status is not None:
+            self.status = status
 
+    def watch_text(self, text: str) -> None:
+        """Watch for changes in the text and update the header."""
+        self.query_one(MessageHeader).text = text
+
+    def watch_status(self, status: str) -> None:
+        """Watch for changes in the status and update classes accordingly."""
+        self.query_one(MessageHeader).status = status
 
 
 class ToolMessage(Widget):

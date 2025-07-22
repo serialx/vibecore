@@ -106,7 +106,7 @@ class VibecoreApp(App):
                             case ResponseTextDeltaEvent(delta=delta) if delta:
                                 message_content += delta
                                 if not agent_message:
-                                    agent_message = AgentMessage(message_content)
+                                    agent_message = AgentMessage(message_content, status="executing")
                                     await self.add_message(agent_message)
                                 else:
                                     agent_message.update(message_content)
@@ -124,11 +124,12 @@ class VibecoreApp(App):
                                 pass
                             case ToolCallOutputItem(output=output):
                                 if last_tool_message:
-                                    log(f"Tool call output detected: {output}")
                                     last_tool_message.update("success", str(output))
                             case MessageOutputItem():
-                                agent_message = None
-                                message_content = ""
+                                if agent_message:
+                                    agent_message.update(message_content, status="idle")
+                                    agent_message = None
+                                    message_content = ""
 
                     case AgentUpdatedStreamEvent(new_agent=new_agent):
                         log(f"Agent updated: {new_agent.name}")
@@ -137,7 +138,6 @@ class VibecoreApp(App):
         finally:
             # We save even if the agent run was cancelled or failed
             self.input_items = result.to_input_list()
-            log("input_items: %s", self.input_items)
             self.agent_status = "idle"
             self.current_result = None
             self.current_worker = None

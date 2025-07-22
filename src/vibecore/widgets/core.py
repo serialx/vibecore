@@ -1,9 +1,10 @@
 import time
 from typing import ClassVar, override
 
-from textual import events, log
+from textual import events
 from textual.app import ComposeResult
 from textual.containers import ScrollableContainer
+from textual.geometry import Size
 from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import Footer, Static, TextArea
@@ -14,8 +15,6 @@ class InputBox(Widget):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the input box."""
-        log("InputBox compose")
-        log(TextArea.__init__.__doc__)
         text_area = MyTextArea(compact=True, id="input-textarea")
         yield Static(">", id="input-label")
         yield text_area

@@ -33,7 +33,7 @@ MessageHeader {
 }
 
 MessageHeader.status-executing > .prefix {
-    color: $text-muted;
+    color: $text;
 }
 
 MessageHeader.status-success > .prefix {
