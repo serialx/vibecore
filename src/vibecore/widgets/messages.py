@@ -110,9 +110,6 @@ class AgentMessage(Widget):
         header = self.query_one(MessageHeader)
         header.text = text
 
-    def on_resize(self, event: Resize) -> None:
-        # Scroll to the bottom when resized = when new content is added
-        self.scroll_visible(animate=False, top=True)
 
 
 class ToolMessage(Widget):

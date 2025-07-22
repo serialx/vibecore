@@ -99,6 +99,14 @@ class MyTextArea(TextArea):
 class MainScroll(ScrollableContainer):
     """A container with vertical layout and an automatic scrollbar on the Y axis."""
 
+    def watch_virtual_size(self, size: Size) -> None:
+        """Scroll to the bottom when resized = when new content is added."""
+        # If the scroll is near the end, keep the scroll sticky to the end
+        epsilon = 10
+        in_the_end = (size.height - (self.scroll_target_y + self.scrollable_size.height)) < epsilon
+        if size.height > self.scrollable_size.height and in_the_end:
+            self.scroll_end(animate=False)
+
 
 class LoadingWidget(Widget):
     """A loading indicator with spinner, status text, and metadata."""
