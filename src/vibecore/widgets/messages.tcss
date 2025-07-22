@@ -22,6 +22,14 @@ MessageHeader {
             max-height: 100%;
         }
 
+        MarkdownFence {
+            background: $background;
+
+            &:light {
+                background: $background;
+            }
+        }
+
         MarkdownFence > * {
             width: 1fr;
         }
