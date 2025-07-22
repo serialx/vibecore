@@ -31,7 +31,7 @@ from vibecore.context import VibecoreContext
 from vibecore.settings import settings
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
-from vibecore.widgets.messages import AgentMessage, MessageStatus, ToolMessage, UserMessage
+from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, ToolMessage, UserMessage
 
 AgentStatus = Literal["idle", "running"]
 
@@ -67,7 +67,6 @@ class VibecoreApp(App):
         """Add a message widget to the main scroll area."""
         messages = self.query_one("#messages", MainScroll)
         await messages.mount(message)
-        message.scroll_visible()
 
     def watch_agent_status(self, old_status: AgentStatus, new_status: AgentStatus) -> None:
         """React to agent_status changes."""
@@ -83,6 +82,7 @@ class VibecoreApp(App):
             self.input_items.append({"role": "user", "content": event.text})
             user_message = UserMessage(event.text)
             await self.add_message(user_message)
+            user_message.scroll_visible()
 
             result = Runner.run_streamed(
                 self.agent, input=self.input_items, context=self.context, max_turns=settings.max_turns
@@ -136,6 +136,12 @@ class VibecoreApp(App):
                         self.agent = new_agent
 
         finally:
+            # Remove the last agent message if it is still executing (which means the agent run was cancelled)
+            messages = self.query_one("#messages", MainScroll)
+            last_message = messages.query_one("BaseMessage:last-child", BaseMessage)
+            if last_message.status == MessageStatus.EXECUTING:
+                last_message.remove()
+
             # We save even if the agent run was cancelled or failed
             self.input_items = result.to_input_list()
             self.agent_status = "idle"
