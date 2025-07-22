@@ -31,7 +31,7 @@ from vibecore.context import VibecoreContext
 from vibecore.settings import settings
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
-from vibecore.widgets.messages import AgentMessage, ToolMessage, UserMessage
+from vibecore.widgets.messages import AgentMessage, MessageStatus, ToolMessage, UserMessage
 
 AgentStatus = Literal["idle", "running"]
 
@@ -106,7 +106,7 @@ class VibecoreApp(App):
                             case ResponseTextDeltaEvent(delta=delta) if delta:
                                 message_content += delta
                                 if not agent_message:
-                                    agent_message = AgentMessage(message_content, status="executing")
+                                    agent_message = AgentMessage(message_content, status=MessageStatus.EXECUTING)
                                     await self.add_message(agent_message)
                                 else:
                                     agent_message.update(message_content)
@@ -115,7 +115,7 @@ class VibecoreApp(App):
                                 item=ResponseFunctionToolCall(name=tool_name, arguments=arguments)
                             ):
                                 # TODO(serialx): proper implementation for parallel tool calls
-                                last_tool_message = ToolMessage(tool_name, arguments)
+                                last_tool_message = ToolMessage(tool_name, command=arguments)
                                 await self.add_message(last_tool_message)
 
                     case RunItemStreamEvent(item=item):
@@ -124,10 +124,10 @@ class VibecoreApp(App):
                                 pass
                             case ToolCallOutputItem(output=output):
                                 if last_tool_message:
-                                    last_tool_message.update("success", str(output))
+                                    last_tool_message.update(MessageStatus.SUCCESS, str(output))
                             case MessageOutputItem():
                                 if agent_message:
-                                    agent_message.update(message_content, status="idle")
+                                    agent_message.update(message_content, status=MessageStatus.IDLE)
                                     agent_message = None
                                     message_content = ""
 

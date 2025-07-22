@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
@@ -5,14 +7,25 @@ from textual.widget import Widget
 from textual.widgets import Markdown, Static
 
 
+class MessageStatus(StrEnum):
+    """Status values for messages."""
+
+    IDLE = "idle"
+    EXECUTING = "executing"
+    SUCCESS = "success"
+    ERROR = "error"
+
+
 class MessageHeader(Widget):
     """A widget to display a message header."""
 
     text: reactive[str] = reactive("")
-    status: reactive[str] = reactive("idle")
+    status: reactive[MessageStatus] = reactive(MessageStatus.IDLE)
     _prefix_visible: reactive[bool] = reactive(False, init=False)
 
-    def __init__(self, prefix: str, text: str, status: str = "idle", use_markdown: bool = False, **kwargs) -> None:
+    def __init__(
+        self, prefix: str, text: str, status: MessageStatus = MessageStatus.IDLE, use_markdown: bool = False, **kwargs
+    ) -> None:
         """
         Construct a MessageHeader.
 
@@ -27,17 +40,17 @@ class MessageHeader(Widget):
         self._update_status_class(status)
         self.use_markdown = use_markdown
 
-    def _update_status_class(self, status: str) -> None:
+    def _update_status_class(self, status: MessageStatus) -> None:
         """Update the status class based on the current status."""
-        self.set_class(status == "idle", "status-idle")
-        self.set_class(status == "executing", "status-executing")
-        self.set_class(status == "success", "status-success")
-        self.set_class(status == "error", "status-error")
+        self.set_class(status == MessageStatus.IDLE, "status-idle")
+        self.set_class(status == MessageStatus.EXECUTING, "status-executing")
+        self.set_class(status == MessageStatus.SUCCESS, "status-success")
+        self.set_class(status == MessageStatus.ERROR, "status-error")
 
-    def watch_status(self, status: str) -> None:
+    def watch_status(self, status: MessageStatus) -> None:
         """Watch for changes in the status and update classes accordingly."""
         self._update_status_class(status)
-        if status == "executing":
+        if status == MessageStatus.EXECUTING:
             self.blink_timer.resume()
         else:
             self._prefix_visible = True
@@ -67,7 +80,7 @@ class MessageHeader(Widget):
         self._prefix_visible = not self._prefix_visible
         # self.query_one(".prefix").visible = self._prefix_visible
 
-    def _on_mount(self, event):
+    def _on_mount(self, event) -> None:
         self.blink_timer = self.set_interval(
             0.5,
             self._toggle_cursor_blink_visible,
@@ -75,50 +88,84 @@ class MessageHeader(Widget):
         )
 
 
-class UserMessage(Widget):
+class BaseMessage(Widget):
+    """Base class for all message widgets."""
+
+    status: reactive[MessageStatus] = reactive(MessageStatus.IDLE)
+
+    def __init__(self, status: MessageStatus = MessageStatus.IDLE, **kwargs) -> None:
+        """
+        Construct a BaseMessage.
+
+        Args:
+            status: The status of the message.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(**kwargs)
+        self.set_reactive(BaseMessage.status, status)
+        self.add_class("message")
+
+    def get_header_params(self) -> tuple[str, str, bool]:
+        """
+        Get parameters for MessageHeader.
+
+        Returns:
+            A tuple of (prefix, text, use_markdown).
+        """
+        raise NotImplementedError("Subclasses must implement get_header_params")
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the message."""
+        prefix, text, use_markdown = self.get_header_params()
+        yield MessageHeader(prefix, text, status=self.status, use_markdown=use_markdown)
+
+    def watch_status(self, status: MessageStatus) -> None:
+        """Watch for changes in the status and update classes accordingly."""
+        self.query_one(MessageHeader).status = status
+
+
+class UserMessage(BaseMessage):
     """A widget to display user messages."""
 
-    def __init__(self, text: str, **kwargs) -> None:
+    def __init__(self, text: str, status: MessageStatus = MessageStatus.IDLE, **kwargs) -> None:
         """
         Construct a UserMessage.
 
         Args:
             text: The text to display.
-            **kwargs: Additional keyword arguments for Static.
+            status: The status of the message.
+            **kwargs: Additional keyword arguments for Widget.
         """
-        super().__init__(**kwargs)
+        super().__init__(status=status, **kwargs)
         self.text = text
-        self.add_class("message")
 
-    def compose(self) -> ComposeResult:
-        """Create child widgets for the user message."""
-        yield MessageHeader(">", self.text)
+    def get_header_params(self) -> tuple[str, str, bool]:
+        """Get parameters for MessageHeader."""
+        return (">", self.text, False)
 
 
-class AgentMessage(Widget):
+class AgentMessage(BaseMessage):
     """A widget to display agent messages."""
 
     text: reactive[str] = reactive("")
-    status: reactive[str] = reactive("idle")
 
-    def __init__(self, text: str, status: str, **kwargs) -> None:
+    def __init__(self, text: str, status: MessageStatus = MessageStatus.IDLE, **kwargs) -> None:
         """
         Construct an AgentMessage.
 
         Args:
             text: The text to display.
-            **kwargs: Additional keyword arguments for Static.
+            status: The status of the message.
+            **kwargs: Additional keyword arguments for Widget.
         """
-        super().__init__(**kwargs)
+        super().__init__(status=status, **kwargs)
         self.set_reactive(AgentMessage.text, text)
-        self.set_reactive(AgentMessage.status, status)
-        self.add_class("message")
 
-    def compose(self) -> ComposeResult:
-        """Create child widgets for the agent message."""
-        yield MessageHeader("⏺", self.text, status=self.status, use_markdown=True)
+    def get_header_params(self) -> tuple[str, str, bool]:
+        """Get parameters for MessageHeader."""
+        return ("⏺", self.text, True)
 
-    def update(self, text: str, status: str | None = None) -> None:
+    def update(self, text: str, status: MessageStatus | None = None) -> None:
         """Update the text of the agent message."""
         self.text = text
         if status is not None:
@@ -128,20 +175,17 @@ class AgentMessage(Widget):
         """Watch for changes in the text and update the header."""
         self.query_one(MessageHeader).text = text
 
-    def watch_status(self, status: str) -> None:
-        """Watch for changes in the status and update classes accordingly."""
-        self.query_one(MessageHeader).status = status
 
-
-class ToolMessage(Widget):
+class ToolMessage(BaseMessage):
     """A widget to display tool execution messages."""
 
     tool_name: reactive[str] = reactive("")
     command: reactive[str] = reactive("")
     output: reactive[str] = reactive("", recompose=True)
-    status: reactive[str] = reactive("executing")
 
-    def __init__(self, tool_name: str, command: str, output: str = "", status: str = "executing", **kwargs) -> None:
+    def __init__(
+        self, tool_name: str, command: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+    ) -> None:
         """
         Construct a ToolMessage.
 
@@ -149,25 +193,19 @@ class ToolMessage(Widget):
             tool_name: The name of the tool (e.g., "Bash").
             command: The command being executed.
             output: The output from the tool (optional, can be set later).
-            status: The status of execution ("executing", "success", "error").
+            status: The status of execution.
             **kwargs: Additional keyword arguments for Widget.
         """
-        super().__init__(**kwargs)
+        super().__init__(status=status, **kwargs)
         self.tool_name = tool_name
         self.command = command
         self.output = output
-        self.set_reactive(ToolMessage.status, status)
-        self.add_class("message")
 
-    def update(self, status: str, output: str | None = None) -> None:
+    def update(self, status: MessageStatus, output: str | None = None) -> None:
         """Update the status and optionally the output of the tool message."""
         self.status = status
         if output is not None:
             self.output = output
-
-    def watch_status(self, status: str) -> None:
-        """Watch for changes in the status and update classes accordingly."""
-        self.query_one(MessageHeader).status = status
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the tool message."""
