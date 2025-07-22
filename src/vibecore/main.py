@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from agents import (
     Agent,
@@ -21,7 +21,9 @@ from openai.types.responses import (
 )
 from textual import log, work
 from textual.app import App, ComposeResult
+from textual.reactive import reactive
 from textual.widgets import Header
+from textual.worker import Worker
 
 from vibecore.agents.default import default_agent
 from vibecore.context import VibecoreContext
@@ -30,6 +32,8 @@ from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
 from vibecore.widgets.messages import AgentMessage, ToolMessage, UserMessage
 
+AgentStatus = Literal["idle", "running"]
+
 
 class VibecoreApp(App):
     """A Textual app to manage stopwatches."""
@@ -37,13 +41,18 @@ class VibecoreApp(App):
     CSS_PATH: ClassVar = ["widgets/core.tcss", "widgets/messages.tcss", "widgets/info.tcss", "main.tcss"]
     BINDINGS: ClassVar = [
         ("d", "toggle_dark", "Toggle dark mode"),
+        ("escape", "cancel_agent", "Cancel agent"),
     ]
+
+    agent_status = reactive[AgentStatus]("idle")
 
     def __init__(self, context: VibecoreContext, agent: Agent) -> None:
         """Initialize the Vibecore app with context and agent."""
         self.context = context
         self.agent = agent
         self.input_items: list[TResponseInputItem] = []
+        self.current_result: RunResultStreaming | None = None
+        self.current_worker: Worker[None] | None = None
         super().__init__()
 
     def compose(self) -> ComposeResult:
@@ -70,50 +79,59 @@ class VibecoreApp(App):
                 self.agent, input=self.input_items, context=self.context, max_turns=settings.max_turns
             )
 
-            self.handle_streamed_response(result)
+            self.current_worker = self.handle_streamed_response(result)
 
     @work(exclusive=True)
     async def handle_streamed_response(self, result: RunResultStreaming) -> None:
+        self.agent_status = "running"
+        self.current_result = result
         message_content = ""
         agent_message: AgentMessage | None = None
         last_tool_message: ToolMessage | None = None
 
-        async for event in result.stream_events():
-            match event:
-                case RawResponsesStreamEvent(data=data):
-                    match data:
-                        case ResponseTextDeltaEvent(delta=delta) if delta:
-                            message_content += delta
-                            if not agent_message:
-                                agent_message = AgentMessage(message_content)
-                                await self.add_message(agent_message)
-                            else:
-                                agent_message.update(message_content)
+        try:
+            async for event in result.stream_events():
+                match event:
+                    case RawResponsesStreamEvent(data=data):
+                        match data:
+                            case ResponseTextDeltaEvent(delta=delta) if delta:
+                                message_content += delta
+                                if not agent_message:
+                                    agent_message = AgentMessage(message_content)
+                                    await self.add_message(agent_message)
+                                else:
+                                    agent_message.update(message_content)
 
-                        case ResponseOutputItemDoneEvent(
-                            item=ResponseFunctionToolCall(name=tool_name, arguments=arguments)
-                        ):
-                            # TODO(serialx): proper implementation for parallel tool calls
-                            last_tool_message = ToolMessage(tool_name, arguments)
-                            await self.add_message(last_tool_message)
+                            case ResponseOutputItemDoneEvent(
+                                item=ResponseFunctionToolCall(name=tool_name, arguments=arguments)
+                            ):
+                                # TODO(serialx): proper implementation for parallel tool calls
+                                last_tool_message = ToolMessage(tool_name, arguments)
+                                await self.add_message(last_tool_message)
 
-                case RunItemStreamEvent(item=item):
-                    match item:
-                        case ToolCallItem():
-                            pass
-                        case ToolCallOutputItem(output=output):
-                            if last_tool_message:
-                                log(f"Tool call output detected: {output}")
-                                last_tool_message.update("success", str(output))
-                        case MessageOutputItem():
-                            agent_message = None
-                            message_content = ""
+                    case RunItemStreamEvent(item=item):
+                        match item:
+                            case ToolCallItem():
+                                pass
+                            case ToolCallOutputItem(output=output):
+                                if last_tool_message:
+                                    log(f"Tool call output detected: {output}")
+                                    last_tool_message.update("success", str(output))
+                            case MessageOutputItem():
+                                agent_message = None
+                                message_content = ""
 
-                case AgentUpdatedStreamEvent(new_agent=new_agent):
-                    log(f"Agent updated: {new_agent.name}")
-                    self.agent = new_agent
+                    case AgentUpdatedStreamEvent(new_agent=new_agent):
+                        log(f"Agent updated: {new_agent.name}")
+                        self.agent = new_agent
 
-        self.input_items = result.to_input_list()
+        finally:
+            # We save even if the agent run was cancelled or failed
+            self.input_items = result.to_input_list()
+            log("input_items: %s", self.input_items)
+            self.agent_status = "idle"
+            self.current_result = None
+            self.current_worker = None
 
     def on_click(self) -> None:
         """Handle focus events."""
@@ -122,6 +140,15 @@ class VibecoreApp(App):
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
         self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
+
+    def action_cancel_agent(self) -> None:
+        """Cancel the current agent run."""
+        if self.agent_status == "running":
+            log("Cancelling agent run")
+            if self.current_result:
+                self.current_result.cancel()
+            if self.current_worker:
+                self.current_worker.cancel()
 
 
 def main() -> None:
