@@ -68,6 +68,14 @@ class VibecoreApp(App):
         await messages.mount(message)
         message.scroll_visible()
 
+    def watch_agent_status(self, old_status: AgentStatus, new_status: AgentStatus) -> None:
+        """React to agent_status changes."""
+        footer = self.query_one(AppFooter)
+        if new_status == "running":
+            footer.show_loading()
+        else:
+            footer.hide_loading()
+
     async def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
         """Handle user messages from the text area."""
         if event.text:

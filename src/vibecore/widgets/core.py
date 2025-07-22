@@ -1,4 +1,5 @@
-from typing import override
+import time
+from typing import ClassVar, override
 
 from textual import events, log
 from textual.app import ComposeResult
@@ -22,8 +23,26 @@ class InputBox(Widget):
 
 class AppFooter(Widget):
     def compose(self) -> ComposeResult:
+        yield LoadingWidget(status="Generating…", id="loading-widget")
         yield InputBox()
         yield Footer()
+
+    def on_mount(self) -> None:
+        """Hide loading widget on mount."""
+        self.query_one("#loading-widget").display = False
+
+    def show_loading(self, status: str = "Generating…", metadata: str = "") -> None:
+        """Show the loading widget with given status and metadata."""
+        loading = self.query_one("#loading-widget", LoadingWidget)
+        loading._start_time = time.monotonic()  # Reset the timer
+        loading.update_status(status)
+        if metadata:
+            loading.update_metadata(metadata)
+        loading.display = True
+
+    def hide_loading(self) -> None:
+        """Hide the loading widget."""
+        self.query_one("#loading-widget").display = False
 
 
 class MyTextArea(TextArea):
@@ -79,3 +98,108 @@ class MyTextArea(TextArea):
 
 class MainScroll(ScrollableContainer):
     """A container with vertical layout and an automatic scrollbar on the Y axis."""
+
+
+class LoadingWidget(Widget):
+    """A loading indicator with spinner, status text, and metadata."""
+
+    DEFAULT_CSS = """
+    LoadingWidget {
+        width: 1fr;
+        height: 1;
+        padding: 0 1;
+    }
+
+    LoadingWidget .loading-spinner {
+        color: $primary;
+    }
+
+    LoadingWidget .loading-status {
+        color: $text;
+        margin: 0 1;
+    }
+
+    LoadingWidget .loading-metadata {
+        color: $text-muted;
+    }
+    """
+
+    SPINNERS: ClassVar[list[str]] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(
+        self,
+        status: str = "Loading…",
+        show_time: bool = True,
+        show_metadata: bool = True,
+        metadata: str = "",
+        escape_message: str = "esc to interrupt",
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.status = status
+        self.show_time = show_time
+        self.show_metadata = show_metadata
+        self.metadata = metadata
+        self.escape_message = escape_message
+        self._spinner_index = 0
+        self._start_time = time.monotonic()
+        self._spinner_timer = None
+
+    def compose(self) -> ComposeResult:
+        yield Static("", id="loading-content")
+
+    def on_mount(self) -> None:
+        """Start the spinner animation when mounted."""
+        self._spinner_timer = self.set_interval(0.1, self._update_spinner)
+        self._update_display()
+
+    def on_unmount(self) -> None:
+        """Stop the spinner animation when unmounted."""
+        if self._spinner_timer:
+            self._spinner_timer.stop()
+
+    def _update_spinner(self) -> None:
+        """Update the spinner character and elapsed time."""
+        self._spinner_index = (self._spinner_index + 1) % len(self.SPINNERS)
+        self._update_display()
+
+    def _update_display(self) -> None:
+        """Update the entire loading display."""
+        parts = []
+
+        # Spinner
+        spinner = self.SPINNERS[self._spinner_index]
+        parts.append(f"[bold]{spinner}[/bold]")
+
+        # Status text
+        parts.append(self.status)
+
+        # Metadata section
+        metadata_parts = []
+
+        if self.show_time:
+            elapsed = int(time.monotonic() - self._start_time)
+            metadata_parts.append(f"{elapsed}s")
+
+        if self.show_metadata and self.metadata:
+            metadata_parts.append(self.metadata)
+
+        if self.escape_message:
+            metadata_parts.append(self.escape_message)
+
+        if metadata_parts:
+            metadata_str = " · ".join(metadata_parts)
+            parts.append(f"[dim]({metadata_str})[/dim]")
+
+        content = " ".join(parts)
+        self.query_one("#loading-content", Static).update(content)
+
+    def update_status(self, status: str) -> None:
+        """Update the status text."""
+        self.status = status
+        self._update_display()
+
+    def update_metadata(self, metadata: str) -> None:
+        """Update the metadata text."""
+        self.metadata = metadata
+        self._update_display()
