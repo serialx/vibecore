@@ -307,3 +307,252 @@ log("Debug message")  # Appears in console when using textual console
 2. **Widget not updating**: Check if using `refresh()` or `update()` methods correctly
 3. **Async errors**: Remember all event handlers should be async
 4. **Tool execution failures**: Check VibecoreContext is properly passed to tools
+
+## IMPORTANT: OpenAI Agents Library Source Code
+
+⚠️ **MUST READ**: The openai-agents library is a relatively new framework that is actively evolving. When developing features related to agents:
+
+1. **Always examine the openai-agents source code** located in `.venv/lib/python3.13/site-packages/agents/`
+2. **Don't rely solely on documentation** - the source code is the most accurate reference
+3. **Key areas to examine**:
+   - Core agent implementation in `agents/agent.py`
+   - Execution engine in `agents/run.py` and `agents/_run_impl.py`
+   - Tool system in `agents/tool.py`
+   - Model interfaces in `agents/models/interface.py`
+   - Streaming events in `agents/stream_events.py`
+
+This is especially important when:
+- Creating custom tools
+- Implementing streaming responses
+- Working with handoffs and guardrails
+- Debugging agent behavior
+
+## OpenAI Agents SDK Overview
+
+The openai-agents SDK is a comprehensive framework for building AI agents with advanced capabilities like tool use, handoffs, guardrails, and structured output.
+
+### Core Architecture
+
+1. **Agent** (`agents/agent.py`):
+   - Central class representing an AI agent
+   - Configurable with instructions (system prompt), tools, handoffs, guardrails
+   - Supports structured output via output schemas
+   - Generic on context type for state management
+
+2. **Runner** (`agents/run.py`):
+   - Orchestrates agent execution
+   - Manages turn-based conversation flow
+   - Handles tool calls and agent handoffs
+   - Supports both sync (`run_sync`) and streaming (`run_streamed`) modes
+   - Enforces max turns limit (default: 10)
+
+3. **Tool System** (`agents/tool.py`):
+   - **FunctionTool**: User-defined Python functions exposed to agents
+   - **Hosted Tools**: Pre-built tools (FileSearch, WebSearch, CodeInterpreter, Computer)
+   - **MCP Tools**: Model Context Protocol integration
+   - Tools receive context via `RunContextWrapper` or `ToolContext`
+
+4. **Model Abstraction** (`agents/models/`):
+   - Abstract `Model` interface for different LLM providers
+   - Native OpenAI support (Chat Completions & Responses APIs)
+   - LiteLLM integration for 100+ models (Anthropic, Google, etc.)
+   - Model settings for tuning (temperature, top_p, etc.)
+
+### Key Concepts
+
+#### Context Management
+```python
+# Context is passed to tools, guardrails, and handoffs
+class MyContext:
+    def __init__(self):
+        self.todo_manager = TodoManager()
+        self.python_manager = PythonManager()
+
+# Tools receive context wrapper
+@function_tool
+async def my_tool(context: RunContextWrapper[MyContext], param: str) -> str:
+    # Access context data
+    todos = context.context.todo_manager.get_todos()
+    return result
+```
+
+#### Streaming Architecture
+```python
+# Stream events during execution
+result = Runner.run_streamed(agent, "Hello")
+async for event in result.stream_events():
+    if isinstance(event, RunItemStreamEvent):
+        if event.name == "message_output_created":
+            # Handle new message
+        elif event.name == "tool_called":
+            # Handle tool call
+    elif isinstance(event, RawResponsesStreamEvent):
+        # Handle raw LLM events
+```
+
+#### Tool Creation Patterns
+```python
+# Simple function tool
+@function_tool
+def calculate(x: int, y: int) -> int:
+    """Add two numbers together."""
+    return x + y
+
+# Async tool with context
+@function_tool
+async def read_file(
+    context: RunContextWrapper[MyContext], 
+    path: str
+) -> str:
+    """Read a file from disk."""
+    content = await async_read(path)
+    return content
+
+# Tool with custom error handling
+@function_tool
+def risky_operation(param: str) -> str:
+    try:
+        result = perform_operation(param)
+        return result
+    except Exception as e:
+        # Return error string instead of raising
+        return f"Error: {str(e)}"
+```
+
+### Streaming Events
+
+The SDK provides detailed streaming events:
+
+1. **RawResponsesStreamEvent**: Direct LLM response events
+2. **RunItemStreamEvent**: Semantic events with names:
+   - `message_output_created`: New message from agent
+   - `tool_called`: Tool invocation started
+   - `tool_output`: Tool execution completed
+   - `handoff_requested`: Agent handoff initiated
+   - `reasoning_item_created`: Reasoning/thinking content
+
+3. **AgentUpdatedStreamEvent**: Agent changed due to handoff
+
+### Advanced Features
+
+#### Handoffs
+```python
+# Define sub-agents
+research_agent = Agent(
+    name="Researcher",
+    instructions="You research information",
+    tools=[web_search_tool]
+)
+
+main_agent = Agent(
+    name="Main",
+    instructions="You coordinate tasks",
+    handoffs=[research_agent]  # Can delegate to researcher
+)
+```
+
+#### Guardrails
+```python
+@input_guardrail
+async def check_input(context: RunContextWrapper, input: str) -> InputGuardrailResult:
+    if "harmful" in input.lower():
+        return InputGuardrailResult(
+            should_block=True,
+            should_warn=True,
+            message="Potentially harmful content detected"
+        )
+    return InputGuardrailResult(should_block=False)
+
+agent = Agent(
+    name="Safe Agent",
+    input_guardrails=[check_input]
+)
+```
+
+#### Structured Output
+```python
+from dataclasses import dataclass
+
+@dataclass
+class AnalysisResult:
+    summary: str
+    sentiment: str
+    key_points: list[str]
+
+agent = Agent(
+    name="Analyzer",
+    output_type=AnalysisResult  # Agent must return this type
+)
+```
+
+### Model Configuration
+
+The SDK supports multiple model providers:
+
+```python
+# Default OpenAI
+agent = Agent(model="gpt-4o")
+
+# Anthropic via LiteLLM
+from agents.extensions.models import LitellmModel
+agent = Agent(
+    model=LitellmModel("claude-3-5-sonnet-20241022")
+)
+
+# Custom settings
+from agents import ModelSettings
+agent = Agent(
+    model_settings=ModelSettings(
+        temperature=0.7,
+        top_p=0.9,
+        max_tokens=2000
+    )
+)
+```
+
+### Common Patterns in vibecore
+
+1. **Context Usage**:
+   - VibecoreContext passed to all tools
+   - Contains todo_manager and python_manager
+   - Maintains state across tool executions
+
+2. **Tool Organization**:
+   - Each tool category has three modules:
+     - `tool.py`: Tool definitions with @function_tool
+     - `executor.py`: Business logic implementation
+     - `render.py`: UI rendering for tool results
+
+3. **Streaming Integration**:
+   - `_handle_streaming_response` processes events
+   - Updates UI widgets incrementally
+   - Handles tool calls and responses in real-time
+
+### Important Notes
+
+1. **Async by Default**: Most operations are async (tools, guardrails, etc.)
+2. **Error Handling**: Tools should return error strings rather than raising exceptions
+3. **Context Typing**: Use proper generic types for context (e.g., `RunContextWrapper[VibecoreContext]`)
+4. **Tool Schemas**: Enable `strict_json_schema=True` for reliable tool calls
+5. **Tracing**: Built-in tracing support with spans for debugging
+
+### Debugging Tips
+
+1. Enable verbose logging:
+   ```python
+   import agents
+   agents.enable_verbose_stdout_logging()
+   ```
+
+2. Check tool schemas:
+   ```python
+   from agents import _debug
+   _debug.VALIDATE_SCHEMAS = True
+   ```
+
+3. Trace execution:
+   ```python
+   run_config = RunConfig(
+       trace_metadata={"session_id": "debug-123"}
+   )
+   ```
