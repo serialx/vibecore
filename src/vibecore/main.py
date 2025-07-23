@@ -1,5 +1,6 @@
 from typing import ClassVar, Literal
 
+import agents
 from agents import (
     Agent,
     AgentUpdatedStreamEvent,
@@ -178,6 +179,8 @@ def main() -> None:
 
     logger = logging.getLogger("openai.agents")
     logger.addHandler(TextualHandler())
+
+    agents.set_default_openai_api("chat_completions")
 
     ctx = VibecoreContext()
 
