@@ -55,12 +55,82 @@ class MyTextArea(TextArea):
         def __repr__(self) -> str:
             return f"UserMessage(text={self.text!r})"
 
+    def __init__(self, **kwargs) -> None:
+        """Initialize MyTextArea with history tracking."""
+        super().__init__(**kwargs)
+        self.history_index = -1  # -1 means we're typing a new message
+        self.draft_text = ""  # Store the draft when navigating history
+
+    def get_user_history(self) -> list[str]:
+        """Get the list of user messages from the app's input_items."""
+        from vibecore.main import VibecoreApp
+
+        app = self.app
+        if isinstance(app, VibecoreApp):
+            # Extract user messages from input_items
+            history = []
+            for item in app.input_items:
+                if isinstance(item, dict) and item.get("role") == "user":
+                    content = item.get("content")
+                    if isinstance(content, str):
+                        history.append(content)
+            return history
+        return []
+
     @override
     async def _on_key(self, event: events.Key) -> None:
         if event.key == "enter":
             self.post_message(self.UserMessage(self.text))
             self.text = ""
+            self.history_index = -1  # Reset history navigation
+            self.draft_text = ""
             event.prevent_default()
+            return
+
+        # Handle up arrow for history navigation
+        if event.key == "up":
+            if not self.cursor_at_start_of_text:
+                # Move cursor to start of text first
+                await super()._on_key(event)
+                return
+            else:
+                # Navigate to previous history item
+                history = self.get_user_history()
+                if history:
+                    # Save current draft if starting history navigation
+                    if self.history_index == -1:
+                        self.draft_text = self.text
+
+                    # Move to previous item
+                    if self.history_index < len(history) - 1:
+                        self.history_index += 1
+                        self.text = history[-(self.history_index + 1)]
+                        self.move_cursor((0, 0))  # Move cursor to start
+                        event.prevent_default()
+                        return
+
+        # Handle down arrow for history navigation
+        elif event.key == "down":
+            if not self.cursor_at_end_of_text:
+                # Move cursor to end of text first
+                await super()._on_key(event)
+                return
+            else:
+                # Navigate to next history item
+                if self.history_index >= 0:
+                    self.history_index -= 1
+                    if self.history_index == -1:
+                        # Return to draft
+                        self.text = self.draft_text
+                    else:
+                        history = self.get_user_history()
+                        self.text = history[-(self.history_index + 1)]
+                    # Move cursor to end of text
+                    last_line = self.document.line_count - 1
+                    last_column = len(self.document[last_line]) if last_line >= 0 else 0
+                    self.move_cursor((last_line, last_column))
+                    event.prevent_default()
+                    return
 
         self._restart_blink()
 
