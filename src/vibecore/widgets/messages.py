@@ -232,3 +232,67 @@ class ToolMessage(BaseMessage):
                         yield Static(
                             f"… +{len(lines) - N} lines (ctrl+r to expand)", classes="tool-output-content-more"
                         )
+
+
+class PythonToolMessage(BaseMessage):
+    """A widget to display Python code execution messages."""
+
+    code: reactive[str] = reactive("")
+    output: reactive[str] = reactive("", recompose=True)
+
+    def __init__(self, code: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs) -> None:
+        """
+        Construct a PythonToolMessage.
+
+        Args:
+            code: The Python code being executed.
+            output: The output from the execution (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.code = code
+        self.output = output
+
+    def update(self, status: MessageStatus, output: str | None = None) -> None:
+        """Update the status and optionally the output of the Python execution."""
+        self.status = status
+        if output is not None:
+            self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the Python execution message."""
+        # Header line
+        yield MessageHeader("⏺", "Python", status=self.status)
+
+        # Python code display
+        with Horizontal(classes="python-code"):
+            yield Static("└─", classes="python-code-prefix")
+            with Vertical(classes="python-code-content"):
+                # Show the full Python code with syntax highlighting
+                code_lines = self.code.splitlines()
+                if len(code_lines) <= 10:
+                    # Show all lines if 10 or fewer
+                    yield Markdown(f"```python\n{self.code}\n```", classes="python-code-block")
+                else:
+                    # Show first 8 lines with ellipsis if more than 10
+                    truncated_code = "\n".join(code_lines[:8])
+                    yield Markdown(
+                        f"```python\n{truncated_code}\n```",
+                        classes="python-code-block",
+                    )
+                    yield Static(f"… +{len(code_lines) - 8} more lines", classes="python-code-more-lines")
+
+        # Output (only show if we have output)
+        if self.output:
+            lines = self.output.splitlines()
+            N = 5  # Show more lines for Python output
+            first_n_lines = lines[:N]
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    yield Static("\n".join(first_n_lines), classes="tool-output-content-excerpt")
+                    if len(lines) > N:
+                        yield Static(
+                            f"… +{len(lines) - N} lines (ctrl+r to expand)", classes="tool-output-content-more"
+                        )

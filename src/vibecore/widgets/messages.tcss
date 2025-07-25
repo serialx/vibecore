@@ -88,3 +88,67 @@ ToolMessage {
             }
     }
 }
+
+PythonToolMessage {
+    Horizontal.python-code {
+        height: auto;
+
+        &> .python-code-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.python-code-content {
+            height: auto;
+            width: 1fr;
+            
+            Markdown {
+                background: $background;
+                padding: 0;
+                
+                MarkdownFence {
+                    margin: 0;
+                    padding: 0;
+                    max-height: 100%;
+
+                    Static {
+                        # Override MarkdownFence > Static (Syntax) padding/margin
+                        padding: -1 2 -1 0;
+                        margin: 0 0 0 -2;
+                    }
+                }
+            }
+            
+            .python-code-more-lines {
+                color: $text-muted;
+                padding: 0 0 0 2;
+            }
+        }
+    }
+    
+    Horizontal.tool-output {
+        height: auto;
+
+        &> .tool-output-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+        }
+
+        &> Vertical.tool-output-content {
+            height: auto;
+
+            &> .tool-output-content-excerpt {
+                color: $text;
+            }
+
+            &> .tool-output-content-more {
+                color: $text-muted;
+            }
+        }
+    }
+}

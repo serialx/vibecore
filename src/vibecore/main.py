@@ -1,3 +1,4 @@
+import json
 from typing import ClassVar, Literal
 
 from agents import (
@@ -37,7 +38,14 @@ from vibecore.session import JSONLSession
 from vibecore.settings import settings
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
-from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, ToolMessage, UserMessage
+from vibecore.widgets.messages import (
+    AgentMessage,
+    BaseMessage,
+    MessageStatus,
+    PythonToolMessage,
+    ToolMessage,
+    UserMessage,
+)
 
 AgentStatus = Literal["idle", "running"]
 
@@ -111,7 +119,7 @@ class VibecoreApp(App):
                     text_parts.append(text)
         return "".join(text_parts)
 
-    async def add_message(self, message: UserMessage | AgentMessage | ToolMessage) -> None:
+    async def add_message(self, message: UserMessage | AgentMessage | ToolMessage | PythonToolMessage) -> None:
         """Add a message widget to the main scroll area."""
         messages = self.query_one("#messages", MainScroll)
         await messages.mount(message)
@@ -223,7 +231,7 @@ class VibecoreApp(App):
         self.current_result = result
         message_content = ""
         agent_message: AgentMessage | None = None
-        tool_messages: dict[str, ToolMessage] = {}  # Track multiple tool messages by call_id
+        tool_messages: dict[str, ToolMessage | PythonToolMessage] = {}  # Track multiple tool messages by call_id
 
         try:
             async for event in result.stream_events():
@@ -242,7 +250,17 @@ class VibecoreApp(App):
                                 item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
                             ):
                                 # Create and track tool message by its call_id
-                                tool_message = ToolMessage(tool_name, command=arguments)
+                                if tool_name == "execute_python":
+                                    # Parse the arguments to extract the Python code
+                                    try:
+                                        args_dict = json.loads(arguments)
+                                        code = args_dict.get("code", "")
+                                        tool_message = PythonToolMessage(code=code)
+                                    except (json.JSONDecodeError, KeyError):
+                                        # Fallback to regular ToolMessage if parsing fails
+                                        tool_message = ToolMessage(tool_name, command=arguments)
+                                else:
+                                    tool_message = ToolMessage(tool_name, command=arguments)
                                 tool_messages[call_id] = tool_message
                                 await self.add_message(tool_message)
 
