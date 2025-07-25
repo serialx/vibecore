@@ -223,7 +223,7 @@ class VibecoreApp(App):
         self.current_result = result
         message_content = ""
         agent_message: AgentMessage | None = None
-        last_tool_message: ToolMessage | None = None
+        tool_messages: dict[str, ToolMessage] = {}  # Track multiple tool messages by call_id
 
         try:
             async for event in result.stream_events():
@@ -239,19 +239,25 @@ class VibecoreApp(App):
                                     agent_message.update(message_content)
 
                             case ResponseOutputItemDoneEvent(
-                                item=ResponseFunctionToolCall(name=tool_name, arguments=arguments)
+                                item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
                             ):
-                                # TODO(serialx): proper implementation for parallel tool calls
-                                last_tool_message = ToolMessage(tool_name, command=arguments)
-                                await self.add_message(last_tool_message)
+                                # Create and track tool message by its call_id
+                                tool_message = ToolMessage(tool_name, command=arguments)
+                                tool_messages[call_id] = tool_message
+                                await self.add_message(tool_message)
 
                     case RunItemStreamEvent(item=item):
                         match item:
                             case ToolCallItem():
                                 pass
-                            case ToolCallOutputItem(output=output):
-                                if last_tool_message:
-                                    last_tool_message.update(MessageStatus.SUCCESS, str(output))
+                            case ToolCallOutputItem(output=output, raw_item=raw_item):
+                                # Find the corresponding tool message by call_id
+                                if (
+                                    isinstance(raw_item, dict)
+                                    and "call_id" in raw_item
+                                    and raw_item["call_id"] in tool_messages
+                                ):
+                                    tool_messages[raw_item["call_id"]].update(MessageStatus.SUCCESS, str(output))
                             case MessageOutputItem():
                                 if agent_message:
                                     agent_message.update(message_content, status=MessageStatus.IDLE)
