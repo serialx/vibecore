@@ -556,3 +556,60 @@ agent = Agent(
        trace_metadata={"session_id": "debug-123"}
    )
    ```
+
+## Testing with tui-test-engineer Agent
+
+After implementing any new feature or making significant changes to the vibecore TUI application, use the `tui-test-engineer` agent to run automated tests.
+
+### Important: Provide Detailed Test Instructions
+
+The `tui-test-engineer` agent requires **detailed test instructions** in the prompt to execute tests effectively. Include:
+- Specific features to test
+- Expected behaviors and outcomes
+- Test scenarios and edge cases
+- Any special keyboard sequences or interactions
+
+### Example Usage
+
+```python
+# Basic testing with comprehensive test plan
+Task(
+    description="Run comprehensive vibecore TUI functionality tests", 
+    prompt="""Test the vibecore TUI application comprehensively:
+    1. Launch the application and verify UI loads correctly
+    2. Test basic messaging - send messages and verify display
+    3. Test all available tools (read, bash, python, todo)
+    4. Test keyboard shortcuts (Control-Q to exit, 'd' for theme)
+    5. Verify error handling for invalid inputs
+    6. Check that all UI elements render properly""",
+    subagent_type="tui-test-engineer"
+)
+
+# Testing specific feature with detailed instructions
+Task(
+    description="Test vim mode navigation and editing features", 
+    prompt="""Test the vim mode implementation in vibecore:
+    1. Launch the application
+    2. Press 'v' to enter vim mode
+    3. Test navigation with h/j/k/l keys
+    4. Test yank with 'y' and paste with 'p'
+    5. Test visual selection mode
+    6. Verify mode indicators update correctly
+    7. Test exit with ESC key
+    8. Verify all commands work as expected""",
+    subagent_type="tui-test-engineer"
+)
+
+# Testing error handling
+Task(
+    description="Verify error handling and recovery in vibecore TUI", 
+    prompt="""Test error handling in vibecore:
+    1. Try to read a non-existent file
+    2. Execute invalid Python code
+    3. Run a failing shell command
+    4. Test network timeouts
+    5. Verify error messages display correctly
+    6. Ensure app remains stable after errors""",
+    subagent_type="tui-test-engineer"
+)
+```

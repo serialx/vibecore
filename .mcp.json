@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "iterm": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "/Users/serialx/workspace/iterm-mcp"
+      ],
+      "env": {}
+    }
+  }
+}
