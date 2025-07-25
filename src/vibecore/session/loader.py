@@ -1,5 +1,6 @@
 """Session loading functionality for vibecore."""
 
+import json
 from typing import Any
 
 from openai.types.responses import (
@@ -17,6 +18,7 @@ from vibecore.widgets.messages import (
     AgentMessage,
     BaseMessage,
     MessageStatus,
+    PythonToolMessage,
     ToolMessage,
     UserMessage,
 )
@@ -148,7 +150,7 @@ class SessionLoader:
         """
         self.tool_calls_pending[call_id] = (name, arguments)
 
-    def _create_tool_message(self, call_id: str, output: str) -> ToolMessage | None:
+    def _create_tool_message(self, call_id: str, output: str) -> ToolMessage | PythonToolMessage | None:
         """Create tool message by matching call_id with pending calls.
 
         Args:
@@ -156,7 +158,7 @@ class SessionLoader:
             output: The tool output
 
         Returns:
-            A ToolMessage widget or None if no matching call found
+            A ToolMessage or PythonToolMessage widget or None if no matching call found
         """
         if not call_id or call_id not in self.tool_calls_pending:
             return None
@@ -166,6 +168,20 @@ class SessionLoader:
         # Determine status based on output
         output_str = str(output) if output else ""
         status = MessageStatus.SUCCESS
+
+        # Create PythonToolMessage for execute_python tool
+        if tool_name == "execute_python":
+            try:
+                args_dict = json.loads(command)
+                code = args_dict.get("code", "")
+                return PythonToolMessage(
+                    code=code,
+                    output=output_str,
+                    status=status,
+                )
+            except (json.JSONDecodeError, KeyError):
+                # Fallback to regular ToolMessage if parsing fails
+                pass
 
         return ToolMessage(
             tool_name=tool_name,
