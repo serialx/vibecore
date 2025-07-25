@@ -262,6 +262,19 @@ class VibecoreApp(App):
                         log(f"Agent updated: {new_agent.name}")
                         self.agent = new_agent
 
+        except Exception as e:
+            # Log the error
+            log(f"Error during agent response: {type(e).__name__}: {e!s}")
+
+            # Create an error message for the user
+            error_msg = f"❌ Error: {type(e).__name__}"
+            if str(e):
+                error_msg += f"\n\n{e!s}"
+
+            # Display the error to the user
+            # TODO(serialx): Proper way to handle errors should be attaching error message to the last user message
+            error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
+            await self.add_message(error_agent_msg)
         finally:
             # Remove the last agent message if it is still executing (which means the agent run was cancelled)
             messages = self.query_one("#messages", MainScroll)
