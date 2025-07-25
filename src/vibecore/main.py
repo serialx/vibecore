@@ -1,26 +1,15 @@
-import json
 from typing import ClassVar, Literal
 
 from agents import (
     Agent,
-    AgentUpdatedStreamEvent,
-    MessageOutputItem,
-    RawResponsesStreamEvent,
     Runner,
     RunResultStreaming,
-    ToolCallItem,
-    ToolCallOutputItem,
     TResponseInputItem,
-)
-from agents.stream_events import (
-    RunItemStreamEvent,
 )
 from openai.types.responses import (
     ResponseFunctionToolCall,
     ResponseOutputItem,
-    ResponseOutputItemDoneEvent,
     ResponseOutputMessage,
-    ResponseTextDeltaEvent,
 )
 from openai.types.responses.response_output_message import Content
 from openai.types.responses.response_output_refusal import ResponseOutputRefusal
@@ -34,13 +23,13 @@ from textual.widgets import Header
 from textual.worker import Worker
 
 from vibecore.context import VibecoreContext
+from vibecore.handlers import StreamHandler
 from vibecore.session import JSONLSession
 from vibecore.settings import settings
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
 from vibecore.widgets.messages import (
     AgentMessage,
-    BaseMessage,
     MessageStatus,
     PythonToolMessage,
     ToolMessage,
@@ -235,86 +224,13 @@ class VibecoreApp(App):
     async def handle_streamed_response(self, result: RunResultStreaming) -> None:
         self.agent_status = "running"
         self.current_result = result
-        message_content = ""
-        agent_message: AgentMessage | None = None
-        tool_messages: dict[str, ToolMessage | PythonToolMessage] = {}  # Track multiple tool messages by call_id
 
-        try:
-            async for event in result.stream_events():
-                match event:
-                    case RawResponsesStreamEvent(data=data):
-                        match data:
-                            case ResponseTextDeltaEvent(delta=delta) if delta:
-                                message_content += delta
-                                if not agent_message:
-                                    agent_message = AgentMessage(message_content, status=MessageStatus.EXECUTING)
-                                    await self.add_message(agent_message)
-                                else:
-                                    agent_message.update(message_content)
+        handler = StreamHandler(self)
+        await handler.process_stream(result)
 
-                            case ResponseOutputItemDoneEvent(
-                                item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
-                            ):
-                                # Create and track tool message by its call_id
-                                if tool_name == "execute_python":
-                                    # Parse the arguments to extract the Python code
-                                    try:
-                                        args_dict = json.loads(arguments)
-                                        code = args_dict.get("code", "")
-                                        tool_message = PythonToolMessage(code=code)
-                                    except (json.JSONDecodeError, KeyError):
-                                        # Fallback to regular ToolMessage if parsing fails
-                                        tool_message = ToolMessage(tool_name, command=arguments)
-                                else:
-                                    tool_message = ToolMessage(tool_name, command=arguments)
-                                tool_messages[call_id] = tool_message
-                                await self.add_message(tool_message)
-
-                    case RunItemStreamEvent(item=item):
-                        match item:
-                            case ToolCallItem():
-                                pass
-                            case ToolCallOutputItem(output=output, raw_item=raw_item):
-                                # Find the corresponding tool message by call_id
-                                if (
-                                    isinstance(raw_item, dict)
-                                    and "call_id" in raw_item
-                                    and raw_item["call_id"] in tool_messages
-                                ):
-                                    tool_messages[raw_item["call_id"]].update(MessageStatus.SUCCESS, str(output))
-                            case MessageOutputItem():
-                                if agent_message:
-                                    agent_message.update(message_content, status=MessageStatus.IDLE)
-                                    agent_message = None
-                                    message_content = ""
-
-                    case AgentUpdatedStreamEvent(new_agent=new_agent):
-                        log(f"Agent updated: {new_agent.name}")
-                        self.agent = new_agent
-
-        except Exception as e:
-            # Log the error
-            log(f"Error during agent response: {type(e).__name__}: {e!s}")
-
-            # Create an error message for the user
-            error_msg = f"❌ Error: {type(e).__name__}"
-            if str(e):
-                error_msg += f"\n\n{e!s}"
-
-            # Display the error to the user
-            # TODO(serialx): Proper way to handle errors should be attaching error message to the last user message
-            error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
-            await self.add_message(error_agent_msg)
-        finally:
-            # Remove the last agent message if it is still executing (which means the agent run was cancelled)
-            messages = self.query_one("#messages", MainScroll)
-            last_message = messages.query_one("BaseMessage:last-child", BaseMessage)
-            if last_message.status == MessageStatus.EXECUTING:
-                last_message.remove()
-
-            self.agent_status = "idle"
-            self.current_result = None
-            self.current_worker = None
+        self.agent_status = "idle"
+        self.current_result = None
+        self.current_worker = None
 
     def on_click(self) -> None:
         """Handle focus events."""
