@@ -61,19 +61,41 @@ class MyTextArea(TextArea):
         self.history_index = -1  # -1 means we're typing a new message
         self.draft_text = ""  # Store the draft when navigating history
 
-    def get_user_history(self) -> list[str]:
-        """Get the list of user messages from the app's input_items."""
+    async def get_user_history(self) -> list[str]:
+        """Get the list of user messages from the session and current input_items."""
         from vibecore.main import VibecoreApp
 
         app = self.app
         if isinstance(app, VibecoreApp):
-            # Extract user messages from input_items
             history = []
+
+            # First, load history from the session
+            if app.session:
+                try:
+                    # Get all items from the session
+                    session_items = await app.session.get_items()
+                    for item in session_items:
+                        # Filter for user messages
+                        if isinstance(item, dict):
+                            # Check both "role" and "type" fields for compatibility
+                            role = item.get("role") or item.get("type")
+                            if role == "user":
+                                content = item.get("content")
+                                if isinstance(content, str):
+                                    history.append(content)
+                except Exception as e:
+                    # Log error but don't crash
+                    from textual import log
+
+                    log(f"Error loading session history: {e}")
+
+            # Then add current session's messages (in memory, not yet persisted)
             for item in app.input_items:
                 if isinstance(item, dict) and item.get("role") == "user":
                     content = item.get("content")
-                    if isinstance(content, str):
+                    if isinstance(content, str) and content not in history:
                         history.append(content)
+
             return history
         return []
 
@@ -95,7 +117,7 @@ class MyTextArea(TextArea):
                 return
             else:
                 # Navigate to previous history item
-                history = self.get_user_history()
+                history = await self.get_user_history()
                 if history:
                     # Save current draft if starting history navigation
                     if self.history_index == -1:
@@ -123,7 +145,7 @@ class MyTextArea(TextArea):
                         # Return to draft
                         self.text = self.draft_text
                     else:
-                        history = self.get_user_history()
+                        history = await self.get_user_history()
                         self.text = history[-(self.history_index + 1)]
                     # Move cursor to end of text
                     last_line = self.document.line_count - 1

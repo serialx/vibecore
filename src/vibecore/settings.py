@@ -1,13 +1,28 @@
 """Settings configuration for Vibecore application."""
 
 import os
+from pathlib import Path
+from typing import Literal
 
 from agents import Model, OpenAIChatCompletionsModel
 from agents.models.multi_provider import MultiProvider
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, YamlConfigSettingsSource
 
 from vibecore.models import AnthropicModel
+
+
+class SessionSettings(BaseModel):
+    """Configuration for session storage."""
+
+    storage_type: Literal["jsonl", "sqlite"] = Field(
+        default="jsonl",
+        description="Type of storage backend for sessions",
+    )
+    base_dir: Path = Field(
+        default=Path.home() / ".vibecore",
+        description="Base directory for session storage",
+    )
 
 
 class Settings(BaseSettings):
@@ -39,10 +54,10 @@ class Settings(BaseSettings):
         description="Maximum number of turns for agent conversation",
     )
 
-    # Session persistence configuration
-    session_dir: str = Field(
-        default="~/.vibecore",
-        description="Base directory for session storage",
+    # Session configuration
+    session: SessionSettings = Field(
+        default_factory=SessionSettings,
+        description="Session storage configuration",
     )
 
     @property

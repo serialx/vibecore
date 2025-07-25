@@ -12,10 +12,11 @@ dependencies = [
     "openai-agents[litellm]>=0.2.2",
     "pydantic-settings>=2.10.1",
     "textual>=4.0.0",
+    "typer>=0.14.0",
 ]
 
 [project.scripts]
-vibecore = "vibecore.main:main"
+vibecore = "vibecore.cli:main"
 
 [build-system]
 requires = ["hatchling"]
