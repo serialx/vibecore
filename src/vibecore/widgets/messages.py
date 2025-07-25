@@ -53,6 +53,53 @@ class ExpandableContent(Widget):
             event.stop()
 
 
+class ExpandableMarkdown(Widget):
+    """A widget that shows truncated Markdown content with an expandable button."""
+
+    expanded: reactive[bool] = reactive(False, recompose=True)
+
+    def __init__(self, code: str, language: str = "python", truncated_lines: int = 8, **kwargs) -> None:
+        """
+        Initialize the ExpandableMarkdown widget.
+
+        Args:
+            code: The full code to display
+            language: Programming language for syntax highlighting
+            truncated_lines: Number of lines to show when collapsed
+            **kwargs: Additional keyword arguments for Widget
+        """
+        super().__init__(**kwargs)
+        self.code = code
+        self.language = language
+        self.truncated_lines = truncated_lines
+        self.lines = code.splitlines()
+        self.total_lines = len(self.lines)
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets based on expanded state."""
+        if self.expanded:
+            # Show all code
+            yield Markdown(f"```{self.language}\n{self.code}\n```", classes="expandable-markdown-full")
+            yield Static("▲ collapse", classes="expandable-toggle expanded")
+        else:
+            # Show truncated code
+            if self.total_lines > self.truncated_lines:
+                truncated_code = "\n".join(self.lines[: self.truncated_lines])
+                yield Markdown(f"```{self.language}\n{truncated_code}\n```", classes="expandable-markdown-truncated")
+                remaining_lines = self.total_lines - self.truncated_lines
+                yield Static(f"… +{remaining_lines} more lines (view)", classes="expandable-toggle collapsed")
+            else:
+                # If code fits, just show it all
+                yield Markdown(f"```{self.language}\n{self.code}\n```", classes="expandable-markdown-full")
+
+    def on_click(self, event: Click) -> None:
+        """Handle click events to toggle expansion."""
+        # Only toggle if we clicked on the toggle element
+        if event.widget and event.widget.has_class("expandable-toggle"):
+            self.expanded = not self.expanded
+            event.stop()
+
+
 class MessageStatus(StrEnum):
     """Status values for messages."""
 
@@ -314,23 +361,11 @@ class PythonToolMessage(BaseMessage):
         with Horizontal(classes="python-code"):
             yield Static("└─", classes="python-code-prefix")
             yield Button("Copy", classes="copy-button", variant="primary")
-            with Vertical(classes="python-code-content"):
-                # Show the full Python code with syntax highlighting
-                code_lines = self.code.splitlines()
-                # Create a container for the code block and copy button
-                # Copy button positioned in top-right
-                with Vertical(classes="code-container"):
-                    if len(code_lines) <= 10:
-                        # Show all lines if 10 or fewer
-                        yield Markdown(f"```python\n{self.code}\n```", classes="python-code-block")
-                    else:
-                        # Show first 8 lines with ellipsis if more than 10
-                        truncated_code = "\n".join(code_lines[:8])
-                        yield Markdown(
-                            f"```python\n{truncated_code}\n```",
-                            classes="python-code-block",
-                        )
-                        yield Static(f"… +{len(code_lines) - 8} more lines", classes="python-code-more-lines")
+            with Vertical(classes="python-code-content code-container"):
+                # Use ExpandableMarkdown for code display
+                yield ExpandableMarkdown(
+                    self.code, language="python", truncated_lines=8, classes="python-code-expandable"
+                )
 
         # Output (only show if we have output)
         if self.output:
