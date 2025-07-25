@@ -6,15 +6,7 @@ from agents import (
     RunResultStreaming,
     TResponseInputItem,
 )
-from openai.types.responses import (
-    ResponseFunctionToolCall,
-    ResponseOutputItem,
-    ResponseOutputMessage,
-)
 from openai.types.responses.response_output_message import Content
-from openai.types.responses.response_output_refusal import ResponseOutputRefusal
-from openai.types.responses.response_output_text import ResponseOutputText
-from pydantic import TypeAdapter
 from textual import log, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -25,16 +17,12 @@ from textual.worker import Worker
 from vibecore.context import VibecoreContext
 from vibecore.handlers import StreamHandler
 from vibecore.session import JSONLSession
+from vibecore.session.loader import SessionLoader
 from vibecore.settings import settings
+from vibecore.utils.text import TextExtractor
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
-from vibecore.widgets.messages import (
-    AgentMessage,
-    MessageStatus,
-    PythonToolMessage,
-    ToolMessage,
-    UserMessage,
-)
+from vibecore.widgets.messages import BaseMessage, UserMessage
 
 AgentStatus = Literal["idle", "running"]
 
@@ -103,97 +91,28 @@ class VibecoreApp(App):
             await self.load_session_history()
 
     def extract_text_from_content(self, content: list[Content]) -> str:
-        """Extract text from various content formats, inspired by ItemHelpers.text_message_output."""
-        # Extract text from content array format (similar to ItemHelpers logic)
-        text_parts = []
-        for item in content:
-            match item:
-                case ResponseOutputText(text=text):
-                    text_parts.append(text)
-                case ResponseOutputRefusal(refusal=text):
-                    text_parts.append(text)
-        return "".join(text_parts)
+        """Extract text from various content formats."""
+        return TextExtractor.extract_from_content(content)
 
-    async def add_message(self, message: UserMessage | AgentMessage | ToolMessage | PythonToolMessage) -> None:
+    async def add_message(self, message: BaseMessage) -> None:
         """Add a message widget to the main scroll area."""
         messages = self.query_one("#messages", MainScroll)
         await messages.mount(message)
 
     async def load_session_history(self) -> None:
         """Load and display messages from session history."""
-        # Get all items from the session
-        session_items = await self.session.get_items()
+        loader = SessionLoader(self.session)
+        messages = await loader.load_history()
 
-        # Remove the Welcome widget if present
-        if session_items:
+        # Remove Welcome widget if we have messages
+        if messages:
             welcome = self.query_one("#messages").query("Welcome")
             if welcome:
                 welcome.first().remove()
 
-        # Process each item - some will convert to output items, others we'll handle directly
-        adapter = TypeAdapter(ResponseOutputItem)
-        tool_calls_pending: dict[str, tuple[str, str]] = {}  # Track pending tool calls by ID
-
-        for item in session_items:
-            # Try to convert to output item first
-            try:
-                output_item = adapter.validate_python(item)
-
-                match output_item:
-                    case ResponseOutputMessage(role="user", content=content):
-                        # User message
-                        text_content = self.extract_text_from_content(content)
-                        user_msg = UserMessage(text_content)
-                        await self.add_message(user_msg)
-
-                    case ResponseOutputMessage(role="assistant", content=content):
-                        # Handle assistant messages
-                        text_content = self.extract_text_from_content(content)
-                        if text_content:
-                            # If agent decides to immediately tool call, we often have no text content
-                            agent_msg = AgentMessage(text_content, status=MessageStatus.IDLE)
-                            await self.add_message(agent_msg)
-
-                    case ResponseFunctionToolCall(call_id=call_id, name=name, arguments=arguments) if call_id:
-                        log(f"Tool call: {name} with arguments: {arguments}")
-                        # Tool call - store for matching with output
-                        tool_calls_pending[call_id] = (name, str(arguments))
-
-                    case _:
-                        # Log unknown output item types for debugging
-                        log(f"Unknown output item type: {type(output_item).__name__}")
-
-            except Exception:
-                # If it's not a valid output item, handle it as an input-only item
-                if isinstance(item, dict):
-                    match item:
-                        case {"role": "user", "content": content}:
-                            # User message input (EasyInputMessageParam is not convertible to ResponseOutputMessage)
-                            text_content = str(content) if isinstance(content, list) else content
-                            user_msg = UserMessage(text_content)
-                            await self.add_message(user_msg)
-                        case {"type": "function_call_output", "call_id": call_id, "output": output}:
-                            # Tool output - check if we have a pending call
-                            if call_id and call_id in tool_calls_pending:
-                                tool_name, command = tool_calls_pending.pop(call_id)
-
-                                # Determine status based on output
-                                output_str = str(output) if output else ""
-                                status = MessageStatus.SUCCESS
-
-                                tool_msg = ToolMessage(
-                                    tool_name=tool_name,
-                                    command=command,
-                                    output=output_str,
-                                    status=status,
-                                )
-                                await self.add_message(tool_msg)
-                        case _:
-                            # Log unhandled input items
-                            log(f"Unhandled session item: {item}")
-
-        if tool_calls_pending:
-            raise RuntimeError(f"Pending tool calls without outputs found: {tool_calls_pending}")
+        # Add all messages to the UI
+        for message in messages:
+            await self.add_message(message)
 
     def watch_agent_status(self, _old_status: AgentStatus, new_status: AgentStatus) -> None:
         """React to agent_status changes."""
