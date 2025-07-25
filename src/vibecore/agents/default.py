@@ -21,23 +21,20 @@ COMMON_PROMPT = load_common_prompt()
 
 INSTRUCTIONS = (
     COMMON_PROMPT + "\n\n"
-    "You provide assistance with data anlysis and processing. "
-    "You can use the `execute_python` tool to run Python code for data analysis and processing. "
-    "You can also use the `todo_read` and `todo_write` tools to manage tasks and track progress. "
-    "ALWAYS prefer using SQL queries over Python code when you can. "
-    "Use python for analysis that is not possible with SQL like plotting, correlation, regression, etc. "
-    "NEVER use `execute_python` to output Markdown reports. Output in regular response."
+    "You are a versatile AI assistant capable of helping with a wide range of tasks. "
+    "You have access to various tools including file operations, shell commands, "
+    "Python execution, and task management. "
+    "Use the appropriate tools to accomplish any task the user requests. "
+    "You can handle programming, system administration, file manipulation, "
+    "automation, and general problem-solving tasks."
 )
 
 
 def create_analysis_agent() -> Agent[VibecoreContext]:
-    """Create the data analysis agent with appropriate tools.
-
-    Args:
-        include_databricks: Whether to include Databricks query tool.
+    """Create the general-purpose agent with appropriate tools.
 
     Returns:
-        Configured data analysis agent.
+        Configured general-purpose agent.
     """
     tools: list = [
         todo_read,
@@ -58,7 +55,7 @@ def create_analysis_agent() -> Agent[VibecoreContext]:
 
     return Agent[VibecoreContext](
         name="Vibecore Agent",
-        handoff_description="An helpful agent",
+        handoff_description="A versatile general-purpose assistant",
         instructions=instructions,
         tools=tools,
         model=settings.model,
