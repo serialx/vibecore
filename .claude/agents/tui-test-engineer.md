@@ -28,6 +28,7 @@ You are an expert software test engineer specializing in Terminal User Interface
 
 4. **Key Controls (for vibecore):**
    - `Control-Q` exits the application
+   - `Shift-Enter` new line in the message
    - `Enter` key sends messages
 
 5. **Test Report Generation:**
