@@ -4,7 +4,7 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Markdown, Static
+from textual.widgets import Button, Markdown, Static
 
 
 class MessageStatus(StrEnum):
@@ -260,6 +260,12 @@ class PythonToolMessage(BaseMessage):
         if output is not None:
             self.output = output
 
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
+        if event.button.has_class("copy-button"):
+            # Copy the Python code to clipboard
+            self.app.copy_to_clipboard(self.code)
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the Python execution message."""
         # Header line
@@ -268,20 +274,24 @@ class PythonToolMessage(BaseMessage):
         # Python code display
         with Horizontal(classes="python-code"):
             yield Static("└─", classes="python-code-prefix")
+            yield Button("Copy", classes="copy-button", variant="primary")
             with Vertical(classes="python-code-content"):
                 # Show the full Python code with syntax highlighting
                 code_lines = self.code.splitlines()
-                if len(code_lines) <= 10:
-                    # Show all lines if 10 or fewer
-                    yield Markdown(f"```python\n{self.code}\n```", classes="python-code-block")
-                else:
-                    # Show first 8 lines with ellipsis if more than 10
-                    truncated_code = "\n".join(code_lines[:8])
-                    yield Markdown(
-                        f"```python\n{truncated_code}\n```",
-                        classes="python-code-block",
-                    )
-                    yield Static(f"… +{len(code_lines) - 8} more lines", classes="python-code-more-lines")
+                # Create a container for the code block and copy button
+                # Copy button positioned in top-right
+                with Vertical(classes="code-container"):
+                    if len(code_lines) <= 10:
+                        # Show all lines if 10 or fewer
+                        yield Markdown(f"```python\n{self.code}\n```", classes="python-code-block")
+                    else:
+                        # Show first 8 lines with ellipsis if more than 10
+                        truncated_code = "\n".join(code_lines[:8])
+                        yield Markdown(
+                            f"```python\n{truncated_code}\n```",
+                            classes="python-code-block",
+                        )
+                        yield Static(f"… +{len(code_lines) - 8} more lines", classes="python-code-more-lines")
 
         # Output (only show if we have output)
         if self.output:
