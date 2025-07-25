@@ -372,4 +372,4 @@ class PythonToolMessage(BaseMessage):
             with Horizontal(classes="tool-output"):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
-                    yield ExpandableContent(self.output, truncated_lines=5, classes="tool-output-expandable")
+                    yield ExpandableMarkdown(self.output, truncated_lines=5, classes="tool-output-expandable")
