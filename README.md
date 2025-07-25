@@ -15,6 +15,10 @@
 
 ---
 
+<p align="center" style="max-width: 800px; margin: 0 auto;">
+    <img src="docs/images/screenshot.png" alt="vibecore terminal screenshot" style="max-width: 100%; height: auto;">
+</p>
+
 ## Overview
 
 vibecore is a **Do-it-yourself Agent Framework** that transforms your terminal into a powerful AI workspace. More than just a chat interface, it's a complete platform for building and orchestrating custom AI agents that can manipulate files, execute code, run shell commands, and manage complex workflows—all from the comfort of your terminal.
@@ -100,10 +104,6 @@ vibecore comes with powerful built-in tools:
 - Track task progress
 - Organize complex workflows
 ```
-
-### Screenshot
-
-![vibecore terminal screenshot](docs/images/screenshot.png)
 
 ## Development
 
