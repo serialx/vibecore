@@ -2,9 +2,55 @@ from enum import StrEnum
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.events import Click
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Button, Markdown, Static
+
+
+class ExpandableContent(Widget):
+    """A widget that shows truncated content with an expandable button."""
+
+    expanded: reactive[bool] = reactive(False, recompose=True)
+
+    def __init__(self, content: str, truncated_lines: int = 3, **kwargs) -> None:
+        """
+        Initialize the ExpandableContent widget.
+
+        Args:
+            content: The full content to display
+            truncated_lines: Number of lines to show when collapsed
+            **kwargs: Additional keyword arguments for Widget
+        """
+        super().__init__(**kwargs)
+        self.content = content
+        self.truncated_lines = truncated_lines
+        self.lines = content.splitlines()
+        self.total_lines = len(self.lines)
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets based on expanded state."""
+        if self.expanded:
+            # Show all content
+            yield Static(self.content, classes="expandable-content-full")
+            yield Static("▲ collapse", classes="expandable-toggle expanded")
+        else:
+            # Show truncated content
+            if self.total_lines > self.truncated_lines:
+                truncated_content = "\n".join(self.lines[: self.truncated_lines])
+                yield Static(truncated_content, classes="expandable-content-truncated")
+                remaining_lines = self.total_lines - self.truncated_lines
+                yield Static(f"… +{remaining_lines} more lines (view)", classes="expandable-toggle collapsed")
+            else:
+                # If content fits, just show it all
+                yield Static(self.content, classes="expandable-content-full")
+
+    def on_click(self, event: Click) -> None:
+        """Handle click events to toggle expansion."""
+        # Only toggle if we clicked on the toggle element
+        if event.widget and event.widget.has_class("expandable-toggle"):
+            self.expanded = not self.expanded
+            event.stop()
 
 
 class MessageStatus(StrEnum):
@@ -221,17 +267,10 @@ class ToolMessage(BaseMessage):
 
         # # Output lines (only show if we have output)
         if self.output:
-            lines = self.output.splitlines()
-            N = 3
-            first_n_lines = lines[:N]
             with Horizontal(classes="tool-output"):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
-                    yield Static("\n".join(first_n_lines), classes="tool-output-content-excerpt")
-                    if len(lines) > N:
-                        yield Static(
-                            f"… +{len(lines) - N} lines (ctrl+r to expand)", classes="tool-output-content-more"
-                        )
+                    yield ExpandableContent(self.output, truncated_lines=3, classes="tool-output-expandable")
 
 
 class PythonToolMessage(BaseMessage):
@@ -295,14 +334,7 @@ class PythonToolMessage(BaseMessage):
 
         # Output (only show if we have output)
         if self.output:
-            lines = self.output.splitlines()
-            N = 5  # Show more lines for Python output
-            first_n_lines = lines[:N]
             with Horizontal(classes="tool-output"):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
-                    yield Static("\n".join(first_n_lines), classes="tool-output-content-excerpt")
-                    if len(lines) > N:
-                        yield Static(
-                            f"… +{len(lines) - N} lines (ctrl+r to expand)", classes="tool-output-content-more"
-                        )
+                    yield ExpandableContent(self.output, truncated_lines=5, classes="tool-output-expandable")

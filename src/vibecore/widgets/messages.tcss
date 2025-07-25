@@ -181,3 +181,32 @@ PythonToolMessage {
         }
     }
 }
+
+/* Expandable Content Widget Styles */
+ExpandableContent {
+    height: auto;
+    width: auto;
+    
+    .expandable-content-truncated, .expandable-content-full {
+        padding: 0;
+        margin: 0;
+    }
+    
+    .expandable-toggle {
+        padding: 0 0 0 0;
+        margin: 0 0 0 0;
+        width: auto;
+        
+        &:hover {
+            color: $primary;
+        }
+        
+        &.collapsed {
+            margin-top: 0;
+        }
+        
+        &.expanded {
+            margin-top: 1;
+        }
+    }
+}
