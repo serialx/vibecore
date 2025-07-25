@@ -1,0 +1,71 @@
+/* Expandable Content Widget Styles */
+ExpandableContent {
+    height: auto;
+    width: auto;
+    
+    .expandable-content-truncated, .expandable-content-full {
+        padding: 0;
+        margin: 0;
+        height: auto;
+        width: auto;
+    }
+    
+    .expandable-toggle {
+        padding: 0 0 0 0;
+        margin: 0 0 0 0;
+        width: auto;
+        
+        &:hover {
+            color: $primary;
+        }
+        
+        &.collapsed {
+            margin-top: 0;
+        }
+        
+        &.expanded {
+            margin-top: 1;
+        }
+    }
+}
+
+/* Expandable Markdown Widget Styles */
+ExpandableMarkdown {
+    height: auto;
+    width: 100%;
+    
+    Markdown {
+        background: $background;
+        padding: 0;
+        
+        MarkdownFence {
+            margin: 0;
+            padding: 0;
+            max-height: 100%;
+
+            Static {
+                # Override MarkdownFence > Static (Syntax) padding/margin
+                padding: -1 2 -1 0;
+                margin: 0 0 0 -2;
+            }
+        }
+    }
+    
+    .expandable-toggle {
+        padding: 0 0 0 2;
+        margin: 0 0 0 0;
+        width: auto;
+        
+        &:hover {
+            color: $primary;
+        }
+        
+        &.collapsed {
+            margin-top: 0;
+        }
+        
+        &.expanded {
+            margin-top: 1;
+        }
+    }
+}

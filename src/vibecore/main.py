@@ -53,7 +53,13 @@ AgentStatus = Literal["idle", "running"]
 class VibecoreApp(App):
     """A Textual app to manage stopwatches."""
 
-    CSS_PATH: ClassVar = ["widgets/core.tcss", "widgets/messages.tcss", "widgets/info.tcss", "main.tcss"]
+    CSS_PATH: ClassVar = [
+        "widgets/core.tcss",
+        "widgets/messages.tcss",
+        "widgets/expandable.tcss",
+        "widgets/info.tcss",
+        "main.tcss",
+    ]
     BINDINGS: ClassVar = [
         ("ctrl+shift+d", "toggle_dark", "Toggle dark mode"),
         Binding("escape", "cancel_agent", "Cancel agent", show=False),
