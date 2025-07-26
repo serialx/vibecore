@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
@@ -39,7 +39,7 @@ Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](h
 
 ### Prerequisites
 
-- Python 3.13 or higher
+- Python 3.11 or higher
 - [uv](https://github.com/astral-sh/uv) package manager
 
 ### Quick Start
@@ -230,7 +230,9 @@ vibecore is built with a modular, extensible architecture:
 
 ## Roadmap
 
+- [ ] More custom tool views (todo, etc)
 - [ ] Automation (vibecode -p "prompt")
+- [ ] Permission model
 - [ ] Multi-agent system (agent-as-tools)
 - [ ] Plugin system for custom tools
 - [ ] Automated workflow
