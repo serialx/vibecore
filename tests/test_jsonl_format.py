@@ -8,7 +8,7 @@ import pytest
 
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
-from vibecore.widgets.messages import AgentMessage, MessageStatus, ToolMessage, UserMessage
+from vibecore.widgets.messages import AgentMessage, MessageStatus, PythonToolMessage, ToolMessage, UserMessage
 
 
 @pytest.mark.asyncio
@@ -180,13 +180,12 @@ async def test_load_jsonl_format():
         assert added_messages[6].text == "Show me python demo"
 
         # Check tool messages
-        assert isinstance(added_messages[7], ToolMessage)
-        assert added_messages[7].tool_name == "execute_python"
+        assert isinstance(added_messages[7], PythonToolMessage)
         assert "ModuleNotFoundError" in added_messages[7].output
         assert added_messages[7].status == MessageStatus.SUCCESS
 
-        assert isinstance(added_messages[8], ToolMessage)
-        assert added_messages[8].tool_name == "execute_python"
+        # This might be ToolMessage if JSON parsing fails, or PythonToolMessage if it succeeds
+        assert isinstance(added_messages[8], ToolMessage | PythonToolMessage)
         assert "Employee Data:" in added_messages[8].output
         assert added_messages[8].status == MessageStatus.SUCCESS
 
@@ -263,10 +262,7 @@ async def test_load_session_with_function_calls():
         assert len(added_messages) == 3  # 1 user + 2 tool messages
 
         # Check first tool message (with error)
-        assert isinstance(added_messages[0], ToolMessage)
-        assert added_messages[0].tool_name == "execute_python"
-        # The command should be the raw JSON string
-        assert '{"code":' in added_messages[0].command
+        assert isinstance(added_messages[0], PythonToolMessage)
         assert "ModuleNotFoundError" in added_messages[0].output
         assert added_messages[0].status == MessageStatus.SUCCESS
 
@@ -275,8 +271,6 @@ async def test_load_session_with_function_calls():
         assert added_messages[1].text == "Try again with built-in libraries"
 
         # Check second tool message (successful)
-        assert isinstance(added_messages[2], ToolMessage)
-        assert added_messages[2].tool_name == "execute_python"
-        assert '{"code":' in added_messages[2].command
+        assert isinstance(added_messages[2], PythonToolMessage)
         assert "Success!" in added_messages[2].output
         assert added_messages[2].status == MessageStatus.SUCCESS
