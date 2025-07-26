@@ -19,6 +19,7 @@ from vibecore.widgets.messages import (
     BaseMessage,
     MessageStatus,
     PythonToolMessage,
+    TodoWriteToolMessage,
     ToolMessage,
     UserMessage,
 )
@@ -150,7 +151,9 @@ class SessionLoader:
         """
         self.tool_calls_pending[call_id] = (name, arguments)
 
-    def _create_tool_message(self, call_id: str, output: str) -> ToolMessage | PythonToolMessage | None:
+    def _create_tool_message(
+        self, call_id: str, output: str
+    ) -> ToolMessage | PythonToolMessage | TodoWriteToolMessage | None:
         """Create tool message by matching call_id with pending calls.
 
         Args:
@@ -176,6 +179,20 @@ class SessionLoader:
                 code = args_dict.get("code", "")
                 return PythonToolMessage(
                     code=code,
+                    output=output_str,
+                    status=status,
+                )
+            except (json.JSONDecodeError, KeyError):
+                # Fallback to regular ToolMessage if parsing fails
+                pass
+
+        # Create TodoWriteToolMessage for todo_write tool
+        if tool_name == "todo_write":
+            try:
+                args_dict = json.loads(command)
+                todos = args_dict.get("todos", [])
+                return TodoWriteToolMessage(
+                    todos=todos,
                     output=output_str,
                     status=status,
                 )

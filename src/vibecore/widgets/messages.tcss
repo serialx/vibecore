@@ -150,3 +150,41 @@ PythonToolMessage {
         }
     }
 }
+
+TodoWriteToolMessage {
+    Horizontal.todo-list {
+        height: auto;
+
+        &> .todo-list-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.todo-list-content {
+            height: auto;
+            width: 1fr;
+            
+            .todo-item {
+                height: auto;
+                margin-left: 0;
+                padding: 0;
+                
+                &.in_progress {
+                    color: $success;
+                }
+                
+                &.pending {
+                    color: $text;
+                }
+                
+                &.completed {
+                    color: $text-muted;
+                    text-style: dim;
+                }
+            }
+        }
+    }
+}

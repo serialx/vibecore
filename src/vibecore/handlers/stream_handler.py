@@ -25,6 +25,7 @@ from vibecore.widgets.messages import (
     BaseMessage,
     MessageStatus,
     PythonToolMessage,
+    TodoWriteToolMessage,
     ToolMessage,
 )
 
@@ -44,7 +45,7 @@ class StreamHandler:
         self.app = app
         self.message_content = ""
         self.agent_message: AgentMessage | None = None
-        self.tool_messages: dict[str, ToolMessage | PythonToolMessage] = {}
+        self.tool_messages: dict[str, ToolMessage | PythonToolMessage | TodoWriteToolMessage] = {}
 
     async def handle_text_delta(self, delta: str) -> None:
         """Handle incremental text updates from the agent.
@@ -73,6 +74,15 @@ class StreamHandler:
                 args_dict = json.loads(arguments)
                 code = args_dict.get("code", "")
                 tool_message = PythonToolMessage(code=code)
+            except (json.JSONDecodeError, KeyError):
+                # Fallback to regular ToolMessage if parsing fails
+                tool_message = ToolMessage(tool_name, command=arguments)
+        elif tool_name == "todo_write":
+            # Parse the arguments to extract the todos
+            try:
+                args_dict = json.loads(arguments)
+                todos = args_dict.get("todos", [])
+                tool_message = TodoWriteToolMessage(todos=todos)
             except (json.JSONDecodeError, KeyError):
                 # Fallback to regular ToolMessage if parsing fails
                 tool_message = ToolMessage(tool_name, command=arguments)

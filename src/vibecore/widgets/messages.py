@@ -212,7 +212,7 @@ class ToolMessage(BaseMessage):
     def compose(self) -> ComposeResult:
         """Create child widgets for the tool message."""
         # Truncate command if too long
-        max_command_length = 50
+        max_command_length = 60
         display_command = (
             self.command[:max_command_length] + "…" if len(self.command) > max_command_length else self.command
         )
@@ -282,3 +282,48 @@ class PythonToolMessage(BaseMessage):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
                     yield ExpandableContent(self.output, truncated_lines=5, classes="tool-output-expandable")
+
+
+class TodoWriteToolMessage(BaseMessage):
+    """A widget to display todo list updates."""
+
+    todos: reactive[list[dict[str, str]]] = reactive([], recompose=True)
+    output: reactive[str] = reactive("", recompose=True)
+
+    def __init__(
+        self, todos: list[dict[str, str]], output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+    ) -> None:
+        """
+        Construct a TodoWriteToolMessage.
+
+        Args:
+            todos: The list of todos being written.
+            output: The output from the tool (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.todos = todos
+        self.output = output
+
+    def update(self, status: MessageStatus, output: str | None = None) -> None:
+        """Update the status and optionally the output of the todo write operation."""
+        self.status = status
+        if output is not None:
+            self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the todo write message."""
+        # Header line
+        yield MessageHeader("⏺", "TodoWrite", status=self.status)
+
+        # Todo list display
+        if self.todos:
+            with Horizontal(classes="todo-list"):
+                yield Static("└─", classes="todo-list-prefix")
+                with Vertical(classes="todo-list-content"):
+                    # Display all todos in a single list
+                    for todo in self.todos:
+                        status = todo.get("status", "pending")
+                        icon = "☒" if status == "completed" else "☐"
+                        yield Static(f"{icon} {todo.get('content', '')}", classes=f"todo-item {status}")
