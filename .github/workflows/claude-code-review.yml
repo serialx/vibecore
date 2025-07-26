@@ -31,6 +31,14 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up environment
+        run: |
+          # Install dependencies
+          uv sync -q
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@beta
@@ -39,6 +47,7 @@ jobs:
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
+          model: "claude-opus-4-20250514"
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
@@ -70,6 +79,7 @@ jobs:
           
           # Optional: Add specific tools for running tests or linting
           # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+          allowed_tools: "Bash(rm:*),Bash(sed:*),Bash(chmod:*),Bash(mkdir:*),Bash(rg:*),Bash(grep:*),Bash(find:*),Bash(ls:*),Bash(test:*),Bash(tree:*),Bash(uv:*),Bash(python:*),Bash(git add:*),Bash(git commit:*),WebFetch(domain:textual.textualize.io),WebFetch(domain:github.com"
           
           # Optional: Skip review for certain conditions
           # if: |

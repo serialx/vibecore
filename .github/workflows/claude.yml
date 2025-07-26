@@ -30,6 +30,14 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up environment
+        run: |
+          # Install dependencies
+          uv sync -q
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta
@@ -42,6 +50,7 @@ jobs:
           
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
+          model: "claude-opus-4-20250514"
           
           # Optional: Customize the trigger phrase (default: @claude)
           # trigger_phrase: "/claude"
@@ -51,6 +60,7 @@ jobs:
           
           # Optional: Allow Claude to run specific commands
           # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
+          allowed_tools: "Bash(rm:*),Bash(sed:*),Bash(chmod:*),Bash(mkdir:*),Bash(rg:*),Bash(grep:*),Bash(find:*),Bash(ls:*),Bash(test:*),Bash(tree:*),Bash(uv:*),Bash(python:*),Bash(git add:*),Bash(git commit:*),WebFetch(domain:textual.textualize.io),WebFetch(domain:github.com"
           
           # Optional: Add custom instructions for Claude to customize its behavior for your project
           # custom_instructions: |
