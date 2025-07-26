@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Sung-jin Brian Hong", email = "serialx@serialx.net" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "litellm>=1.72.4",
     "openai-agents[litellm]>=0.2.2",
@@ -35,7 +35,7 @@ dev = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
@@ -57,7 +57,7 @@ indent-style = "space"
 [tool.pyright]
 include = ["**/*.py"]
 exclude = ["**/__pycache__", ".venv", "venv", "build", "dist"]
-pythonVersion = "3.13"
+pythonVersion = "3.11"
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"

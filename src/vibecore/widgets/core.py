@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, override
+from typing import ClassVar
 
 from textual import events
 from textual.app import ComposeResult
@@ -99,7 +99,6 @@ class MyTextArea(TextArea):
             return history
         return []
 
-    @override
     async def _on_key(self, event: events.Key) -> None:
         if event.key == "enter":
             self.post_message(self.UserMessage(self.text))
