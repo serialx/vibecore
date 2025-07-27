@@ -294,41 +294,13 @@ async def your_tool_name(
     return "Tool output"
 ```
 
-### 2. Manual Testing
+### 2. tui-test-engineer Agent-based Testing
 
 1. Launch vibecore
 2. Ask the AI to use your tool
 3. Verify the message displays correctly
 4. Check all states (executing, success, error)
 5. Test with various parameter combinations
-
-### 3. Unit Testing
-
-Create tests in `tests/widgets/test_your_tool_message.py`:
-
-```python
-import pytest
-from vibecore.widgets.messages import MessageStatus
-from vibecore.widgets.tool_messages import YourToolMessage
-
-@pytest.mark.asyncio
-async def test_your_tool_message_creation():
-    message = YourToolMessage(
-        your_param="test",
-        another_param=5,
-        output="Test output"
-    )
-    assert message.your_param == "test"
-    assert message.another_param == 5
-    assert message.output == "Test output"
-
-@pytest.mark.asyncio
-async def test_your_tool_message_update():
-    message = YourToolMessage(your_param="test")
-    message.update(MessageStatus.SUCCESS, "New output")
-    assert message.status == MessageStatus.SUCCESS
-    assert message.output == "New output"
-```
 
 ## Best Practices
 
