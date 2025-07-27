@@ -1,7 +1,9 @@
+import re
 from enum import StrEnum
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.content import Content
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Button, Markdown, Static
@@ -292,6 +294,8 @@ class ReadToolMessage(BaseMessage):
     line_count: reactive[int] = reactive(0, recompose=True)
     expanded: reactive[bool] = reactive(False, recompose=True)
 
+    line_number_pattern_ = re.compile(r"^\s*\d+\t", re.MULTILINE)
+
     def __init__(
         self, file_path: str, content: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
     ) -> None:
@@ -334,6 +338,8 @@ class ReadToolMessage(BaseMessage):
         # Header line
         header = f"Read({display_path})"
         yield MessageHeader("⏺", header, status=self.status)
+        # Remove cat -n style line numbers from content for display
+        content_rendered = Content(self.line_number_pattern_.sub("", self.content)) if self.content else Content("")
 
         # Content display based on status and expansion
         if self.status == MessageStatus.SUCCESS and self.content:
@@ -342,7 +348,7 @@ class ReadToolMessage(BaseMessage):
                 with Vertical(classes="tool-output-content"):
                     if self.expanded:
                         # Show full content when expanded
-                        yield Static(self.content, classes="read-content-full")
+                        yield Static(content_rendered, classes="read-content-full")
                         yield Static("▲ collapse", classes="read-toggle expanded")
                     else:
                         # Show summary when collapsed
