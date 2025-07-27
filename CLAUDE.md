@@ -47,6 +47,7 @@ vibecore/
 │   │   ├── messages.py      # Message display components
 │   │   ├── expandable.py    # Expandable content widgets
 │   │   ├── info.py          # Information display widgets
+│   │   ├── tool_message_factory.py  # Factory for creating tool messages
 │   │   ├── core.tcss        # Core styling
 │   │   ├── messages.tcss    # Message-specific styles
 │   │   ├── expandable.tcss  # Expandable widget styles
@@ -146,10 +147,14 @@ uv run pytest -k "test_pattern"
 4. **Custom Widgets** (`src/vibecore/widgets/`):
    - **UserMessage**: Displays user messages
    - **AgentMessage**: Displays AI agent responses
-   - **ToolMessage**: Shows tool execution status and results
+   - **ToolMessage**: Shows generic tool execution status and results
+   - **PythonToolMessage**: Specialized widget for Python code execution with syntax highlighting
+   - **ReadToolMessage**: Specialized widget for file reads with collapsible content
+   - **TodoWriteToolMessage**: Specialized widget for todo list management
    - **MyTextArea**: Custom TextArea that captures Enter key to post messages
    - **AppFooter**: Custom footer containing the input box
    - **MainScroll**: Scrollable container for messages
+   - **tool_message_factory**: Factory module for creating appropriate tool message widgets
 
 5. **Tool System** (`src/vibecore/tools/`):
    - **File Tools**: read, write, edit, multi_edit operations
@@ -186,6 +191,12 @@ uv run pytest -k "test_pattern"
   - Each tool has executor, rendering, and tool definition modules
   - Tools receive VibecoreContext for accessing shared state
   - Tool results are rendered in the UI with status indicators
+
+- **Tool Message Factory Pattern**:
+  - Centralized creation of tool-specific message widgets in `tool_message_factory.py`
+  - Used by both `StreamHandler` (live streaming) and `SessionLoader` (history loading)
+  - Ensures consistent widget creation and prevents code duplication
+  - Easy to extend with new tool-specific widgets
 
 - **Widget Communication**: Uses Textual's message system for inter-widget communication
 - **Async Operations**: Leverages Python's async/await for responsive UI

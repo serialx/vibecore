@@ -1,0 +1,74 @@
+"""Factory for creating tool-specific message widgets.
+
+This module provides a centralized way to create the appropriate message widget
+based on tool name and arguments, avoiding duplication between stream handling
+and session loading.
+"""
+
+import contextlib
+import json
+from typing import Any
+
+from vibecore.widgets.messages import (
+    BaseToolMessage,
+    MessageStatus,
+    PythonToolMessage,
+    ReadToolMessage,
+    TodoWriteToolMessage,
+    ToolMessage,
+)
+
+
+def create_tool_message(
+    tool_name: str,
+    arguments: str,
+    output: str | None = None,
+    status: MessageStatus = MessageStatus.EXECUTING,
+) -> BaseToolMessage:
+    """Create the appropriate tool message widget based on tool name.
+
+    This factory function centralizes the logic for creating tool-specific
+    message widgets, ensuring consistency between streaming and session loading.
+
+    Args:
+        tool_name: Name of the tool being called
+        arguments: JSON string of tool arguments
+        output: Optional output from tool execution
+        status: Status of the tool execution
+
+    Returns:
+        The appropriate tool message widget for the given tool
+    """
+    # Try to parse arguments for specific tool types
+    args_dict: dict[str, Any] = {}
+    with contextlib.suppress(json.JSONDecodeError, KeyError):
+        args_dict = json.loads(arguments)
+
+    # Create tool-specific messages based on tool name
+    if tool_name == "execute_python":
+        code = args_dict.get("code", "") if args_dict else ""
+        if output is not None:
+            return PythonToolMessage(code=code, output=output, status=status)
+        else:
+            return PythonToolMessage(code=code, status=status)
+
+    elif tool_name == "todo_write":
+        todos = args_dict.get("todos", []) if args_dict else []
+        if output is not None:
+            return TodoWriteToolMessage(todos=todos, output=output, status=status)
+        else:
+            return TodoWriteToolMessage(todos=todos, status=status)
+
+    elif tool_name == "read":
+        file_path = args_dict.get("file_path", "") if args_dict else ""
+        if output is not None:
+            return ReadToolMessage(file_path=file_path, output=output, status=status)
+        else:
+            return ReadToolMessage(file_path=file_path, status=status)
+
+    # Default to generic ToolMessage for all other tools
+    else:
+        if output is not None:
+            return ToolMessage(tool_name=tool_name, command=arguments, output=output, status=status)
+        else:
+            return ToolMessage(tool_name=tool_name, command=arguments, status=status)

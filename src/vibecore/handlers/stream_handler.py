@@ -1,6 +1,5 @@
 """Stream handler for processing agent streaming responses."""
 
-import json
 from typing import TYPE_CHECKING
 
 from agents import (
@@ -23,12 +22,11 @@ from textual import log
 from vibecore.widgets.messages import (
     AgentMessage,
     BaseMessage,
+    BaseToolMessage,
     MessageStatus,
-    PythonToolMessage,
     ReadToolMessage,
-    TodoWriteToolMessage,
-    ToolMessage,
 )
+from vibecore.widgets.tool_message_factory import create_tool_message
 
 if TYPE_CHECKING:
     from vibecore.main import VibecoreApp
@@ -46,7 +44,7 @@ class StreamHandler:
         self.app = app
         self.message_content = ""
         self.agent_message: AgentMessage | None = None
-        self.tool_messages: dict[str, ToolMessage | PythonToolMessage | TodoWriteToolMessage | ReadToolMessage] = {}
+        self.tool_messages: dict[str, BaseToolMessage] = {}
 
     async def handle_text_delta(self, delta: str) -> None:
         """Handle incremental text updates from the agent.
@@ -69,35 +67,8 @@ class StreamHandler:
             arguments: JSON string of tool arguments
             call_id: Unique identifier for this tool call
         """
-        if tool_name == "execute_python":
-            # Parse the arguments to extract the Python code
-            try:
-                args_dict = json.loads(arguments)
-                code = args_dict.get("code", "")
-                tool_message = PythonToolMessage(code=code)
-            except (json.JSONDecodeError, KeyError):
-                # Fallback to regular ToolMessage if parsing fails
-                tool_message = ToolMessage(tool_name, command=arguments)
-        elif tool_name == "todo_write":
-            # Parse the arguments to extract the todos
-            try:
-                args_dict = json.loads(arguments)
-                todos = args_dict.get("todos", [])
-                tool_message = TodoWriteToolMessage(todos=todos)
-            except (json.JSONDecodeError, KeyError):
-                # Fallback to regular ToolMessage if parsing fails
-                tool_message = ToolMessage(tool_name, command=arguments)
-        elif tool_name == "read":
-            # Parse the arguments to extract the file path
-            try:
-                args_dict = json.loads(arguments)
-                file_path = args_dict.get("file_path", "")
-                tool_message = ReadToolMessage(file_path=file_path)
-            except (json.JSONDecodeError, KeyError):
-                # Fallback to regular ToolMessage if parsing fails
-                tool_message = ToolMessage(tool_name, command=arguments)
-        else:
-            tool_message = ToolMessage(tool_name, command=arguments)
+        # Use factory to create the appropriate tool message
+        tool_message = create_tool_message(tool_name, arguments)
 
         self.tool_messages[call_id] = tool_message
         await self.app.add_message(tool_message)

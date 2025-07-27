@@ -140,9 +140,15 @@ vibecore/
 │   │   └── default.py       # Main agent with tool integrations
 │   ├── models/              # LLM provider integrations
 │   │   └── anthropic.py     # Claude model support via LiteLLM
+│   ├── handlers/            # Stream processing handlers
+│   │   └── stream_handler.py # Handle streaming agent responses
+│   ├── session/             # Session management
+│   │   ├── jsonl_session.py # JSONL-based conversation storage
+│   │   └── loader.py        # Session loading logic
 │   ├── widgets/             # Custom Textual UI components
 │   │   ├── core.py          # Base widgets & layouts
 │   │   ├── messages.py      # Message display components
+│   │   ├── tool_message_factory.py  # Factory for creating tool messages
 │   │   ├── core.tcss        # Core styling
 │   │   └── messages.tcss    # Message-specific styles
 │   ├── tools/               # Extensible tool system
@@ -228,10 +234,17 @@ vibecore is built with a modular, extensible architecture:
 - **Tool System**: Modular tools with consistent interfaces
 - **Context Management**: Maintains state across operations
 
+## Recent Updates
+
+- **Tool Message Factory**: Centralized widget creation for consistent UI across streaming and session loading
+- **Enhanced Tool Widgets**: Specialized widgets for Python execution, file reading, and todo management
+- **Improved Session Support**: Seamless save/load of conversations with full UI state preservation
+- **Print Mode**: New `-p` flag for automation and Unix pipe integration
+
 ## Roadmap
 
-- [ ] More custom tool views (todo, etc)
-- [ ] Automation (vibecode -p "prompt")
+- [x] More custom tool views (Python, Read, Todo widgets)
+- [x] Automation (vibecore -p "prompt")
 - [ ] Permission model
 - [ ] Multi-agent system (agent-as-tools)
 - [ ] Plugin system for custom tools
