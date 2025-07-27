@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**vibecore** is a Textual-based terminal user interface (TUI) application written in Python. It implements an AI-powered chat interface using the openai-agents framework, with custom widgets for message display and input. The application provides various tools for file operations, shell commands, Python execution, and task management.
+**vibecore** is a **Do-it-yourself Agent Framework** that transforms your terminal into a powerful AI workspace. More than just a chat interface, it's a complete platform for building and orchestrating custom AI agents that can manipulate files, execute code, run shell commands, and manage complex workflows—all from the comfort of your terminal.
+
+Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python), vibecore provides the foundation for creating your own AI-powered automation tools. Whether you're automating development workflows, building custom AI assistants, or experimenting with agent-based systems, vibecore gives you the building blocks to craft exactly what you need.
+
+### Key Features
+
+- **AI-Powered Chat Interface** - Interact with state-of-the-art language models through an intuitive terminal interface
+- **Rich Tool Integration** - Built-in tools for file operations, shell commands, Python execution, and task management
+- **Beautiful Terminal UI** - Modern, responsive interface with dark/light theme support
+- **Real-time Streaming** - See AI responses as they're generated with smooth streaming updates
+- **Extensible Architecture** - Easy to add new tools and capabilities
+- **High Performance** - Async-first design for responsive interactions
+- **Context Management** - Maintains state across tool executions for coherent workflows
 
 ## IMPORTANT: Never Run This Application
 
@@ -15,30 +27,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 vibecore/
 ├── src/vibecore/
-│   ├── main.py              # Application entry point
+│   ├── main.py              # Application entry point & TUI orchestration
 │   ├── main.tcss            # Main application styles
-│   ├── context.py           # VibecoreContext for state management
+│   ├── cli.py               # Command-line interface entry
+│   ├── context.py           # Central state management for agents
 │   ├── settings.py          # Configuration with Pydantic
-│   ├── agents/
-│   │   └── default.py       # Agent configuration and setup
-│   ├── models/
-│   │   └── anthropic.py     # Anthropic model integration
-│   ├── widgets/
-│   │   ├── core.py          # Core UI widgets
-│   │   ├── messages.py      # Message display widgets
-│   │   ├── core.tcss        # Core widget styles
-│   │   └── messages.tcss    # Message widget styles
-│   ├── tools/
-│   │   ├── base.py          # Base tool interfaces
+│   ├── agents/              # Agent configurations & handoffs
+│   │   └── default.py       # Main agent with tool integrations
+│   ├── models/              # LLM provider integrations
+│   │   └── anthropic.py     # Claude model support via LiteLLM
+│   ├── handlers/            # Stream processing handlers
+│   │   └── stream_handler.py # Handle streaming agent responses
+│   ├── session/             # Session management
+│   │   ├── jsonl_session.py # JSONL-based conversation storage
+│   │   ├── loader.py        # Session loading logic
+│   │   └── file_lock.py     # File locking for concurrent access
+│   ├── widgets/             # Custom Textual UI components
+│   │   ├── core.py          # Base widgets & layouts
+│   │   ├── messages.py      # Message display components
+│   │   ├── expandable.py    # Expandable content widgets
+│   │   ├── info.py          # Information display widgets
+│   │   ├── core.tcss        # Core styling
+│   │   ├── messages.tcss    # Message-specific styles
+│   │   ├── expandable.tcss  # Expandable widget styles
+│   │   └── info.tcss        # Info widget styles
+│   ├── tools/               # Extensible tool system
+│   │   ├── base.py          # Tool interfaces & protocols
 │   │   ├── file/            # File manipulation tools
-│   │   ├── shell/           # Shell command tools
-│   │   ├── python/          # Python execution tools
-│   │   └── todo/            # Task management tools
-│   └── prompts/
+│   │   │   ├── tools.py     # Tool definitions
+│   │   │   ├── executor.py  # Execution logic
+│   │   │   └── utils.py     # Utility functions
+│   │   ├── shell/           # Shell command execution
+│   │   │   ├── tools.py     # Tool definitions
+│   │   │   └── executor.py  # Command execution
+│   │   ├── python/          # Python code interpreter
+│   │   │   ├── tools.py     # Tool definitions
+│   │   │   ├── manager.py   # Execution environment manager
+│   │   │   └── backends/    # Execution backends
+│   │   └── todo/            # Task management system
+│   │       ├── tools.py     # Tool definitions
+│   │       ├── manager.py   # Todo list manager
+│   │       └── models.py    # Data models
+│   ├── utils/               # Utility modules
+│   │   └── text.py          # Text processing utilities
+│   └── prompts/             # System prompts & instructions
 │       └── common_system_prompt.txt
-├── tests/                   # All test files (root level)
-├── pyproject.toml           # Project configuration
-└── uv.lock                  # Dependency lock file
+├── tests/                   # Comprehensive test suite
+├── pyproject.toml           # Project configuration & dependencies
+├── uv.lock                  # Locked dependencies
+└── CLAUDE.md                # AI assistant instructions
 ```
 
 ## Development Commands
@@ -155,7 +192,7 @@ uv run pytest -k "test_pattern"
 
 ### Development Notes
 
-- The project requires Python 3.13+ and uses modern Python features
+- The project requires Python 3.11+ and uses modern Python features
 - All widgets follow Textual's composition pattern with `compose()` methods
 - The application uses reactive properties for state management
 - Custom CSS classes are used for styling individual components
@@ -518,10 +555,11 @@ agent = Agent(
    - Maintains state across tool executions
 
 2. **Tool Organization**:
-   - Each tool category has three modules:
-     - `tool.py`: Tool definitions with @function_tool
+   - Each tool category typically has:
+     - `tools.py`: Tool definitions with @function_tool decorator
      - `executor.py`: Business logic implementation
-     - `render.py`: UI rendering for tool results
+     - Supporting modules like `manager.py` for stateful components
+     - `utils.py` for utility functions (where needed)
 
 3. **Streaming Integration**:
    - `_handle_streaming_response` processes events
