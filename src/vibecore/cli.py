@@ -46,6 +46,7 @@ def find_latest_session(project_path: Path | None = None, base_dir: Path | None 
 
 @app.command()
 def run(
+    prompt: str | None = typer.Argument(None, help="Prompt text (requires -p flag)"),
     continue_session: bool = typer.Option(
         False,
         "--continue",
@@ -57,6 +58,12 @@ def run(
         "--session",
         "-s",
         help="Continue a specific session by ID",
+    ),
+    print_mode: bool = typer.Option(
+        False,
+        "--print",
+        "-p",
+        help="Print response and exit (useful for pipes)",
     ),
 ):
     """Run the Vibecore TUI application."""
@@ -86,9 +93,21 @@ def run(
         session_to_load = session_id
         typer.echo(f"Loading session: {session_to_load}")
 
-    # Create and run app
-    app = VibecoreApp(ctx, default_agent, session_id=session_to_load)
-    app.run()
+    # Create app
+    app_instance = VibecoreApp(ctx, default_agent, session_id=session_to_load, print_mode=print_mode)
+
+    if print_mode:
+        # Run in print mode
+        import asyncio
+
+        # Use provided prompt or None to read from stdin
+        result = asyncio.run(app_instance.run_print(prompt))
+        # Print raw output to stdout
+        if result:
+            print(result)
+    else:
+        # Run normal TUI mode
+        app_instance.run()
 
 
 def main():

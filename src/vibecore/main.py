@@ -44,13 +44,20 @@ class VibecoreApp(App):
 
     agent_status = reactive[AgentStatus]("idle")
 
-    def __init__(self, context: VibecoreContext, agent: Agent, session_id: str | None = None) -> None:
+    def __init__(
+        self,
+        context: VibecoreContext,
+        agent: Agent,
+        session_id: str | None = None,
+        print_mode: bool = False,
+    ) -> None:
         """Initialize the Vibecore app with context and agent.
 
         Args:
             context: The VibecoreContext instance
             agent: The Agent instance to use
             session_id: Optional session ID to load existing session
+            print_mode: Whether to run in print mode (useful for pipes)
         """
         self.context = context
         self.agent = agent
@@ -58,6 +65,7 @@ class VibecoreApp(App):
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
         self._session_id_provided = session_id is not None  # Track if continuing session
+        self.print_mode = print_mode
 
         # Initialize session based on settings
         if settings.session.storage_type == "jsonl":
@@ -167,3 +175,46 @@ class VibecoreApp(App):
                 self.current_result.cancel()
             if self.current_worker:
                 self.current_worker.cancel()
+
+    async def run_print(self, prompt: str | None = None) -> str:
+        """Run the agent and return the raw output for printing.
+
+        Args:
+            prompt: Optional prompt text. If not provided, reads from stdin.
+
+        Returns:
+            The agent's text output as a string
+        """
+        import sys
+
+        # Use provided prompt or read from stdin
+        input_text = prompt.strip() if prompt else sys.stdin.read().strip()
+
+        if not input_text:
+            return ""
+
+        # Import needed event types
+        from agents import RawResponsesStreamEvent
+        from openai.types.responses import ResponseTextDeltaEvent
+
+        # Run the agent
+        result = Runner.run_streamed(
+            self.agent,
+            input=input_text,
+            context=self.context,
+            max_turns=settings.max_turns,
+            session=self.session,
+        )
+
+        # Collect all agent text output
+        agent_output = ""
+
+        async for event in result.stream_events():
+            # Handle text output from agent
+            match event:
+                case RawResponsesStreamEvent(data=data):
+                    match data:
+                        case ResponseTextDeltaEvent(delta=delta) if delta:
+                            agent_output += delta
+
+        return agent_output.strip()
