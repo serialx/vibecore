@@ -6,7 +6,8 @@ import pytest
 
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
-from vibecore.widgets.messages import MessageStatus, ToolMessage, UserMessage
+from vibecore.widgets.messages import MessageStatus, UserMessage
+from vibecore.widgets.tool_messages import ToolMessage
 
 
 @pytest.mark.asyncio

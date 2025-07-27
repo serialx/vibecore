@@ -8,7 +8,8 @@ import pytest
 
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
-from vibecore.widgets.messages import AgentMessage, MessageStatus, PythonToolMessage, ToolMessage, UserMessage
+from vibecore.widgets.messages import AgentMessage, MessageStatus, UserMessage
+from vibecore.widgets.tool_messages import PythonToolMessage, ToolMessage
 
 
 @pytest.mark.asyncio
