@@ -293,7 +293,7 @@ class ReadToolMessage(BaseMessage):
     content: reactive[str] = reactive("", recompose=True)
     line_count: reactive[int] = reactive(0, recompose=True)
 
-    line_number_pattern_ = re.compile(r"^\s*\d+\t", re.MULTILINE)
+    _LINE_NUMBER_PATTERN = re.compile(r"^\s*\d+\t", re.MULTILINE)
 
     def __init__(
         self, file_path: str, content: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
@@ -337,7 +337,7 @@ class ReadToolMessage(BaseMessage):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
                     # Remove cat -n style line numbers from content for display
-                    clean_content = self.line_number_pattern_.sub("", self.content)
+                    clean_content = self._LINE_NUMBER_PATTERN.sub("", self.content)
                     # Use ExpandableContent with custom collapsed text
                     yield ExpandableContent(
                         Content(clean_content),
