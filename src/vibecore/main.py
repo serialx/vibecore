@@ -34,6 +34,7 @@ class VibecoreApp(App):
     CSS_PATH: ClassVar = [
         "widgets/core.tcss",
         "widgets/messages.tcss",
+        "widgets/tool_messages.tcss",
         "widgets/expandable.tcss",
         "widgets/info.tcss",
         "main.tcss",
