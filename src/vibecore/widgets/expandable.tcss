@@ -1,13 +1,11 @@
 /* Expandable Content Widget Styles */
 ExpandableContent {
     height: auto;
-    width: auto;
     
     .expandable-content-truncated, .expandable-content-full {
         padding: 0;
         margin: 0;
         height: auto;
-        width: auto;
     }
     
     .expandable-toggle {
@@ -32,7 +30,7 @@ ExpandableContent {
 /* Expandable Markdown Widget Styles */
 ExpandableMarkdown {
     height: auto;
-    width: 100%;
+    width: 1fr;
     
     Markdown {
         background: $background;
