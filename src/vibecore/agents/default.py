@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from agents import Agent
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 
@@ -8,16 +6,10 @@ from vibecore.settings import settings
 from vibecore.tools.file.tools import edit, multi_edit, read, write
 from vibecore.tools.python.tools import execute_python
 from vibecore.tools.shell.tools import bash, glob, grep, ls
+from vibecore.tools.task.tools import task
 from vibecore.tools.todo.tools import todo_read, todo_write
 
-
-def load_common_prompt() -> str:
-    """Load the common system prompt from file."""
-    prompt_file = Path(__file__).parent.parent / "prompts" / "common_system_prompt.txt"
-    return prompt_file.read_text()
-
-
-COMMON_PROMPT = load_common_prompt()
+from .prompts import COMMON_PROMPT
 
 INSTRUCTIONS = (
     COMMON_PROMPT + "\n\n"
@@ -48,6 +40,7 @@ def create_analysis_agent() -> Agent[VibecoreContext]:
         glob,
         grep,
         ls,
+        task,
     ]
     instructions = INSTRUCTIONS
 

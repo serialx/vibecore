@@ -170,6 +170,51 @@ class ReadToolMessage(BaseToolMessage):
         yield from self._render_output(clean_output, truncated_lines=0, collapsed_text=collapsed_text)
 
 
+class TaskToolMessage(BaseToolMessage):
+    """A widget to display task execution messages."""
+
+    description: reactive[str] = reactive("")
+    prompt: reactive[str] = reactive("")
+
+    def __init__(
+        self, description: str, prompt: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+    ) -> None:
+        """
+        Construct a TaskToolMessage.
+
+        Args:
+            description: Short task description.
+            prompt: Full task instructions.
+            output: The output from the task execution (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.description = description
+        self.prompt = prompt
+        self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the task message."""
+        # Header line
+        header = f"Task({self.description})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Show prompt if available and status is executing
+        if self.prompt and self.status == MessageStatus.EXECUTING:
+            with Horizontal(classes="task-prompt"):
+                yield Static("└─", classes="task-prompt-prefix")
+                with Vertical(classes="task-prompt-content"):
+                    yield ExpandableContent(
+                        self.prompt,
+                        truncated_lines=5,
+                        classes="task-prompt-expandable",
+                    )
+
+        # Output lines
+        yield from self._render_output(self.output, truncated_lines=5)
+
+
 class TodoWriteToolMessage(BaseToolMessage):
     """A widget to display todo list updates."""
 

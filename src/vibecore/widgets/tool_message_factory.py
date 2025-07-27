@@ -14,6 +14,7 @@ from vibecore.widgets.tool_messages import (
     BaseToolMessage,
     PythonToolMessage,
     ReadToolMessage,
+    TaskToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
 )
@@ -65,6 +66,14 @@ def create_tool_message(
             return ReadToolMessage(file_path=file_path, output=output, status=status)
         else:
             return ReadToolMessage(file_path=file_path, status=status)
+
+    elif tool_name == "task":
+        description = args_dict.get("description", "") if args_dict else ""
+        prompt = args_dict.get("prompt", "") if args_dict else ""
+        if output is not None:
+            return TaskToolMessage(description=description, prompt=prompt, output=output, status=status)
+        else:
+            return TaskToolMessage(description=description, prompt=prompt, status=status)
 
     # Default to generic ToolMessage for all other tools
     else:
