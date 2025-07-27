@@ -251,3 +251,126 @@ class TodoWriteToolMessage(BaseToolMessage):
                         status = todo.get("status", "pending")
                         icon = "☒" if status == "completed" else "☐"
                         yield Static(f"{icon} {todo.get('content', '')}", classes=f"todo-item {status}")
+
+
+class WriteToolMessage(BaseToolMessage):
+    """A widget to display file write operations with markdown content viewer."""
+
+    file_path: reactive[str] = reactive("")
+    content: reactive[str] = reactive("", recompose=True)
+
+    def __init__(
+        self, file_path: str, content: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+    ) -> None:
+        """
+        Construct a WriteToolMessage.
+
+        Args:
+            file_path: The file path being written to.
+            content: The content being written.
+            output: The output from the write operation (can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.file_path = file_path
+        self.content = content
+        self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the write message."""
+        # Truncate file path if too long
+        max_path_length = 60
+        display_path = (
+            self.file_path[:max_path_length] + "…" if len(self.file_path) > max_path_length else self.file_path
+        )
+
+        # Header line
+        header = f"Write({display_path})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Content display with markdown support
+        if self.content:
+            with Horizontal(classes="write-content"):
+                yield Static("└─", classes="write-content-prefix")
+                with Vertical(classes="write-content-body"):
+                    # Determine file extension for syntax highlighting
+                    file_ext = self.file_path.split(".")[-1] if "." in self.file_path else ""
+
+                    # Map common extensions to languages
+                    language_map = {
+                        "py": "python",
+                        "js": "javascript",
+                        "ts": "typescript",
+                        "tsx": "typescript",
+                        "jsx": "javascript",
+                        "java": "java",
+                        "c": "c",
+                        "cpp": "cpp",
+                        "cc": "cpp",
+                        "cxx": "cpp",
+                        "h": "c",
+                        "hpp": "cpp",
+                        "cs": "csharp",
+                        "rb": "ruby",
+                        "go": "go",
+                        "rs": "rust",
+                        "php": "php",
+                        "swift": "swift",
+                        "kt": "kotlin",
+                        "scala": "scala",
+                        "r": "r",
+                        "m": "matlab",
+                        "lua": "lua",
+                        "pl": "perl",
+                        "sh": "bash",
+                        "bash": "bash",
+                        "zsh": "bash",
+                        "fish": "bash",
+                        "ps1": "powershell",
+                        "yml": "yaml",
+                        "yaml": "yaml",
+                        "json": "json",
+                        "xml": "xml",
+                        "html": "html",
+                        "htm": "html",
+                        "css": "css",
+                        "scss": "scss",
+                        "sass": "sass",
+                        "less": "less",
+                        "sql": "sql",
+                        "md": "markdown",
+                        "markdown": "markdown",
+                        "tex": "latex",
+                        "vim": "vim",
+                        "dockerfile": "dockerfile",
+                        "makefile": "makefile",
+                        "cmake": "cmake",
+                        "ini": "ini",
+                        "toml": "toml",
+                    }
+
+                    language = language_map.get(file_ext.lower(), "")
+
+                    # If it's a markdown file, render it as markdown
+                    if file_ext.lower() in ["md", "markdown"]:
+                        yield ExpandableMarkdown(
+                            self.content, language="markdown", truncated_lines=10, classes="write-content-expandable"
+                        )
+                    elif language:
+                        # Use syntax highlighting for known languages
+                        yield ExpandableMarkdown(
+                            self.content, language=language, truncated_lines=10, classes="write-content-expandable"
+                        )
+                    else:
+                        # For unknown file types, use plain text
+                        yield ExpandableContent(
+                            Content(self.content), truncated_lines=10, classes="write-content-expandable"
+                        )
+
+        # Output (success/error message)
+        if self.output:
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    yield Static(self.output, classes="write-output-message")
