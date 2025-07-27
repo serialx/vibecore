@@ -1,3 +1,4 @@
+from collections import deque
 from typing import ClassVar, Literal
 
 from agents import (
@@ -66,6 +67,7 @@ class VibecoreApp(App):
         self.current_worker: Worker[None] | None = None
         self._session_id_provided = session_id is not None  # Track if continuing session
         self.print_mode = print_mode
+        self.message_queue: deque[str] = deque()  # Queue for user messages
 
         # Initialize session based on settings
         if settings.session.storage_type == "jsonl":
@@ -137,15 +139,27 @@ class VibecoreApp(App):
             await self.add_message(user_message)
             user_message.scroll_visible()
 
-            result = Runner.run_streamed(
-                self.agent,
-                input=event.text,  # Pass string directly when using session
-                context=self.context,
-                max_turns=settings.max_turns,
-                session=self.session,
-            )
+            # If agent is running, queue the message
+            if self.agent_status == "running":
+                self.message_queue.append(event.text)
+                log(f"Message queued: {event.text}")
+                footer = self.query_one(AppFooter)
+                # Update the loading message to show queued messages
+                queued_count = len(self.message_queue)
+                footer.show_loading(
+                    status="Generating…", metadata=f"{queued_count} message{'s' if queued_count > 1 else ''} queued"
+                )
+            else:
+                # Process the message immediately
+                result = Runner.run_streamed(
+                    self.agent,
+                    input=event.text,  # Pass string directly when using session
+                    context=self.context,
+                    max_turns=settings.max_turns,
+                    session=self.session,
+                )
 
-            self.current_worker = self.handle_streamed_response(result)
+                self.current_worker = self.handle_streamed_response(result)
 
     @work(exclusive=True)
     async def handle_streamed_response(self, result: RunResultStreaming) -> None:
@@ -158,6 +172,27 @@ class VibecoreApp(App):
         self.agent_status = "idle"
         self.current_result = None
         self.current_worker = None
+
+        # Process any queued messages
+        await self.process_message_queue()
+
+    async def process_message_queue(self) -> None:
+        """Process any messages that were queued while the agent was running."""
+        if self.message_queue:
+            # Get the next message from the queue
+            next_message = self.message_queue.popleft()
+            log(f"Processing queued message: {next_message}")
+
+            # Process the message
+            result = Runner.run_streamed(
+                self.agent,
+                input=next_message,
+                context=self.context,
+                max_turns=settings.max_turns,
+                session=self.session,
+            )
+
+            self.current_worker = self.handle_streamed_response(result)
 
     def on_click(self) -> None:
         """Handle focus events."""
