@@ -180,12 +180,38 @@ class AgentMessage(BaseMessage):
         self.query_one(MessageHeader).text = text
 
 
-class ToolMessage(BaseMessage):
-    """A widget to display tool execution messages."""
+class BaseToolMessage(BaseMessage):
+    """Base class for all tool execution messages."""
+
+    output: reactive[str] = reactive("", recompose=True)
+
+    def update(self, status: MessageStatus, output: str | None = None) -> None:
+        """Update the status and optionally the output of the tool message."""
+        self.status = status
+        if output is not None:
+            self.output = output
+
+    def _render_output(
+        self, output, truncated_lines: int = 3, collapsed_text: str | Content | None = None
+    ) -> ComposeResult:
+        """Render the output section if output exists."""
+        if output:
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    yield ExpandableContent(
+                        output,
+                        truncated_lines=truncated_lines,
+                        classes="tool-output-expandable",
+                        collapsed_text=collapsed_text,
+                    )
+
+
+class ToolMessage(BaseToolMessage):
+    """A widget to display generic tool execution messages."""
 
     tool_name: reactive[str] = reactive("")
     command: reactive[str] = reactive("")
-    output: reactive[str] = reactive("", recompose=True)
 
     def __init__(
         self, tool_name: str, command: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
@@ -205,12 +231,6 @@ class ToolMessage(BaseMessage):
         self.command = command
         self.output = output
 
-    def update(self, status: MessageStatus, output: str | None = None) -> None:
-        """Update the status and optionally the output of the tool message."""
-        self.status = status
-        if output is not None:
-            self.output = output
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the tool message."""
         # Truncate command if too long
@@ -223,19 +243,14 @@ class ToolMessage(BaseMessage):
         header = f"{self.tool_name}({display_command})"
         yield MessageHeader("⏺", header, status=self.status)
 
-        # # Output lines (only show if we have output)
-        if self.output:
-            with Horizontal(classes="tool-output"):
-                yield Static("└─", classes="tool-output-prefix")
-                with Vertical(classes="tool-output-content"):
-                    yield ExpandableContent(self.output, truncated_lines=3, classes="tool-output-expandable")
+        # Output lines
+        yield from self._render_output(self.output, truncated_lines=3)
 
 
-class PythonToolMessage(BaseMessage):
+class PythonToolMessage(BaseToolMessage):
     """A widget to display Python code execution messages."""
 
     code: reactive[str] = reactive("")
-    output: reactive[str] = reactive("", recompose=True)
 
     def __init__(self, code: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs) -> None:
         """
@@ -250,12 +265,6 @@ class PythonToolMessage(BaseMessage):
         super().__init__(status=status, **kwargs)
         self.code = code
         self.output = output
-
-    def update(self, status: MessageStatus, output: str | None = None) -> None:
-        """Update the status and optionally the output of the Python execution."""
-        self.status = status
-        if output is not None:
-            self.output = output
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
@@ -278,46 +287,33 @@ class PythonToolMessage(BaseMessage):
                     self.code, language="python", truncated_lines=8, classes="python-code-expandable"
                 )
 
-        # Output (only show if we have output)
-        if self.output:
-            with Horizontal(classes="tool-output"):
-                yield Static("└─", classes="tool-output-prefix")
-                with Vertical(classes="tool-output-content"):
-                    yield ExpandableContent(self.output, truncated_lines=5, classes="tool-output-expandable")
+        # Output
+        yield from self._render_output(self.output, truncated_lines=5)
 
 
-class ReadToolMessage(BaseMessage):
+class ReadToolMessage(BaseToolMessage):
     """A widget to display file read operations with collapsible content."""
 
     file_path: reactive[str] = reactive("")
     content: reactive[str] = reactive("", recompose=True)
-    line_count: reactive[int] = reactive(0, recompose=True)
 
     _LINE_NUMBER_PATTERN = re.compile(r"^\s*\d+\t", re.MULTILINE)
 
     def __init__(
-        self, file_path: str, content: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+        self, file_path: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
     ) -> None:
         """
         Construct a ReadToolMessage.
 
         Args:
             file_path: The file path being read.
-            content: The file content (can be set later).
+            output: The output from the read operation (can be set later).
             status: The status of execution.
             **kwargs: Additional keyword arguments for Widget.
         """
         super().__init__(status=status, **kwargs)
         self.file_path = file_path
-        self.content = content
-        self.line_count = len(content.splitlines()) if content else 0
-
-    def update(self, status: MessageStatus, content: str | None = None) -> None:
-        """Update the status and optionally the content of the read operation."""
-        self.status = status
-        if content is not None:
-            self.content = content
-            self.line_count = len(content.splitlines())
+        self.output = output
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the read message."""
@@ -331,26 +327,17 @@ class ReadToolMessage(BaseMessage):
         header = f"Read({display_path})"
         yield MessageHeader("⏺", header, status=self.status)
 
-        # Content display based on status
-        if self.status == MessageStatus.SUCCESS and self.content:
-            with Horizontal(classes="tool-output"):
-                yield Static("└─", classes="tool-output-prefix")
-                with Vertical(classes="tool-output-content"):
-                    # Remove cat -n style line numbers from content for display
-                    clean_content = self._LINE_NUMBER_PATTERN.sub("", self.content)
-                    # Use ExpandableContent with custom collapsed text
-                    yield ExpandableContent(
-                        Content(clean_content),
-                        collapsed_text=f"Read [b]{self.line_count}[/b] lines (view)",
-                        classes="read-expandable",
-                    )
+        clean_output = self._LINE_NUMBER_PATTERN.sub("", self.output)
+        line_count = len(self.output.splitlines()) if self.output else 0
+        collapsed_text = f"Read [b]{line_count}[/b] lines (view)"
+
+        yield from self._render_output(clean_output, truncated_lines=0, collapsed_text=collapsed_text)
 
 
-class TodoWriteToolMessage(BaseMessage):
+class TodoWriteToolMessage(BaseToolMessage):
     """A widget to display todo list updates."""
 
     todos: reactive[list[dict[str, str]]] = reactive([], recompose=True)
-    output: reactive[str] = reactive("", recompose=True)
 
     def __init__(
         self, todos: list[dict[str, str]], output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
@@ -367,12 +354,6 @@ class TodoWriteToolMessage(BaseMessage):
         super().__init__(status=status, **kwargs)
         self.todos = todos
         self.output = output
-
-    def update(self, status: MessageStatus, output: str | None = None) -> None:
-        """Update the status and optionally the output of the todo write operation."""
-        self.status = status
-        if output is not None:
-            self.output = output
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the todo write message."""

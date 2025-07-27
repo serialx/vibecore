@@ -46,7 +46,6 @@ ExpandableMarkdown {
             Static {
                 # Override MarkdownFence > Static (Syntax) padding/margin
                 padding: -1 2 -1 0;
-                margin: 0 0 0 -2;
             }
         }
     }
