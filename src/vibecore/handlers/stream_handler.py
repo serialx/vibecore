@@ -25,6 +25,7 @@ from vibecore.widgets.messages import (
     BaseMessage,
     MessageStatus,
     PythonToolMessage,
+    ReadToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
 )
@@ -45,7 +46,7 @@ class StreamHandler:
         self.app = app
         self.message_content = ""
         self.agent_message: AgentMessage | None = None
-        self.tool_messages: dict[str, ToolMessage | PythonToolMessage | TodoWriteToolMessage] = {}
+        self.tool_messages: dict[str, ToolMessage | PythonToolMessage | TodoWriteToolMessage | ReadToolMessage] = {}
 
     async def handle_text_delta(self, delta: str) -> None:
         """Handle incremental text updates from the agent.
@@ -86,6 +87,15 @@ class StreamHandler:
             except (json.JSONDecodeError, KeyError):
                 # Fallback to regular ToolMessage if parsing fails
                 tool_message = ToolMessage(tool_name, command=arguments)
+        elif tool_name == "read":
+            # Parse the arguments to extract the file path
+            try:
+                args_dict = json.loads(arguments)
+                file_path = args_dict.get("file_path", "")
+                tool_message = ReadToolMessage(file_path=file_path)
+            except (json.JSONDecodeError, KeyError):
+                # Fallback to regular ToolMessage if parsing fails
+                tool_message = ToolMessage(tool_name, command=arguments)
         else:
             tool_message = ToolMessage(tool_name, command=arguments)
 
@@ -100,7 +110,12 @@ class StreamHandler:
             call_id: The tool call identifier to match with pending calls
         """
         if call_id in self.tool_messages:
-            self.tool_messages[call_id].update(MessageStatus.SUCCESS, str(output))
+            tool_message = self.tool_messages[call_id]
+            if isinstance(tool_message, ReadToolMessage):
+                # For ReadToolMessage, pass the content as the second argument
+                tool_message.update(MessageStatus.SUCCESS, str(output))
+            else:
+                tool_message.update(MessageStatus.SUCCESS, str(output))
 
     async def handle_message_complete(self) -> None:
         """Finalize agent message when complete."""

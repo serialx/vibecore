@@ -1,6 +1,7 @@
 """Expandable content widgets for Textual applications."""
 
 from textual.app import ComposeResult
+from textual.content import Content
 from textual.events import Click
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -12,19 +13,25 @@ class ExpandableContent(Widget):
 
     expanded: reactive[bool] = reactive(False, recompose=True)
 
-    def __init__(self, content: str, truncated_lines: int = 3, **kwargs) -> None:
+    def __init__(
+        self, content: str | Content, truncated_lines: int = 3, collapsed_text: str | Content | None = None, **kwargs
+    ) -> None:
         """
         Initialize the ExpandableContent widget.
 
         Args:
-            content: The full content to display
-            truncated_lines: Number of lines to show when collapsed
+            content: The full content to display (str or Content for safe rendering)
+            truncated_lines: Number of lines to show when collapsed (ignored if collapsed_text is provided)
+            collapsed_text: Custom text to show when collapsed (overrides truncated content)
             **kwargs: Additional keyword arguments for Widget
         """
         super().__init__(**kwargs)
         self.content = content
         self.truncated_lines = truncated_lines
-        self.lines = content.splitlines()
+        self.collapsed_text = collapsed_text
+        # Extract plain text for line counting
+        self.content_str = str(content) if isinstance(content, Content) else content
+        self.lines = self.content_str.splitlines()
         self.total_lines = len(self.lines)
 
     def compose(self) -> ComposeResult:
@@ -34,9 +41,14 @@ class ExpandableContent(Widget):
             yield Static(self.content, classes="expandable-content-full")
             yield Static("▲ collapse", classes="expandable-toggle expanded")
         else:
+            # Show custom collapsed text if provided
+            if self.collapsed_text is not None:
+                yield Static(self.collapsed_text, classes="expandable-toggle collapsed")
             # Show truncated content
-            if self.total_lines > self.truncated_lines:
-                truncated_content = "\n".join(self.lines[: self.truncated_lines])
+            elif self.total_lines > self.truncated_lines:
+                truncated_text = "\n".join(self.lines[: self.truncated_lines])
+                # Preserve Content safety if original was Content
+                truncated_content = Content(truncated_text) if isinstance(self.content, Content) else truncated_text
                 yield Static(truncated_content, classes="expandable-content-truncated")
                 remaining_lines = self.total_lines - self.truncated_lines
                 yield Static(f"… +{remaining_lines} more lines (view)", classes="expandable-toggle collapsed")

@@ -344,6 +344,17 @@ log("Debug message")  # Appears in console when using textual console
 2. **Widget not updating**: Check if using `refresh()` or `update()` methods correctly
 3. **Async errors**: Remember all event handlers should be async
 4. **Tool execution failures**: Check VibecoreContext is properly passed to tools
+5. **Markup in content rendering**: Rich/Textual interprets square brackets as markup by default. When displaying user content (e.g., file contents, command outputs) that may contain text like `[text]`, it will be interpreted as markup and render incorrectly. **Solution**: Use the `Content` class to escape markup entirely:
+   ```python
+   from textual.content import Content
+   
+   # Safe way to display user content
+   widget.update(Content(user_text))  # Square brackets will be displayed literally
+   
+   # Or when creating Static widgets
+   yield Static(Content(file_content))
+   ```
+   See: https://textual.textualize.io/guide/content/ for more details
 
 ## IMPORTANT: OpenAI Agents Library Source Code
 

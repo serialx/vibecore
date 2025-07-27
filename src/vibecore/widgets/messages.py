@@ -1,7 +1,9 @@
+import re
 from enum import StrEnum
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.content import Content
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Button, Markdown, Static
@@ -282,6 +284,66 @@ class PythonToolMessage(BaseMessage):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
                     yield ExpandableContent(self.output, truncated_lines=5, classes="tool-output-expandable")
+
+
+class ReadToolMessage(BaseMessage):
+    """A widget to display file read operations with collapsible content."""
+
+    file_path: reactive[str] = reactive("")
+    content: reactive[str] = reactive("", recompose=True)
+    line_count: reactive[int] = reactive(0, recompose=True)
+
+    _LINE_NUMBER_PATTERN = re.compile(r"^\s*\d+\t", re.MULTILINE)
+
+    def __init__(
+        self, file_path: str, content: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+    ) -> None:
+        """
+        Construct a ReadToolMessage.
+
+        Args:
+            file_path: The file path being read.
+            content: The file content (can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.file_path = file_path
+        self.content = content
+        self.line_count = len(content.splitlines()) if content else 0
+
+    def update(self, status: MessageStatus, content: str | None = None) -> None:
+        """Update the status and optionally the content of the read operation."""
+        self.status = status
+        if content is not None:
+            self.content = content
+            self.line_count = len(content.splitlines())
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the read message."""
+        # Truncate file path if too long
+        max_path_length = 60
+        display_path = (
+            self.file_path[:max_path_length] + "…" if len(self.file_path) > max_path_length else self.file_path
+        )
+
+        # Header line
+        header = f"Read({display_path})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Content display based on status
+        if self.status == MessageStatus.SUCCESS and self.content:
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    # Remove cat -n style line numbers from content for display
+                    clean_content = self._LINE_NUMBER_PATTERN.sub("", self.content)
+                    # Use ExpandableContent with custom collapsed text
+                    yield ExpandableContent(
+                        Content(clean_content),
+                        collapsed_text=f"Read [b]{self.line_count}[/b] lines (view)",
+                        classes="read-expandable",
+                    )
 
 
 class TodoWriteToolMessage(BaseMessage):
