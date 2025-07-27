@@ -396,6 +396,72 @@ class TestAnthropicModel:
         transformed = _transform_messages_for_cache(messages)
         assert transformed == []
 
+    def test_cache_with_empty_text_content(self):
+        """Test that empty text content is not cached to avoid 'cache_control cannot be set for empty text' error."""
+        # Test with empty string content
+        messages = [
+            {"role": "system", "content": ""},  # Empty string
+            {"role": "user", "content": "Hello"},
+        ]
+
+        transformed = _transform_messages_for_cache(messages)
+
+        # Empty string should not be cached - should remain as string
+        assert transformed[0]["content"] == ""
+        # User message should be cached as last message
+        assert isinstance(transformed[1]["content"], list)
+        assert transformed[1]["content"][0]["cache_control"] == {"type": "ephemeral"}
+
+    def test_cache_with_empty_text_in_list(self):
+        """Test that empty text in list content is not cached."""
+        messages = [
+            {
+                "role": "system",
+                "content": [
+                    {"type": "text", "text": ""},  # Empty text
+                    {"type": "text", "text": "Not empty"},
+                ],
+            }
+        ]
+
+        transformed = _transform_messages_for_cache(messages)
+
+        # Empty text should not have cache_control
+        assert "cache_control" not in transformed[0]["content"][0]
+        # Non-empty text should have cache_control (as it's the first non-empty text)
+        assert transformed[0]["content"][1]["cache_control"] == {"type": "ephemeral"}
+
+    def test_cache_with_mixed_empty_and_nonempty_text(self):
+        """Test caching with multiple text items, some empty and some non-empty."""
+        messages = [
+            {
+                "role": "system",
+                "content": [
+                    {"type": "text", "text": ""},  # Empty
+                    {"type": "text", "text": ""},  # Empty
+                    {"type": "text", "text": "First non-empty"},  # Should get cache_control
+                    {"type": "text", "text": "Second non-empty"},  # Should NOT get cache_control
+                ],
+            },
+            {"role": "user", "content": ""},  # Empty user message
+            {"role": "assistant", "content": "Response"},  # Non-empty response (last message)
+        ]
+
+        transformed = _transform_messages_for_cache(messages)
+
+        # First two empty texts should not have cache_control
+        assert "cache_control" not in transformed[0]["content"][0]
+        assert "cache_control" not in transformed[0]["content"][1]
+        # First non-empty text should have cache_control
+        assert transformed[0]["content"][2]["cache_control"] == {"type": "ephemeral"}
+        # Second non-empty text should NOT have cache_control (only first gets it)
+        assert "cache_control" not in transformed[0]["content"][3]
+        # Empty user message should remain as string
+        assert transformed[1]["content"] == ""
+        # Assistant message should be cached (last message)
+        assert isinstance(transformed[2]["content"], list)
+        assert transformed[2]["content"][0]["cache_control"] == {"type": "ephemeral"}
+
     @pytest.mark.asyncio
     async def test_anthropic_model_streaming(self):
         """Test that AnthropicModel works correctly with streaming."""

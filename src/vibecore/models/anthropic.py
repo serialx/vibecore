@@ -77,8 +77,11 @@ def _transform_messages_for_cache(messages: list[dict[str, Any]]) -> list[dict[s
             content = new_msg.get("content")
 
             if isinstance(content, str):
-                # Convert string content to list format with cache_control
-                new_msg["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
+                # Only add cache_control if text is not empty
+                if content:
+                    # Convert string content to list format with cache_control
+                    new_msg["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
+                # else: keep empty string as is, don't convert to list format
             elif isinstance(content, list):
                 # Add cache_control to first text item if not already present
                 new_content = []
@@ -86,16 +89,21 @@ def _transform_messages_for_cache(messages: list[dict[str, Any]]) -> list[dict[s
 
                 for item in content:
                     if isinstance(item, dict) and item.get("type") == "text" and not cache_added:
-                        # Add cache_control to the first text item without cache_control
-                        if "cache_control" not in item:
+                        # Only add cache_control if text is not empty
+                        text_content = item.get("text", "")
+                        if text_content and "cache_control" not in item:
+                            # Add cache_control to the first non-empty text item without cache_control
                             new_item = item.copy()
                             new_item["cache_control"] = {"type": "ephemeral"}
                             new_content.append(new_item)
                             cache_added = True
-                        else:
-                            # Item already has cache_control
+                        elif text_content and "cache_control" in item:
+                            # Non-empty item already has cache_control
                             new_content.append(item)
                             cache_added = True
+                        else:
+                            # Empty text or already has cache_control - keep as is
+                            new_content.append(item)
                     else:
                         new_content.append(item)
 
