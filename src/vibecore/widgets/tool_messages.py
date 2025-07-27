@@ -294,79 +294,9 @@ class WriteToolMessage(BaseToolMessage):
             with Horizontal(classes="write-content"):
                 yield Static("└─", classes="write-content-prefix")
                 with Vertical(classes="write-content-body"):
-                    # Determine file extension for syntax highlighting
-                    file_ext = self.file_path.split(".")[-1] if "." in self.file_path else ""
-
-                    # Map common extensions to languages
-                    language_map = {
-                        "py": "python",
-                        "js": "javascript",
-                        "ts": "typescript",
-                        "tsx": "typescript",
-                        "jsx": "javascript",
-                        "java": "java",
-                        "c": "c",
-                        "cpp": "cpp",
-                        "cc": "cpp",
-                        "cxx": "cpp",
-                        "h": "c",
-                        "hpp": "cpp",
-                        "cs": "csharp",
-                        "rb": "ruby",
-                        "go": "go",
-                        "rs": "rust",
-                        "php": "php",
-                        "swift": "swift",
-                        "kt": "kotlin",
-                        "scala": "scala",
-                        "r": "r",
-                        "m": "matlab",
-                        "lua": "lua",
-                        "pl": "perl",
-                        "sh": "bash",
-                        "bash": "bash",
-                        "zsh": "bash",
-                        "fish": "bash",
-                        "ps1": "powershell",
-                        "yml": "yaml",
-                        "yaml": "yaml",
-                        "json": "json",
-                        "xml": "xml",
-                        "html": "html",
-                        "htm": "html",
-                        "css": "css",
-                        "scss": "scss",
-                        "sass": "sass",
-                        "less": "less",
-                        "sql": "sql",
-                        "md": "markdown",
-                        "markdown": "markdown",
-                        "tex": "latex",
-                        "vim": "vim",
-                        "dockerfile": "dockerfile",
-                        "makefile": "makefile",
-                        "cmake": "cmake",
-                        "ini": "ini",
-                        "toml": "toml",
-                    }
-
-                    language = language_map.get(file_ext.lower(), "")
-
-                    # If it's a markdown file, render it as markdown
-                    if file_ext.lower() in ["md", "markdown"]:
-                        yield ExpandableMarkdown(
-                            self.content, language="markdown", truncated_lines=10, classes="write-content-expandable"
-                        )
-                    elif language:
-                        # Use syntax highlighting for known languages
-                        yield ExpandableMarkdown(
-                            self.content, language=language, truncated_lines=10, classes="write-content-expandable"
-                        )
-                    else:
-                        # For unknown file types, use plain text
-                        yield ExpandableContent(
-                            Content(self.content), truncated_lines=10, classes="write-content-expandable"
-                        )
+                    yield ExpandableContent(
+                        Content(self.content), truncated_lines=10, classes="write-content-expandable"
+                    )
 
         # Output (success/error message)
         if self.output:

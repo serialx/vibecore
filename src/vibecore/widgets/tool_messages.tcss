@@ -60,11 +60,6 @@ PythonToolMessage {
         &> Vertical.python-code-content {
             height: auto;
             width: 1fr;
-            
-            .code-container {
-                height: auto;
-                width: 1fr;
-            }
         }
     }
     

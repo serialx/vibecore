@@ -41,9 +41,9 @@ ExpandableMarkdown {
             padding: 0;
             max-height: 100%;
 
-            Static {
+            &> Static {
                 # Override MarkdownFence > Static (Syntax) padding/margin
-                padding: -1 2 -1 0;
+                padding: 0 2 -1 0;
             }
         }
     }
