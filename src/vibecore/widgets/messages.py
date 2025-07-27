@@ -292,7 +292,6 @@ class ReadToolMessage(BaseMessage):
     file_path: reactive[str] = reactive("")
     content: reactive[str] = reactive("", recompose=True)
     line_count: reactive[int] = reactive(0, recompose=True)
-    expanded: reactive[bool] = reactive(False, recompose=True)
 
     line_number_pattern_ = re.compile(r"^\s*\d+\t", re.MULTILINE)
 
@@ -320,13 +319,6 @@ class ReadToolMessage(BaseMessage):
             self.content = content
             self.line_count = len(content.splitlines())
 
-    def on_click(self, event) -> None:
-        """Handle click events to toggle content expansion."""
-        # Toggle expansion when clicking the toggle element
-        if hasattr(event, "widget") and event.widget and event.widget.has_class("read-toggle"):
-            self.expanded = not self.expanded
-            event.stop()
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the read message."""
         # Truncate file path if too long
@@ -338,21 +330,20 @@ class ReadToolMessage(BaseMessage):
         # Header line
         header = f"Read({display_path})"
         yield MessageHeader("⏺", header, status=self.status)
-        # Remove cat -n style line numbers from content for display
-        content_rendered = Content(self.line_number_pattern_.sub("", self.content)) if self.content else Content("")
 
-        # Content display based on status and expansion
+        # Content display based on status
         if self.status == MessageStatus.SUCCESS and self.content:
             with Horizontal(classes="tool-output"):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
-                    if self.expanded:
-                        # Show full content when expanded
-                        yield Static(content_rendered, classes="read-content-full")
-                        yield Static("▲ collapse", classes="read-toggle expanded")
-                    else:
-                        # Show summary when collapsed
-                        yield Static(f"Read [b]{self.line_count}[/b] lines (show)", classes="read-toggle collapsed")
+                    # Remove cat -n style line numbers from content for display
+                    clean_content = self.line_number_pattern_.sub("", self.content)
+                    # Use ExpandableContent with custom collapsed text
+                    yield ExpandableContent(
+                        Content(clean_content),
+                        collapsed_text=f"Read [b]{self.line_count}[/b] lines (view)",
+                        classes="read-expandable",
+                    )
 
 
 class TodoWriteToolMessage(BaseMessage):

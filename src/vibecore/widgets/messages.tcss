@@ -204,32 +204,6 @@ ReadToolMessage {
         &> Vertical.tool-output-content {
             height: auto;
             width: 1fr;
-            
-            .read-toggle {
-                height: auto;
-                width: auto;
-                color: $primary;
-                
-                &:hover {
-                    color: $primary-lighten-1;
-                    text-style: underline;
-                }
-                
-                &.collapsed {
-                    margin: 0;
-                }
-                
-                &.expanded {
-                    margin-top: 1;
-                    color: $text-muted;
-                }
-            }
-            
-            .read-content-full {
-                height: auto;
-                width: 1fr;
-                margin: 0;
-            }
         }
     }
 }
