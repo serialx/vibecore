@@ -216,3 +216,48 @@ WriteToolMessage {
         }
     }
 }
+
+EditToolMessage {
+    Horizontal.edit-diff {
+        height: auto;
+
+        &> .edit-diff-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.edit-diff-content {
+            height: auto;
+            width: 1fr;
+            
+            .edit-diff-expandable {
+                height: auto;
+                width: 1fr;
+            }
+        }
+    }
+    
+    Horizontal.tool-output {
+        height: auto;
+
+        &> .tool-output-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.tool-output-content {
+            height: auto;
+            width: 1fr;
+            
+            .edit-output-message {
+                color: $text-muted;
+            }
+        }
+    }
+}

@@ -5,6 +5,7 @@ import json
 from vibecore.widgets.messages import MessageStatus
 from vibecore.widgets.tool_message_factory import create_tool_message
 from vibecore.widgets.tool_messages import (
+    EditToolMessage,
     PythonToolMessage,
     ReadToolMessage,
     TodoWriteToolMessage,
@@ -178,3 +179,90 @@ class TestToolMessageFactory:
         assert isinstance(message, WriteToolMessage)
         assert message.file_path == ""
         assert message.content == ""
+
+    def test_create_edit_tool_message(self):
+        """Test creating EditToolMessage."""
+        file_path = "/path/to/file.py"
+        old_string = "def hello():\n    print('Hello')"
+        new_string = "def hello():\n    print('Hello, World!')"
+        arguments = json.dumps(
+            {"file_path": file_path, "old_string": old_string, "new_string": new_string, "replace_all": False}
+        )
+
+        # Test without output
+        message = create_tool_message("edit", arguments)
+        assert isinstance(message, EditToolMessage)
+        assert message.file_path == file_path
+        assert message.arguments == arguments
+        assert message.output == ""
+        assert message.status == MessageStatus.EXECUTING
+        # Check that diff content was generated
+        assert message.diff_content != ""
+        assert "(before)" in message.diff_content
+        assert "(after)" in message.diff_content
+
+        # Test with output
+        output = "Successfully replaced 1 occurrence(s) in /path/to/file.py"
+        message_with_output = create_tool_message("edit", arguments, output=output, status=MessageStatus.SUCCESS)
+        assert isinstance(message_with_output, EditToolMessage)
+        assert message_with_output.file_path == file_path
+        assert message_with_output.output == output
+        assert message_with_output.status == MessageStatus.SUCCESS
+
+    def test_create_multi_edit_tool_message(self):
+        """Test creating EditToolMessage for multi_edit."""
+        file_path = "/path/to/file.py"
+        edits = [
+            {"old_string": "foo", "new_string": "bar", "replace_all": True},
+            {"old_string": "baz", "new_string": "qux"},
+        ]
+        arguments = json.dumps({"file_path": file_path, "edits": edits})
+
+        # Test without output
+        message = create_tool_message("multi_edit", arguments)
+        assert isinstance(message, EditToolMessage)
+        assert message.file_path == file_path
+        assert message.arguments == arguments
+        assert message.output == ""
+        assert message.status == MessageStatus.EXECUTING
+        # Check that diff content was generated for multiple edits
+        assert message.diff_content != ""
+        assert "Edit 1:" in message.diff_content
+        assert "Edit 2:" in message.diff_content
+
+        # Test with output
+        output = "Successfully applied 2 edits with 5 total replacements in /path/to/file.py"
+        message_with_output = create_tool_message("multi_edit", arguments, output=output, status=MessageStatus.SUCCESS)
+        assert isinstance(message_with_output, EditToolMessage)
+        assert message_with_output.output == output
+        assert message_with_output.status == MessageStatus.SUCCESS
+
+    def test_edit_tool_message_invalid_json(self):
+        """Test handling of invalid JSON for edit tools."""
+        # Test with invalid JSON for edit
+        message = create_tool_message("edit", "invalid json")
+        assert isinstance(message, EditToolMessage)
+        assert message.file_path == ""
+        assert message.diff_content == ""  # No diff generated
+
+        # Test with invalid JSON for multi_edit
+        message = create_tool_message("multi_edit", "invalid json")
+        assert isinstance(message, EditToolMessage)
+        assert message.file_path == ""
+        assert message.diff_content == ""  # No diff generated
+
+    def test_edit_tool_message_missing_fields(self):
+        """Test handling of missing fields in edit arguments."""
+        # Test edit without required fields
+        arguments = json.dumps({"file_path": "/test.py"})
+        message = create_tool_message("edit", arguments)
+        assert isinstance(message, EditToolMessage)
+        assert message.file_path == "/test.py"
+        assert message.diff_content == ""  # No diff without old/new strings
+
+        # Test multi_edit without edits field
+        arguments = json.dumps({"file_path": "/test.py"})
+        message = create_tool_message("multi_edit", arguments)
+        assert isinstance(message, EditToolMessage)
+        assert message.file_path == "/test.py"
+        assert message.diff_content == ""  # No diff without edits

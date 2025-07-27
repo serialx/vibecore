@@ -4,6 +4,8 @@ This module contains specialized message widgets for displaying
 the execution and results of various tools.
 """
 
+import difflib
+import json
 import re
 
 from textual.app import ComposeResult
@@ -304,3 +306,116 @@ class WriteToolMessage(BaseToolMessage):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
                     yield Static(self.output, classes="write-output-message")
+
+
+class EditToolMessage(BaseToolMessage):
+    """A widget to display file edit operations with diff view."""
+
+    file_path: reactive[str] = reactive("")
+    arguments: reactive[str] = reactive("")
+    diff_content: reactive[str] = reactive("", recompose=True)
+
+    def __init__(
+        self,
+        file_path: str,
+        arguments: str,
+        output: str = "",
+        status: MessageStatus = MessageStatus.EXECUTING,
+        **kwargs,
+    ) -> None:
+        """
+        Construct an EditToolMessage.
+
+        Args:
+            file_path: The file path being edited.
+            arguments: The JSON arguments containing edit operations.
+            output: The output from the edit operation (can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.file_path = file_path
+        self.arguments = arguments
+        self.output = output
+        self._generate_diff()
+
+    def _generate_diff(self) -> None:
+        """Generate unified diff from the edit arguments."""
+        try:
+            args = json.loads(self.arguments)
+
+            # Handle both single edit and multi_edit
+            if "old_string" in args and "new_string" in args:
+                # Single edit
+                edits = [(args["old_string"], args["new_string"])]
+            elif "edits" in args:
+                # Multi edit
+                edits = [(edit["old_string"], edit["new_string"]) for edit in args["edits"]]
+            else:
+                self.diff_content = ""
+                return
+
+            # Generate unified diff for each edit
+            diff_parts = []
+            for i, (old_string, new_string) in enumerate(edits):
+                old_lines = old_string.splitlines(keepends=True)
+                new_lines = new_string.splitlines(keepends=True)
+
+                # Create diff
+                diff = difflib.unified_diff(
+                    old_lines,
+                    new_lines,
+                    fromfile=f"{self.file_path} (before)",
+                    tofile=f"{self.file_path} (after)",
+                    n=3,  # Number of context lines
+                    lineterm="",
+                )
+
+                diff_text = "".join(diff)
+                if diff_text:
+                    if len(edits) > 1:
+                        diff_parts.append(f"Edit {i + 1}:\n{diff_text}")
+                    else:
+                        diff_parts.append(diff_text)
+
+            self.diff_content = "\n\n".join(diff_parts) if diff_parts else "No changes"
+
+        except (json.JSONDecodeError, KeyError):
+            self.diff_content = ""
+
+    def update(self, status: MessageStatus, output: str | None = None) -> None:
+        """Update the status and optionally the output of the tool message."""
+        super().update(status, output)
+        # Regenerate diff if arguments changed
+        if hasattr(self, "_last_arguments") and self._last_arguments != self.arguments:
+            self._generate_diff()
+        self._last_arguments = self.arguments
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the edit message."""
+        # Truncate file path if too long
+        max_path_length = 60
+        display_path = (
+            self.file_path[:max_path_length] + "…" if len(self.file_path) > max_path_length else self.file_path
+        )
+
+        # Header line
+        header = f"Edit({display_path})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Diff display
+        if self.diff_content:
+            with Horizontal(classes="edit-diff"):
+                yield Static("└─", classes="edit-diff-prefix")
+                with Vertical(classes="edit-diff-content code-container"):
+                    # Use ExpandableMarkdown for diff display with syntax highlighting
+                    yield ExpandableMarkdown(
+                        f"```diff\n{self.diff_content}\n```", truncated_lines=15, classes="edit-diff-expandable"
+                    )
+
+        # Output (success/error message)
+        if self.output:
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    yield Static(self.output, classes="edit-output-message")

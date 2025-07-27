@@ -12,6 +12,7 @@ from typing import Any
 from vibecore.widgets.messages import MessageStatus
 from vibecore.widgets.tool_messages import (
     BaseToolMessage,
+    EditToolMessage,
     PythonToolMessage,
     ReadToolMessage,
     TaskToolMessage,
@@ -83,6 +84,13 @@ def create_tool_message(
             return WriteToolMessage(file_path=file_path, content=content, output=output, status=status)
         else:
             return WriteToolMessage(file_path=file_path, content=content, status=status)
+
+    elif tool_name in ("edit", "multi_edit"):
+        file_path = args_dict.get("file_path", "") if args_dict else ""
+        if output is not None:
+            return EditToolMessage(file_path=file_path, arguments=arguments, output=output, status=status)
+        else:
+            return EditToolMessage(file_path=file_path, arguments=arguments, status=status)
 
     # Default to generic ToolMessage for all other tools
     else:
