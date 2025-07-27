@@ -16,11 +16,11 @@ from vibecore.utils.text import TextExtractor
 from vibecore.widgets.messages import (
     AgentMessage,
     BaseMessage,
-    BaseToolMessage,
     MessageStatus,
     UserMessage,
 )
 from vibecore.widgets.tool_message_factory import create_tool_message
+from vibecore.widgets.tool_messages import BaseToolMessage
 
 
 class SessionLoader:

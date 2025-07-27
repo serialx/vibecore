@@ -2,14 +2,14 @@
 
 import json
 
-from vibecore.widgets.messages import (
-    MessageStatus,
+from vibecore.widgets.messages import MessageStatus
+from vibecore.widgets.tool_message_factory import create_tool_message
+from vibecore.widgets.tool_messages import (
     PythonToolMessage,
     ReadToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
 )
-from vibecore.widgets.tool_message_factory import create_tool_message
 
 
 class TestToolMessageFactory:

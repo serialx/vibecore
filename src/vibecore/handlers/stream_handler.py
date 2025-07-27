@@ -22,11 +22,10 @@ from textual import log
 from vibecore.widgets.messages import (
     AgentMessage,
     BaseMessage,
-    BaseToolMessage,
     MessageStatus,
-    ReadToolMessage,
 )
 from vibecore.widgets.tool_message_factory import create_tool_message
+from vibecore.widgets.tool_messages import BaseToolMessage, ReadToolMessage
 
 if TYPE_CHECKING:
     from vibecore.main import VibecoreApp

@@ -9,9 +9,9 @@ import contextlib
 import json
 from typing import Any
 
-from vibecore.widgets.messages import (
+from vibecore.widgets.messages import MessageStatus
+from vibecore.widgets.tool_messages import (
     BaseToolMessage,
-    MessageStatus,
     PythonToolMessage,
     ReadToolMessage,
     TodoWriteToolMessage,
