@@ -17,6 +17,7 @@ from vibecore.widgets.tool_messages import (
     TaskToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
+    WriteToolMessage,
 )
 
 
@@ -74,6 +75,14 @@ def create_tool_message(
             return TaskToolMessage(description=description, prompt=prompt, output=output, status=status)
         else:
             return TaskToolMessage(description=description, prompt=prompt, status=status)
+
+    elif tool_name == "write":
+        file_path = args_dict.get("file_path", "") if args_dict else ""
+        content = args_dict.get("content", "") if args_dict else ""
+        if output is not None:
+            return WriteToolMessage(file_path=file_path, content=content, output=output, status=status)
+        else:
+            return WriteToolMessage(file_path=file_path, content=content, status=status)
 
     # Default to generic ToolMessage for all other tools
     else:

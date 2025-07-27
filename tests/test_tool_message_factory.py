@@ -9,6 +9,7 @@ from vibecore.widgets.tool_messages import (
     ReadToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
+    WriteToolMessage,
 )
 
 
@@ -77,6 +78,29 @@ class TestToolMessageFactory:
         assert message_with_output.output == output
         assert message_with_output.status == MessageStatus.SUCCESS
 
+    def test_create_write_tool_message(self):
+        """Test creating WriteToolMessage."""
+        file_path = "/path/to/newfile.py"
+        content = "def hello():\n    print('Hello, World!')"
+        arguments = json.dumps({"file_path": file_path, "content": content})
+
+        # Test without output
+        message = create_tool_message("write", arguments)
+        assert isinstance(message, WriteToolMessage)
+        assert message.file_path == file_path
+        assert message.content == content
+        assert message.output == ""
+        assert message.status == MessageStatus.EXECUTING
+
+        # Test with output
+        output = "Successfully wrote 42 bytes to /path/to/newfile.py"
+        message_with_output = create_tool_message("write", arguments, output=output, status=MessageStatus.SUCCESS)
+        assert isinstance(message_with_output, WriteToolMessage)
+        assert message_with_output.file_path == file_path
+        assert message_with_output.content == content
+        assert message_with_output.output == output
+        assert message_with_output.status == MessageStatus.SUCCESS
+
     def test_create_generic_tool_message(self):
         """Test creating generic ToolMessage for unknown tools."""
         tool_name = "bash"
@@ -117,6 +141,12 @@ class TestToolMessageFactory:
         assert isinstance(message, ReadToolMessage)
         assert message.file_path == ""  # Falls back to empty path
 
+        # Test with invalid JSON for write
+        message = create_tool_message("write", "invalid json")
+        assert isinstance(message, WriteToolMessage)
+        assert message.file_path == ""  # Falls back to empty path
+        assert message.content == ""  # Falls back to empty content
+
         # Test with invalid JSON for generic tool
         message = create_tool_message("bash", "invalid json")
         assert isinstance(message, ToolMessage)
@@ -141,3 +171,10 @@ class TestToolMessageFactory:
         message = create_tool_message("read", arguments)
         assert isinstance(message, ReadToolMessage)
         assert message.file_path == ""
+
+        # Test write without required fields
+        arguments = json.dumps({"other_field": "value"})
+        message = create_tool_message("write", arguments)
+        assert isinstance(message, WriteToolMessage)
+        assert message.file_path == ""
+        assert message.content == ""
