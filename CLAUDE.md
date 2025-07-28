@@ -617,11 +617,53 @@ agent = Agent(
    )
    ```
 
-## Testing with tui-test-engineer Agent
+## Testing
+
+### Snapshot Testing with pytest-textual-snapshot
+
+The project uses snapshot testing to verify that widgets render correctly. This helps catch visual regressions and ensures consistent UI behavior across changes.
+
+#### Running Snapshot Tests
+
+```bash
+# Run all snapshot tests
+uv run pytest tests/test_widget_snapshots.py
+
+# Update snapshots after intentional UI changes
+uv run pytest tests/test_widget_snapshots.py --snapshot-update
+
+# Run a specific snapshot test
+uv run pytest tests/test_widget_snapshots.py::TestWidgetSnapshots::test_basic_conversation
+```
+
+#### Test Architecture
+
+- **Test Harness**: `tests/test_harness.py` contains `TestVibecoreApp`, a simplified version of the main app optimized for testing
+- **Session Fixtures**: JSONL files in `tests/fixtures/sessions/` contain pre-recorded conversations for different scenarios
+- **Snapshots**: SVG files in `tests/__snapshots__/` capture the expected visual output
+
+#### Adding New Snapshot Tests
+
+1. Create a new JSONL fixture file in `tests/fixtures/sessions/` with the conversation to test
+2. Add a test method in `tests/test_widget_snapshots.py` that loads the fixture
+3. Run the test with `--snapshot-update` to generate the initial snapshot
+4. Review the generated SVG to ensure it looks correct
+5. Commit both the fixture and snapshot files
+
+#### When to Update Snapshots
+
+Update snapshots when:
+- You intentionally change the UI layout or styling
+- You add new widgets or modify existing ones
+- You fix bugs that affect visual output
+
+Always review the snapshot diff before updating to ensure changes are intentional.
+
+### Testing with tui-test-engineer Agent
 
 After implementing any new feature or making significant changes to the vibecore TUI application, use the `tui-test-engineer` agent to run automated tests.
 
-### Important: Provide Detailed Test Instructions
+#### Important: Provide Detailed Test Instructions
 
 The `tui-test-engineer` agent requires **detailed test instructions** in the prompt to execute tests effectively. Include:
 - Specific features to test
@@ -629,7 +671,7 @@ The `tui-test-engineer` agent requires **detailed test instructions** in the pro
 - Test scenarios and edge cases
 - Any special keyboard sequences or interactions
 
-### Example Usage
+#### Example Usage
 
 ```python
 # Basic testing with comprehensive test plan

@@ -1,0 +1,4 @@
+{"content": "Hello, how are you?", "role": "user"}
+{"id": "__fake_id__", "content": [{"annotations": [], "text": "I'm doing well, thank you! How can I help you today?", "type": "output_text"}], "role": "assistant", "status": "completed", "type": "message"}
+{"content": "Can you tell me about Python?", "role": "user"}
+{"id": "__fake_id__", "content": [{"annotations": [], "text": "Python is a high-level, interpreted programming language known for its simplicity and readability. It was created by Guido van Rossum and first released in 1991. Python emphasizes code readability with its use of significant indentation and supports multiple programming paradigms including procedural, object-oriented, and functional programming.", "type": "output_text"}], "role": "assistant", "status": "completed", "type": "message"}

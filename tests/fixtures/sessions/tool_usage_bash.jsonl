@@ -1,0 +1,5 @@
+{"content": "What files are in the current directory?", "role": "user"}
+{"id": "__fake_id__", "content": [{"annotations": [], "text": "I'll help you list the files in the current directory.", "type": "output_text"}], "role": "assistant", "status": "completed", "type": "message"}
+{"type": "function_call", "call_id": "toolu_abc123", "name": "bash", "arguments": "{\"command\": \"ls -la\"}"}
+{"type": "function_call_output", "call_id": "toolu_abc123", "output": "total 16\ndrwxr-xr-x  5 user  staff  160 Jul 28 10:30 .\ndrwxr-xr-x  8 user  staff  256 Jul 28 10:20 ..\n-rw-r--r--  1 user  staff  220 Jul 28 10:30 README.md\n-rw-r--r--  1 user  staff  150 Jul 28 10:25 main.py\ndrwxr-xr-x  3 user  staff   96 Jul 28 10:28 src"}
+{"id": "__fake_id__", "content": [{"annotations": [], "text": "Here are the files in the current directory:\n\n- `README.md` - A markdown file (220 bytes)\n- `main.py` - A Python file (150 bytes)\n- `src/` - A subdirectory\n\nThe directory also contains hidden entries (`.` for current directory and `..` for parent directory).", "type": "output_text"}], "role": "assistant", "status": "completed", "type": "message"}
