@@ -29,6 +29,7 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
     "pytest-mock>=3.14.1",
+    "pytest-textual-snapshot>=1.0.0",
     "textual-dev>=1.7.0",
     "ipdb>=0.13.13",
 ]
