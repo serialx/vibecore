@@ -1,6 +1,7 @@
 """Task tool for spawning sub-agents to execute specific tasks."""
 
-from agents import RunContextWrapper, function_tool
+from agents import function_tool
+from agents.tool_context import ToolContext
 
 from vibecore.context import VibecoreContext
 
@@ -9,7 +10,7 @@ from .executor import execute_task
 
 @function_tool
 async def task(
-    ctx: RunContextWrapper[VibecoreContext],
+    ctx: ToolContext[VibecoreContext],
     description: str,
     prompt: str,
 ) -> str:
@@ -47,4 +48,4 @@ async def task(
     Returns:
         The task execution results as a string
     """
-    return await execute_task(ctx.context, description, prompt)
+    return await execute_task(ctx.context, description, prompt, ctx.tool_name, ctx.tool_call_id)

@@ -5,6 +5,7 @@ from agents import (
     Agent,
     Runner,
     RunResultStreaming,
+    StreamEvent,
     TResponseInputItem,
 )
 from openai.types.responses.response_output_message import Content
@@ -16,14 +17,14 @@ from textual.widgets import Header
 from textual.worker import Worker
 
 from vibecore.context import VibecoreContext
-from vibecore.handlers import StreamHandler
+from vibecore.handlers import AgentStreamHandler
 from vibecore.session import JSONLSession
 from vibecore.session.loader import SessionLoader
 from vibecore.settings import settings
 from vibecore.utils.text import TextExtractor
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
-from vibecore.widgets.messages import BaseMessage, UserMessage
+from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, UserMessage
 
 AgentStatus = Literal["idle", "running"]
 
@@ -62,6 +63,7 @@ class VibecoreApp(App):
             print_mode: Whether to run in print mode (useful for pipes)
         """
         self.context = context
+        self.context.app = self  # Set the app reference in context
         self.agent = agent
         self.input_items: list[TResponseInputItem] = []
         self.current_result: RunResultStreaming | None = None
@@ -106,9 +108,48 @@ class VibecoreApp(App):
         return TextExtractor.extract_from_content(content)
 
     async def add_message(self, message: BaseMessage) -> None:
+        """Add a message widget to the main scroll area.
+
+        Args:
+            message: The message to add
+        """
+        main_scroll = self.query_one("#messages", MainScroll)
+        await main_scroll.mount(message)
+
+    async def handle_agent_message(self, message: BaseMessage) -> None:
         """Add a message widget to the main scroll area."""
-        messages = self.query_one("#messages", MainScroll)
-        await messages.mount(message)
+        await self.add_message(message)
+
+    async def handle_agent_update(self, new_agent: Agent) -> None:
+        """Handle agent updates."""
+        log(f"Agent updated: {new_agent.name}")
+        self.agent = new_agent
+
+    async def handle_agent_error(self, error: Exception) -> None:
+        """Handle errors during streaming."""
+        log(f"Error during agent response: {type(error).__name__}: {error!s}")
+
+        # Create an error message for the user
+        error_msg = f"❌ Error: {type(error).__name__}"
+        if str(error):
+            error_msg += f"\n\n{error!s}"
+
+        # Display the error to the user
+        # TODO(serialx): Use a dedicated error message widget
+        error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
+        await self.add_message(error_agent_msg)
+
+    async def handle_agent_finished(self) -> None:
+        """Handle when the agent has finished processing."""
+        # Remove the last agent message if it is still executing (which means the agent run was cancelled)
+        main_scroll = self.query_one("#messages", MainScroll)
+        try:
+            last_message = main_scroll.query_one("BaseMessage:last-child", BaseMessage)
+            if last_message.status == MessageStatus.EXECUTING:
+                last_message.remove()
+        except Exception:
+            # No messages to clean up
+            pass
 
     async def load_session_history(self) -> None:
         """Load and display messages from session history."""
@@ -167,7 +208,7 @@ class VibecoreApp(App):
         self.agent_status = "running"
         self.current_result = result
 
-        handler = StreamHandler(self)
+        handler = AgentStreamHandler(self)
         await handler.process_stream(result)
 
         self.agent_status = "idle"
@@ -254,3 +295,17 @@ class VibecoreApp(App):
                             agent_output += delta
 
         return agent_output.strip()
+
+    async def handle_task_tool_event(self, tool_name: str, tool_call_id: str, event: StreamEvent) -> None:
+        """Handle streaming events from task tool sub-agents.
+
+        Args:
+            tool_name: Name of the tool (e.g., "task")
+            tool_call_id: Unique identifier for this tool call
+            event: The streaming event from the sub-agent
+
+        Note: This method is currently empty as requested. It will be implemented later
+        to properly stream sub-agent events to the UI.
+        """
+        # Implementation will be added later
+        log(f"Received event for tool '{tool_name}' with call ID '{tool_call_id}': {event}")

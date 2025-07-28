@@ -1,6 +1,6 @@
 """Stream handler for processing agent streaming responses."""
 
-from typing import TYPE_CHECKING
+from typing import Protocol
 
 from agents import (
     Agent,
@@ -17,7 +17,6 @@ from openai.types.responses import (
     ResponseOutputItemDoneEvent,
     ResponseTextDeltaEvent,
 )
-from textual import log
 
 from vibecore.widgets.messages import (
     AgentMessage,
@@ -27,20 +26,37 @@ from vibecore.widgets.messages import (
 from vibecore.widgets.tool_message_factory import create_tool_message
 from vibecore.widgets.tool_messages import BaseToolMessage, ReadToolMessage
 
-if TYPE_CHECKING:
-    from vibecore.main import VibecoreApp
+
+class MessageHandler(Protocol):
+    """Protocol defining the interface for message handling."""
+
+    async def handle_agent_message(self, message: BaseMessage) -> None:
+        """Add a message to the widget's message list."""
+        ...
+
+    async def handle_agent_update(self, new_agent: Agent) -> None:
+        """Handle agent updates."""
+        ...
+
+    async def handle_agent_error(self, error: Exception) -> None:
+        """Handle errors during streaming."""
+        ...
+
+    async def handle_agent_finished(self) -> None:
+        """Handle when the agent has finished processing."""
+        ...
 
 
-class StreamHandler:
+class AgentStreamHandler:
     """Handles streaming responses from agents."""
 
-    def __init__(self, app: "VibecoreApp") -> None:
+    def __init__(self, message_handler: MessageHandler) -> None:
         """Initialize the stream handler.
 
         Args:
             app: The VibecoreApp instance
         """
-        self.app = app
+        self.message_handler = message_handler
         self.message_content = ""
         self.agent_message: AgentMessage | None = None
         self.tool_messages: dict[str, BaseToolMessage] = {}
@@ -54,7 +70,7 @@ class StreamHandler:
         self.message_content += delta
         if not self.agent_message:
             self.agent_message = AgentMessage(self.message_content, status=MessageStatus.EXECUTING)
-            await self.app.add_message(self.agent_message)
+            await self.message_handler.handle_agent_message(self.agent_message)
         else:
             self.agent_message.update(self.message_content)
 
@@ -70,7 +86,7 @@ class StreamHandler:
         tool_message = create_tool_message(tool_name, arguments)
 
         self.tool_messages[call_id] = tool_message
-        await self.app.add_message(tool_message)
+        await self.message_handler.handle_agent_message(tool_message)
 
     async def handle_tool_output(self, output: str, call_id: str) -> None:
         """Update tool message with execution results.
@@ -94,18 +110,7 @@ class StreamHandler:
             self.agent_message = None
             self.message_content = ""
 
-    async def handle_agent_update(self, new_agent: Agent) -> None:
-        """Handle agent handoff events.
-
-        Args:
-            new_agent: The new agent after handoff
-        """
-        log(f"Agent updated: {new_agent.name}")
-        self.app.agent = new_agent
-
-    async def _handle_event(
-        self, event: RawResponsesStreamEvent | RunItemStreamEvent | AgentUpdatedStreamEvent
-    ) -> None:
+    async def handle_event(self, event: RawResponsesStreamEvent | RunItemStreamEvent | AgentUpdatedStreamEvent) -> None:
         """Handle a single streaming event.
 
         Args:
@@ -138,37 +143,7 @@ class StreamHandler:
                         await self.handle_message_complete()
 
             case AgentUpdatedStreamEvent(new_agent=new_agent):
-                await self.handle_agent_update(new_agent)
-
-    async def _handle_error(self, error: Exception) -> None:
-        """Handle errors during streaming.
-
-        Args:
-            error: The exception that occurred
-        """
-        # Log the error
-        log(f"Error during agent response: {type(error).__name__}: {error!s}")
-
-        # Create an error message for the user
-        error_msg = f"❌ Error: {type(error).__name__}"
-        if str(error):
-            error_msg += f"\n\n{error!s}"
-
-        # Display the error to the user
-        error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
-        await self.app.add_message(error_agent_msg)
-
-    async def _cleanup(self) -> None:
-        """Clean up after streaming completes or errors."""
-        # Remove the last agent message if it is still executing (which means the agent run was cancelled)
-        messages = self.app.query_one("#messages")
-        try:
-            last_message = messages.query_one("BaseMessage:last-child", BaseMessage)
-            if last_message.status == MessageStatus.EXECUTING:
-                last_message.remove()
-        except Exception:
-            # No messages to clean up
-            pass
+                await self.message_handler.handle_agent_update(new_agent)
 
     async def process_stream(self, result: RunResultStreaming) -> None:
         """Process all streaming events from the agent.
@@ -178,8 +153,9 @@ class StreamHandler:
         """
         try:
             async for event in result.stream_events():
-                await self._handle_event(event)
+                await self.handle_event(event)
         except Exception as e:
-            await self._handle_error(e)
+            await self.message_handler.handle_agent_error(e)
         finally:
-            await self._cleanup()
+            await self.message_handler.handle_agent_finished()
+            # await self._cleanup()
