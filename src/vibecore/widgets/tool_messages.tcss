@@ -170,6 +170,31 @@ TaskToolMessage {
             width: 1fr;
         }
     }
+
+    .message-content {
+        height: auto;
+
+        &> .message-content-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.message-content-body {
+            height: auto;
+            width: 1fr;
+
+            &> MainScroll#messages {
+                height: auto;
+                max-height: 10;
+                width: 1fr;
+                overflow-y: auto;
+            }
+        }
+
+    }
 }
 
 WriteToolMessage {

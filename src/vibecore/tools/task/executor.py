@@ -1,6 +1,11 @@
 """Task execution logic for spawning sub-agents."""
 
-from agents import Runner
+import traceback
+
+from agents import (
+    Runner,
+)
+from textual import log
 
 from vibecore.agents.task_agent import create_task_agent
 from vibecore.context import VibecoreContext
@@ -11,54 +16,36 @@ async def execute_task(
     context: VibecoreContext,
     description: str,
     prompt: str,
+    tool_name: str,
+    tool_call_id: str,
 ) -> str:
-    """Execute a task using a sub-agent.
+    """Execute a task using a sub-agent with streaming support.
 
     Args:
         context: The vibecore context to pass to the task agent
         description: Short task description (for logging/display)
         prompt: Full task instructions
+        tool_name: Name of the tool being invoked (e.g., "task")
+        tool_call_id: Unique identifier for this tool call
 
     Returns:
-        Task execution results as a string
+        Task execution results as a string with formatted sub-agent activity
     """
     try:
         # Create the task agent
         task_agent = create_task_agent(prompt)
 
-        # Run the task agent
-        result = await Runner.run(task_agent, prompt, context=context, max_turns=settings.max_turns)
+        # Run the task agent with streaming
+        result = Runner.run_streamed(task_agent, prompt, context=context, max_turns=settings.max_turns)
 
-        # Extract and format the response
-        if result.final_output:
-            return f"Task '{description}' completed:\n\n{result.final_output}"
-        elif result.new_items:
-            # Collect all text content from the response
-            output_parts = []
+        # Check if app is available for streaming
+        if context.app:
+            # Stream events to app handler
+            async for event in result.stream_events():
+                await context.app.handle_task_tool_event(tool_name, tool_call_id, event)
 
-            for item in result.new_items:
-                # Handle message output items
-                if hasattr(item, "type") and item.type == "message_output_item":
-                    if hasattr(item.raw_item, "content"):
-                        content = item.raw_item.content
-                        if isinstance(content, list):
-                            for part in content:
-                                if hasattr(part, "type") and part.type == "text" and hasattr(part, "text"):
-                                    output_parts.append(part.text)
-                        elif isinstance(content, str):
-                            output_parts.append(content)
-
-                # Handle tool outputs
-                elif hasattr(item, "type") and item.type == "tool_call_output_item":
-                    # Just collect the string representation
-                    output_parts.append(f"[Tool output: {item!s}]")
-
-            if output_parts:
-                return f"Task '{description}' completed:\n\n{''.join(output_parts)}"
-            else:
-                return f"Task '{description}' completed with no readable output."
-        else:
-            return f"Task '{description}' completed with no output."
+        return result.final_output
 
     except Exception as e:
+        log.error(f"Task execution error: {type(e).__name__}: {e!s}\n%s", traceback.format_exc())
         return f"Task '{description}' failed with error: {e!s}"

@@ -1,6 +1,7 @@
 """Stream handler for processing agent streaming responses."""
 
-from typing import TYPE_CHECKING
+import json
+from typing import Protocol
 
 from agents import (
     Agent,
@@ -9,15 +10,16 @@ from agents import (
     RawResponsesStreamEvent,
     RunItemStreamEvent,
     RunResultStreaming,
+    StreamEvent,
     ToolCallItem,
     ToolCallOutputItem,
 )
 from openai.types.responses import (
     ResponseFunctionToolCall,
+    ResponseOutputItemAddedEvent,
     ResponseOutputItemDoneEvent,
     ResponseTextDeltaEvent,
 )
-from textual import log
 
 from vibecore.widgets.messages import (
     AgentMessage,
@@ -25,22 +27,39 @@ from vibecore.widgets.messages import (
     MessageStatus,
 )
 from vibecore.widgets.tool_message_factory import create_tool_message
-from vibecore.widgets.tool_messages import BaseToolMessage, ReadToolMessage
-
-if TYPE_CHECKING:
-    from vibecore.main import VibecoreApp
+from vibecore.widgets.tool_messages import BaseToolMessage, TaskToolMessage
 
 
-class StreamHandler:
+class MessageHandler(Protocol):
+    """Protocol defining the interface for message handling."""
+
+    async def handle_agent_message(self, message: BaseMessage) -> None:
+        """Add a message to the widget's message list."""
+        ...
+
+    async def handle_agent_update(self, new_agent: Agent) -> None:
+        """Handle agent updates."""
+        ...
+
+    async def handle_agent_error(self, error: Exception) -> None:
+        """Handle errors during streaming."""
+        ...
+
+    async def handle_agent_finished(self) -> None:
+        """Handle when the agent has finished processing."""
+        ...
+
+
+class AgentStreamHandler:
     """Handles streaming responses from agents."""
 
-    def __init__(self, app: "VibecoreApp") -> None:
+    def __init__(self, message_handler: MessageHandler) -> None:
         """Initialize the stream handler.
 
         Args:
-            app: The VibecoreApp instance
+            message_handler: The MessageHandler protocol instance
         """
-        self.app = app
+        self.message_handler = message_handler
         self.message_content = ""
         self.agent_message: AgentMessage | None = None
         self.tool_messages: dict[str, BaseToolMessage] = {}
@@ -54,7 +73,7 @@ class StreamHandler:
         self.message_content += delta
         if not self.agent_message:
             self.agent_message = AgentMessage(self.message_content, status=MessageStatus.EXECUTING)
-            await self.app.add_message(self.agent_message)
+            await self.message_handler.handle_agent_message(self.agent_message)
         else:
             self.agent_message.update(self.message_content)
 
@@ -70,7 +89,7 @@ class StreamHandler:
         tool_message = create_tool_message(tool_name, arguments)
 
         self.tool_messages[call_id] = tool_message
-        await self.app.add_message(tool_message)
+        await self.message_handler.handle_agent_message(tool_message)
 
     async def handle_tool_output(self, output: str, call_id: str) -> None:
         """Update tool message with execution results.
@@ -81,11 +100,7 @@ class StreamHandler:
         """
         if call_id in self.tool_messages:
             tool_message = self.tool_messages[call_id]
-            if isinstance(tool_message, ReadToolMessage):
-                # For ReadToolMessage, pass the content as the second argument
-                tool_message.update(MessageStatus.SUCCESS, str(output))
-            else:
-                tool_message.update(MessageStatus.SUCCESS, str(output))
+            tool_message.update(MessageStatus.SUCCESS, str(output))
 
     async def handle_message_complete(self) -> None:
         """Finalize agent message when complete."""
@@ -94,18 +109,7 @@ class StreamHandler:
             self.agent_message = None
             self.message_content = ""
 
-    async def handle_agent_update(self, new_agent: Agent) -> None:
-        """Handle agent handoff events.
-
-        Args:
-            new_agent: The new agent after handoff
-        """
-        log(f"Agent updated: {new_agent.name}")
-        self.app.agent = new_agent
-
-    async def _handle_event(
-        self, event: RawResponsesStreamEvent | RunItemStreamEvent | AgentUpdatedStreamEvent
-    ) -> None:
+    async def handle_event(self, event: StreamEvent) -> None:
         """Handle a single streaming event.
 
         Args:
@@ -117,10 +121,30 @@ class StreamHandler:
                     case ResponseTextDeltaEvent(delta=delta) if delta:
                         await self.handle_text_delta(delta)
 
+                    case ResponseOutputItemAddedEvent(item=ResponseFunctionToolCall(name=tool_name, call_id=call_id)):
+                        # TODO(serialx): We should move all tool call lifecycle start to here
+                        #                ResponseOutputItemDoneEvent can have race conditions in case of task tool calls
+                        #                Because we stream sub-agent events to our method: handle_task_tool_event()
+                        # XXX(serialx): Just handle task tool call lifecycle here for now
+                        #               I'm deferring this because `arguments` is not available here... need to refactor
+                        if tool_name == "task":
+                            await self.handle_tool_call(tool_name, "{}", call_id)
+
                     case ResponseOutputItemDoneEvent(
                         item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
                     ):
-                        await self.handle_tool_call(tool_name, arguments, call_id)
+                        # XXX(serialx): See above comments
+                        if tool_name == "task":
+                            assert call_id in self.tool_messages, f"Tool call ID {call_id} not found in tool messages"
+                            task_tool_message = self.tool_messages[call_id]
+                            assert isinstance(task_tool_message, TaskToolMessage), (
+                                "Tool message must be a TaskToolMessage instance"
+                            )
+                            args = json.loads(arguments)
+                            task_tool_message.description = args.get("description", "")
+                            task_tool_message.prompt = args.get("prompt", "")
+                        else:
+                            await self.handle_tool_call(tool_name, arguments, call_id)
 
             case RunItemStreamEvent(item=item):
                 match item:
@@ -138,37 +162,24 @@ class StreamHandler:
                         await self.handle_message_complete()
 
             case AgentUpdatedStreamEvent(new_agent=new_agent):
-                await self.handle_agent_update(new_agent)
+                await self.message_handler.handle_agent_update(new_agent)
 
-    async def _handle_error(self, error: Exception) -> None:
-        """Handle errors during streaming.
+    async def handle_task_tool_event(self, tool_name: str, tool_call_id: str, event: StreamEvent) -> None:
+        """Handle streaming events from task tool sub-agents.
 
         Args:
-            error: The exception that occurred
+            tool_name: Name of the tool (e.g., "task")
+            tool_call_id: Unique identifier for this tool call
+            event: The streaming event from the sub-agent
+
+        Note: This is called by the main app to handle task tool events.
+        The main app receives this event from the agent's task tool handler.
         """
-        # Log the error
-        log(f"Error during agent response: {type(error).__name__}: {error!s}")
 
-        # Create an error message for the user
-        error_msg = f"❌ Error: {type(error).__name__}"
-        if str(error):
-            error_msg += f"\n\n{error!s}"
-
-        # Display the error to the user
-        error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
-        await self.app.add_message(error_agent_msg)
-
-    async def _cleanup(self) -> None:
-        """Clean up after streaming completes or errors."""
-        # Remove the last agent message if it is still executing (which means the agent run was cancelled)
-        messages = self.app.query_one("#messages")
-        try:
-            last_message = messages.query_one("BaseMessage:last-child", BaseMessage)
-            if last_message.status == MessageStatus.EXECUTING:
-                last_message.remove()
-        except Exception:
-            # No messages to clean up
-            pass
+        assert tool_call_id in self.tool_messages, f"Tool call ID {tool_call_id} not found in tool messages"
+        tool_message = self.tool_messages[tool_call_id]
+        assert isinstance(tool_message, TaskToolMessage), "Tool message must be a TaskToolMessage instance"
+        await tool_message.handle_task_tool_event(event)
 
     async def process_stream(self, result: RunResultStreaming) -> None:
         """Process all streaming events from the agent.
@@ -178,8 +189,9 @@ class StreamHandler:
         """
         try:
             async for event in result.stream_events():
-                await self._handle_event(event)
+                await self.handle_event(event)
         except Exception as e:
-            await self._handle_error(e)
+            await self.message_handler.handle_agent_error(e)
         finally:
-            await self._cleanup()
+            await self.message_handler.handle_agent_finished()
+            # await self._cleanup()
