@@ -5,15 +5,23 @@ the execution and results of various tools.
 """
 
 import re
+from typing import TYPE_CHECKING
 
+from agents import Agent, StreamEvent
+from textual import log
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.reactive import reactive
 from textual.widgets import Button, Static
 
+from vibecore.widgets.core import MainScroll
+
 from .expandable import ExpandableContent, ExpandableMarkdown
-from .messages import BaseMessage, MessageHeader, MessageStatus
+from .messages import AgentMessage, BaseMessage, MessageHeader, MessageStatus
+
+if TYPE_CHECKING:
+    from vibecore.handlers.stream_handler import AgentStreamHandler
 
 
 class BaseToolMessage(BaseMessage):
@@ -173,8 +181,8 @@ class ReadToolMessage(BaseToolMessage):
 class TaskToolMessage(BaseToolMessage):
     """A widget to display task execution messages."""
 
-    description: reactive[str] = reactive("")
-    prompt: reactive[str] = reactive("")
+    description: reactive[str] = reactive("", recompose=True)
+    prompt: reactive[str] = reactive("", recompose=True)
 
     def __init__(
         self, description: str, prompt: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
@@ -193,6 +201,8 @@ class TaskToolMessage(BaseToolMessage):
         self.description = description
         self.prompt = prompt
         self.output = output
+        self._agent_stream_handler: AgentStreamHandler | None = None
+        self.main_scroll = MainScroll(id="messages")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the task message."""
@@ -211,8 +221,73 @@ class TaskToolMessage(BaseToolMessage):
                         classes="task-prompt-expandable",
                     )
 
+        # XXX(serialx): self.output being a recompose=True field means whenever self.output changes, main_scroll will be
+        #               emptied. So let's just hide it for now.
+        # TODO(serialx): Turn all recompose=True fields into TCSS display: none toggle to avoid this issue.
+        if not self.output:
+            with Horizontal(classes="message-content"):
+                yield Static("└─", classes="message-content-prefix")
+                with Vertical(classes="message-content-body"):
+                    log(f"self id: {id(self)}")
+                    log(f"self.main_scroll(id: {id(self.main_scroll)}): {self.main_scroll}")
+                    yield self.main_scroll
+
         # Output lines
         yield from self._render_output(self.output, truncated_lines=5)
+
+    async def handle_task_tool_event(self, event: StreamEvent) -> None:
+        """Handle task tool events from the agent.
+        Note: This is called by the main app's AgentStreamHandler to process tool events.
+        """
+        # Create handler lazily to avoid circular import
+        if self._agent_stream_handler is None:
+            from vibecore.handlers.stream_handler import AgentStreamHandler
+
+            self._agent_stream_handler = AgentStreamHandler(self)
+
+        await self._agent_stream_handler.handle_event(event)
+
+    async def add_message(self, message: BaseMessage) -> None:
+        """Add a message widget to the main scroll area.
+
+        Args:
+            message: The message to add
+        """
+        await self.main_scroll.mount(message)
+
+    async def handle_agent_message(self, message: BaseMessage) -> None:
+        """Add a message widget to the main scroll area."""
+        await self.add_message(message)
+
+    async def handle_agent_update(self, new_agent: Agent) -> None:
+        """Handle agent updates."""
+        pass
+
+    async def handle_agent_error(self, error: Exception) -> None:
+        """Handle errors during streaming."""
+        log(f"Error during task agent response: {type(error).__name__}: {error!s}")
+
+        # Create an error message for the user
+        error_msg = f"❌ Error: {type(error).__name__}"
+        if str(error):
+            error_msg += f"\n\n{error!s}"
+
+        # Display the error to the user
+        # TODO(serialx): Use a dedicated error message widget
+        error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
+        await self.add_message(error_agent_msg)
+
+    async def handle_agent_finished(self) -> None:
+        """Handle when the agent has finished processing."""
+        # Remove the last agent message if it is still executing (which means the agent run was cancelled)
+        main_scroll = self.query_one("#messages", MainScroll)
+        try:
+            last_message = main_scroll.query_one("BaseMessage:last-child", BaseMessage)
+            if last_message.status == MessageStatus.EXECUTING:
+                last_message.remove()
+        except Exception:
+            # No messages to clean up
+            pass
 
 
 class TodoWriteToolMessage(BaseToolMessage):

@@ -1,3 +1,4 @@
+import traceback
 from collections import deque
 from typing import ClassVar, Literal
 
@@ -134,6 +135,8 @@ class VibecoreApp(App):
         if str(error):
             error_msg += f"\n\n{error!s}"
 
+        error_msg += f"\n\n```\n{traceback.format_exc()}\n```"
+
         # Display the error to the user
         # TODO(serialx): Use a dedicated error message widget
         error_agent_msg = AgentMessage(error_msg, status=MessageStatus.ERROR)
@@ -208,8 +211,8 @@ class VibecoreApp(App):
         self.agent_status = "running"
         self.current_result = result
 
-        handler = AgentStreamHandler(self)
-        await handler.process_stream(result)
+        self.agent_stream_handler = AgentStreamHandler(self)
+        await self.agent_stream_handler.process_stream(result)
 
         self.agent_status = "idle"
         self.current_result = None
@@ -304,8 +307,6 @@ class VibecoreApp(App):
             tool_call_id: Unique identifier for this tool call
             event: The streaming event from the sub-agent
 
-        Note: This method is currently empty as requested. It will be implemented later
-        to properly stream sub-agent events to the UI.
+        Note: The main app receives this event from the agent's task tool handler.
         """
-        # Implementation will be added later
-        log(f"Received event for tool '{tool_name}' with call ID '{tool_call_id}': {event}")
+        await self.agent_stream_handler.handle_task_tool_event(tool_name, tool_call_id, event)

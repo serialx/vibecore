@@ -1,5 +1,7 @@
 """Task execution logic for spawning sub-agents."""
 
+import traceback
+
 from agents import (
     Runner,
 )
@@ -45,5 +47,5 @@ async def execute_task(
         return result.final_output
 
     except Exception as e:
-        log(f"Task execution error: {type(e).__name__}: {e!s}")
+        log.error(f"Task execution error: {type(e).__name__}: {e!s}\n%s", traceback.format_exc())
         return f"Task '{description}' failed with error: {e!s}"
