@@ -181,8 +181,19 @@ class VibecoreApp(App):
         """Handle user messages from the text area."""
         if event.text:
             # Check for special commands
-            if event.text.strip() == "/clear":
+            text_strip = event.text.strip()
+            if text_strip == "/clear":
                 await self.handle_clear_command()
+                return
+            elif text_strip == "/help":
+                help_text = "Available commands:\n"
+                help_text += "• /clear - Clear the current session and start a new one\n"
+                help_text += "• /help - Show this help message\n\n"
+                help_text += "Keyboard shortcuts:\n"
+                help_text += "• Esc - Cancel current agent operation\n"
+                help_text += "• Ctrl+Shift+D - Toggle dark/light mode\n"
+                help_text += "• Up/Down arrows - Navigate message history\n"
+                await self.add_message(SystemMessage(help_text))
                 return
 
             user_message = UserMessage(event.text)
