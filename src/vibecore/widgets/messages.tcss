@@ -63,3 +63,11 @@ UserMessage {
 AgentMessage {
     color: $text;
 }
+
+SystemMessage {
+    color: $accent;
+}
+
+SystemMessage > MessageHeader > .prefix {
+    color: $accent;
+}

@@ -25,7 +25,7 @@ from vibecore.settings import settings
 from vibecore.utils.text import TextExtractor
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
-from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, UserMessage
+from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, SystemMessage, UserMessage
 
 AgentStatus = Literal["idle", "running"]
 
@@ -180,6 +180,11 @@ class VibecoreApp(App):
     async def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
         """Handle user messages from the text area."""
         if event.text:
+            # Check for special commands
+            if event.text.strip() == "/clear":
+                await self.handle_clear_command()
+                return
+
             user_message = UserMessage(event.text)
             await self.add_message(user_message)
             user_message.scroll_visible()
@@ -310,3 +315,55 @@ class VibecoreApp(App):
         Note: The main app receives this event from the agent's task tool handler.
         """
         await self.agent_stream_handler.handle_task_tool_event(tool_name, tool_call_id, event)
+
+    async def handle_clear_command(self) -> None:
+        """Handle the /clear command to create a new session and clear the UI."""
+        log("Clearing session and creating new session")
+
+        # Cancel any running agent
+        if self.agent_status == "running":
+            self.action_cancel_agent()
+
+        # Clear message queue
+        self.message_queue.clear()
+
+        # Generate a new session ID
+        import datetime
+
+        new_session_id = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+        # Create new session
+        if settings.session.storage_type == "jsonl":
+            self.session = JSONLSession(
+                session_id=new_session_id,
+                project_path=None,  # Will use current working directory
+                base_dir=settings.session.base_dir,
+            )
+        else:
+            raise NotImplementedError("SQLite session support will be added later")
+
+        # Reset context state
+        self.context.reset_state()
+
+        # Clear input items
+        self.input_items.clear()
+
+        # Clear the UI - remove all messages and add welcome back
+        main_scroll = self.query_one("#messages", MainScroll)
+
+        # Remove all existing messages
+        for message in main_scroll.query("BaseMessage"):
+            message.remove()
+
+        # Remove welcome if it exists
+        for welcome in main_scroll.query("Welcome"):
+            welcome.remove()
+
+        # Add welcome widget back
+        await main_scroll.mount(Welcome())
+
+        # Show system message to confirm the clear operation
+        system_message = SystemMessage(f"✨ Session cleared! Started new session: {new_session_id}")
+        await main_scroll.mount(system_message)
+
+        log(f"New session created: {new_session_id}")

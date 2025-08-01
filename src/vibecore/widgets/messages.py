@@ -173,3 +173,24 @@ class AgentMessage(BaseMessage):
     def watch_text(self, text: str) -> None:
         """Watch for changes in the text and update the header."""
         self.query_one(MessageHeader).text = text
+
+
+class SystemMessage(BaseMessage):
+    """A widget to display system messages."""
+
+    def __init__(self, text: str, status: MessageStatus = MessageStatus.SUCCESS, **kwargs) -> None:
+        """
+        Construct a SystemMessage.
+
+        Args:
+            text: The text to display.
+            status: The status of the message.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.text = text
+        self.add_class("system-message")
+
+    def get_header_params(self) -> tuple[str, str, bool]:
+        """Get parameters for MessageHeader."""
+        return ("!", self.text, False)
