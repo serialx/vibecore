@@ -1,9 +1,10 @@
+import os
 import time
 from typing import ClassVar
 
 from textual import events
 from textual.app import ComposeResult
-from textual.containers import ScrollableContainer
+from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.geometry import Size
 from textual.message import Message
 from textual.widget import Widget
@@ -24,7 +25,15 @@ class AppFooter(Widget):
     def compose(self) -> ComposeResult:
         yield LoadingWidget(status="Generating…", id="loading-widget")
         yield InputBox()
-        yield ProgressBar(total=100, id="context-progress", show_eta=False)
+        # Wrap ProgressBar in vertical container to dock it right
+        with Vertical(id="context-info"):
+            cwd = os.getcwd()
+            if cwd.startswith(os.path.expanduser("~")):
+                cwd = cwd.replace(os.path.expanduser("~"), "~", 1)
+            yield Static(f"{cwd}", id="context-cwd")
+            with Horizontal(id="context-progress-container"):
+                yield Static("Context: ", id="context-progress-label")
+                yield ProgressBar(total=100, id="context-progress", show_eta=False)
         yield Footer()
 
     def set_context_progress(self, percent: float) -> None:

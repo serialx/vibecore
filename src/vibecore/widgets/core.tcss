@@ -7,6 +7,30 @@ Footer {
     dock: none;
 }
 
+#context-info {
+    height: 2;
+    color: $text-primary;
+
+    #context-cwd {
+        margin-left: 1;
+        height: 1;
+        width: auto;
+        dock: left;
+    }
+
+    #context-progress-container {
+        margin-right: 1;
+        height: auto;
+        width: auto;
+        dock: right;
+        layout: horizontal;
+
+        #context-progress-label {
+            width: auto;
+        }
+    }
+}
+
 InputBox {
     height: auto;
     layout: horizontal;
