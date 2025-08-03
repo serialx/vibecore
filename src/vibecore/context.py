@@ -13,11 +13,10 @@ class VibecoreContext:
     todo_manager: TodoManager = field(default_factory=TodoManager)
     python_manager: PythonExecutionManager = field(default_factory=PythonExecutionManager)
     app: Optional["VibecoreApp"] = None
+    context_fullness: float = 0.0
 
     def reset_state(self) -> None:
         """Reset all context state for a new session."""
-        # Reset todo manager
         self.todo_manager = TodoManager()
-
-        # Reset python manager - this will clear all variables and state
         self.python_manager = PythonExecutionManager()
+        self.context_fullness = 0.0

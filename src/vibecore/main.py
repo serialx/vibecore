@@ -230,11 +230,17 @@ class VibecoreApp(App):
         self.agent_stream_handler = AgentStreamHandler(self)
         await self.agent_stream_handler.process_stream(result)
 
+        used = result.context_wrapper.usage.total_tokens
+        max_ctx = self._get_model_context_window()
+        log(f"Context usage: {used} / {max_ctx} total tokens")
+        self.context.context_fullness = min(1.0, float(used) / float(max_ctx))
+        footer = self.query_one(AppFooter)
+        footer.set_context_progress(self.context.context_fullness)
+
         self.agent_status = "idle"
         self.current_result = None
         self.current_worker = None
 
-        # Process any queued messages
         await self.process_message_queue()
 
     async def process_message_queue(self) -> None:
@@ -256,8 +262,14 @@ class VibecoreApp(App):
             self.current_worker = self.handle_streamed_response(result)
 
     def on_click(self) -> None:
-        """Handle focus events."""
         self.query_one("#input-textarea").focus()
+
+    def _get_model_context_window(self) -> int:
+        from vibecore.settings import settings
+
+        model_name = settings.default_model
+        log(f"Getting context window for model: {model_name}")
+        return 200000
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""

@@ -7,7 +7,7 @@ from textual.containers import ScrollableContainer
 from textual.geometry import Size
 from textual.message import Message
 from textual.widget import Widget
-from textual.widgets import Footer, Static, TextArea
+from textual.widgets import Footer, ProgressBar, Static, TextArea
 
 
 class InputBox(Widget):
@@ -24,7 +24,13 @@ class AppFooter(Widget):
     def compose(self) -> ComposeResult:
         yield LoadingWidget(status="Generating…", id="loading-widget")
         yield InputBox()
+        yield ProgressBar(total=100, id="context-progress", show_eta=False)
         yield Footer()
+
+    def set_context_progress(self, percent: float) -> None:
+        bar = self.query_one("#context-progress", ProgressBar)
+        value = max(0, min(100, int(percent * 100)))
+        bar.update(total=100, progress=value)
 
     def on_mount(self) -> None:
         """Hide loading widget on mount."""

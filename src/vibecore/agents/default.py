@@ -1,4 +1,4 @@
-from agents import Agent
+from agents import Agent, ModelSettings
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 
 from vibecore.context import VibecoreContext
@@ -52,6 +52,9 @@ def create_analysis_agent() -> Agent[VibecoreContext]:
         instructions=instructions,
         tools=tools,
         model=settings.model,
+        model_settings=ModelSettings(
+            include_usage=True  # Ensure token usage is tracked in streaming mode
+        ),
         handoffs=[],  # Will be set dynamically in main.py
     )
 
