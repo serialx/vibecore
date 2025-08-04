@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 
 from agents import Agent
 from openai.types.responses import ResponseInputItemParam
-from textual.app import ComposeResult
 
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
@@ -24,9 +23,6 @@ class VibecoreTestApp(VibecoreApp):
     - Disable agent interactions
     - Provide deterministic rendering for snapshots
     """
-
-    # Disable bindings that might interfere with testing
-    BINDINGS: ClassVar = []
 
     # Override CSS_PATH to use absolute paths
     CSS_PATH: ClassVar = [
@@ -117,24 +113,6 @@ class VibecoreTestApp(VibecoreApp):
 
         # Mark that we should load history
         self._session_id_provided = True
-
-    def compose(self) -> ComposeResult:
-        """Compose the test app UI.
-
-        Simplified version without header for cleaner snapshots.
-        """
-        # Skip header for cleaner snapshots
-        from vibecore.widgets.core import MainScroll
-        from vibecore.widgets.info import Welcome
-
-        with MainScroll(id="messages"):
-            if not self.session_fixture_path:
-                yield Welcome()
-
-    def watch_agent_status(self, _old_status: Any, new_status: Any) -> None:
-        """Override to prevent errors from missing footer."""
-        # No-op for testing
-        pass
 
 
 def create_test_app(session_fixture: str | Path | None = None) -> VibecoreTestApp:
