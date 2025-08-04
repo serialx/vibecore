@@ -114,6 +114,11 @@ class MyTextArea(TextArea):
             return history
         return []
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Check if an action may run."""
+        # If text is empty, allow app to handle ctrl+d, not as delete_right
+        return not (action == "delete_right" and not self.text)
+
     async def _on_key(self, event: events.Key) -> None:
         if event.key == "enter":
             self.post_message(self.UserMessage(self.text))

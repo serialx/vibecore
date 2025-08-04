@@ -1,3 +1,4 @@
+import asyncio
 import traceback
 from collections import deque
 from typing import ClassVar, Literal
@@ -44,9 +45,12 @@ class VibecoreApp(App):
     BINDINGS: ClassVar = [
         ("ctrl+shift+d", "toggle_dark", "Toggle dark mode"),
         Binding("escape", "cancel_agent", "Cancel agent", show=False),
+        Binding("ctrl+d", "exit_confirm", "Exit", show=False),
     ]
 
     agent_status = reactive[AgentStatus]("idle")
+    _exit_confirmation_active = False
+    _exit_confirmation_task: asyncio.Task | None = None
 
     def __init__(
         self,
@@ -283,6 +287,41 @@ class VibecoreApp(App):
                 self.current_result.cancel()
             if self.current_worker:
                 self.current_worker.cancel()
+
+    async def action_exit_confirm(self) -> None:
+        """Handle Ctrl-D press for exit confirmation."""
+        if self._exit_confirmation_active:
+            # Second Ctrl-D within the timeframe - exit the app
+            self.exit()
+        else:
+            # First Ctrl-D - show confirmation message
+            self._exit_confirmation_active = True
+
+            # Cancel any existing confirmation task
+            if self._exit_confirmation_task and not self._exit_confirmation_task.done():
+                self._exit_confirmation_task.cancel()
+
+            # Show confirmation message
+            confirmation_msg = SystemMessage("Press Ctrl-D again to exit")
+            await self.add_message(confirmation_msg)
+
+            # Start the 1-second timer
+            self._exit_confirmation_task = asyncio.create_task(self._reset_exit_confirmation(confirmation_msg))
+
+    async def _reset_exit_confirmation(self, confirmation_msg: SystemMessage) -> None:
+        """Reset exit confirmation after 1 second and remove the message."""
+        try:
+            # Wait for 1 second
+            await asyncio.sleep(1.0)
+
+            # Reset confirmation state
+            self._exit_confirmation_active = False
+
+            # Remove the confirmation message
+            confirmation_msg.remove()
+        except asyncio.CancelledError:
+            # Task was cancelled (new Ctrl-D pressed)
+            pass
 
     async def run_print(self, prompt: str | None = None) -> str:
         """Run the agent and return the raw output for printing.
