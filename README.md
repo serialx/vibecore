@@ -120,6 +120,11 @@ uv sync
 # Run tests
 uv run pytest
 
+# Run tests by category
+uv run pytest tests/ui/        # UI and widget tests
+uv run pytest tests/tools/     # Tool functionality tests
+uv run pytest tests/session/   # Session tests
+
 # Run linting and formatting
 uv run ruff check .
 uv run ruff format .
@@ -159,6 +164,12 @@ vibecore/
 │   │   └── todo/            # Task management system
 │   └── prompts/             # System prompts & instructions
 ├── tests/                   # Comprehensive test suite
+│   ├── ui/                  # UI and widget tests
+│   ├── tools/               # Tool functionality tests
+│   ├── session/             # Session and storage tests
+│   ├── cli/                 # CLI and command tests
+│   ├── models/              # Model integration tests
+│   └── _harness/            # Test utilities
 ├── pyproject.toml           # Project configuration & dependencies
 ├── uv.lock                  # Locked dependencies
 └── CLAUDE.md                # AI assistant instructions

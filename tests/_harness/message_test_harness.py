@@ -17,7 +17,7 @@ from vibecore.widgets.tool_messages import (
 )
 
 # Get the vibecore source directory for CSS paths
-VIBECORE_SRC = Path(__file__).parent.parent / "src" / "vibecore"
+VIBECORE_SRC = Path(__file__).parent.parent.parent / "src" / "vibecore"
 
 
 class MessageTestApp(App):

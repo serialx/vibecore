@@ -12,7 +12,7 @@ from vibecore.main import VibecoreApp
 from vibecore.session import JSONLSession
 
 # Get the vibecore source directory for CSS paths
-VIBECORE_SRC = Path(__file__).parent.parent / "src" / "vibecore"
+VIBECORE_SRC = Path(__file__).parent.parent.parent / "src" / "vibecore"
 
 
 class VibecoreTestApp(VibecoreApp):
@@ -136,7 +136,7 @@ def create_test_app(session_fixture: str | Path | None = None) -> VibecoreTestAp
     if session_fixture:
         if isinstance(session_fixture, str):
             # Assume relative to fixtures/sessions directory
-            fixture_path = Path(__file__).parent / "fixtures" / "sessions" / session_fixture
+            fixture_path = Path(__file__).parent.parent / "fixtures" / "sessions" / session_fixture
         else:
             fixture_path = Path(session_fixture)
 

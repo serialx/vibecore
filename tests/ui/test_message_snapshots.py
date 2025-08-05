@@ -1,6 +1,6 @@
 """Snapshot tests for individual message widgets."""
 
-from tests.message_test_harness import (
+from tests._harness.message_test_harness import (
     AgentMessageTestApp,
     MessageTestApp,
     MixedMessageTestApp,

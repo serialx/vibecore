@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from tests.test_harness import create_test_app
+from tests._harness.test_harness import create_test_app
 
 
 class TestKeyboardInteractions:
