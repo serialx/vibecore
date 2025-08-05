@@ -155,6 +155,8 @@ uv run pytest -k "test_pattern"
    - **AppFooter**: Custom footer containing the input box
    - **MainScroll**: Scrollable container for messages
    - **tool_message_factory**: Factory module for creating appropriate tool message widgets
+   
+   ⚠️ **Note**: When modifying ANY message widget, you MUST update the corresponding tests in `tests/test_message_snapshots.py`. See the "Message Widget Testing" section for details.
 
 5. **Tool System** (`src/vibecore/tools/`):
    - **File Tools**: read, write, edit, multi_edit operations
@@ -659,59 +661,62 @@ Update snapshots when:
 
 Always review the snapshot diff before updating to ensure changes are intentional.
 
-### Testing with tui-test-engineer Agent
+### Message Widget Testing
 
-After implementing any new feature or making significant changes to the vibecore TUI application, use the `tui-test-engineer` agent to run automated tests.
+⚠️ **IMPORTANT**: When adding or modifying any message widget code (UserMessage, AgentMessage, ToolMessage, etc.), you MUST update the corresponding tests.
 
-#### Important: Provide Detailed Test Instructions
+#### Message Test Harness
 
-The `tui-test-engineer` agent requires **detailed test instructions** in the prompt to execute tests effectively. Include:
-- Specific features to test
-- Expected behaviors and outcomes
-- Test scenarios and edge cases
-- Any special keyboard sequences or interactions
+The project includes a lightweight message testing framework separate from the full app tests:
 
-#### Example Usage
+- **Test Harness**: `tests/message_test_harness.py` - Simple `MessageTestApp` for testing message widgets in isolation
+- **Test Suite**: `tests/test_message_snapshots.py` - Comprehensive snapshot tests for all message types
+- **Documentation**: `tests/README_message_tests.md` - Detailed guide on message widget testing
 
+#### When to Update Message Tests
+
+**ALWAYS** update message tests when you:
+1. Add a new message widget class
+2. Modify the rendering logic of existing message widgets
+3. Change message widget styling in TCSS files
+4. Add new properties or reactive attributes to message widgets
+5. Modify tool message output formatting
+6. Change how messages handle different states (executing, success, error)
+
+#### How to Update Message Tests
+
+1. **For new message types**, add a test app in `message_test_harness.py`:
 ```python
-# Basic testing with comprehensive test plan
-Task(
-    description="Run comprehensive vibecore TUI functionality tests", 
-    prompt="""Test the vibecore TUI application comprehensively:
-    1. Launch the application and verify UI loads correctly
-    2. Test basic messaging - send messages and verify display
-    3. Test all available tools (read, bash, python, todo)
-    4. Test keyboard shortcuts (Control-Q to exit, 'd' for theme)
-    5. Verify error handling for invalid inputs
-    6. Check that all UI elements render properly""",
-    subagent_type="tui-test-engineer"
-)
-
-# Testing specific feature with detailed instructions
-Task(
-    description="Test vim mode navigation and editing features", 
-    prompt="""Test the vim mode implementation in vibecore:
-    1. Launch the application
-    2. Press 'v' to enter vim mode
-    3. Test navigation with h/j/k/l keys
-    4. Test yank with 'y' and paste with 'p'
-    5. Test visual selection mode
-    6. Verify mode indicators update correctly
-    7. Test exit with ESC key
-    8. Verify all commands work as expected""",
-    subagent_type="tui-test-engineer"
-)
-
-# Testing error handling
-Task(
-    description="Verify error handling and recovery in vibecore TUI", 
-    prompt="""Test error handling in vibecore:
-    1. Try to read a non-existent file
-    2. Execute invalid Python code
-    3. Run a failing shell command
-    4. Test network timeouts
-    5. Verify error messages display correctly
-    6. Ensure app remains stable after errors""",
-    subagent_type="tui-test-engineer"
-)
+class MyNewMessageTestApp(MessageTestApp):
+    def create_test_messages(self):
+        from vibecore.widgets.messages import MyNewMessage
+        yield MyNewMessage("Test content", status=MessageStatus.SUCCESS)
 ```
+
+2. **Add corresponding test** in `test_message_snapshots.py`:
+```python
+def test_my_new_messages(self, snap_compare):
+    """Test rendering of MyNewMessage widgets."""
+    app = MyNewMessageTestApp()
+    assert snap_compare(app, press=[])
+```
+
+3. **For modifications to existing widgets**, update the relevant test app to include the new behavior or edge cases.
+
+4. **Run tests and update snapshots**:
+```bash
+# Run message-specific tests
+uv run pytest tests/test_message_snapshots.py
+
+# Update snapshots after verifying changes
+uv run pytest tests/test_message_snapshots.py --snapshot-update
+```
+
+#### Message Test Coverage Requirements
+
+Ensure your tests cover:
+- All visual states (idle, executing, success, error)
+- Edge cases (empty content, very long content, special characters)
+- Interactive elements (expandable content, clickable areas)
+- Markdown rendering if applicable
+- Any tool-specific formatting
