@@ -54,3 +54,17 @@ jobs:
       - name: Run tests
         if: steps.changes.outputs.changed == 'true'
         run: uv run pytest -v
+        continue-on-error: true
+        id: pytest
+
+      - name: Upload snapshot report on failure
+        if: steps.changes.outputs.changed == 'true' && steps.pytest.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-report
+          path: snapshot_report.html
+          if-no-files-found: ignore
+
+      - name: Fail if tests failed
+        if: steps.changes.outputs.changed == 'true' && steps.pytest.outcome == 'failure'
+        run: exit 1
