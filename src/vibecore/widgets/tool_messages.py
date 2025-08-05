@@ -44,7 +44,7 @@ class BaseToolMessage(BaseMessage):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
                     yield ExpandableContent(
-                        output,
+                        Content(output),
                         truncated_lines=truncated_lines,
                         classes="tool-output-expandable",
                         collapsed_text=collapsed_text,

@@ -83,7 +83,7 @@ class MessageHeader(Widget):
         self.blink_timer = self.set_interval(
             0.5,
             self._toggle_cursor_blink_visible,
-            pause=(self.status != "executing"),
+            pause=(self.status != MessageStatus.EXECUTING),
         )
 
 
