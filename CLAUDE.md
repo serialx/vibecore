@@ -369,6 +369,36 @@ log("Debug message")  # Appears in console when using textual console
    ```
    See: https://textual.textualize.io/guide/content/ for more details
 
+## IMPORTANT: Textual Event Handlers
+
+### ⚠️ DO NOT call super() in event handlers
+
+According to the official Textual documentation (https://textual.textualize.io/guide/events/#event-handlers):
+
+> "You will not have to use this in event handlers as Textual will automatically call handler methods defined in a widget's base class(es)."
+
+This means when overriding event handlers like `on_mount()`, `on_key()`, `on_click()`, etc., you should **NEVER** call `super()`:
+
+```python
+# ❌ WRONG - Don't do this
+async def on_mount(self) -> None:
+    await super().on_mount()  # ❌ NOT NEEDED
+    # Your code here
+
+# ✅ CORRECT - Just implement your handler
+async def on_mount(self) -> None:
+    # Your code here - Textual handles parent class methods automatically
+```
+
+This applies to ALL event handlers in Textual:
+- `on_mount()`
+- `on_unmount()`
+- `on_key()`
+- `on_click()`
+- `on_focus()`
+- `on_blur()`
+- And any other `on_*` event handler methods
+
 ## IMPORTANT: OpenAI Agents Library Source Code
 
 ⚠️ **MUST READ**: The openai-agents library is a relatively new framework that is actively evolving. When developing features related to agents:

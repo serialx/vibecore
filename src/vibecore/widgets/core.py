@@ -22,14 +22,23 @@ class InputBox(Widget):
 
 
 class AppFooter(Widget):
+    def get_current_working_directory(self) -> str:
+        """Get the current working directory for display.
+
+        Returns:
+            The current working directory path, with home directory replaced by ~
+        """
+        cwd = os.getcwd()
+        if cwd.startswith(os.path.expanduser("~")):
+            cwd = cwd.replace(os.path.expanduser("~"), "~", 1)
+        return cwd
+
     def compose(self) -> ComposeResult:
         yield LoadingWidget(status="Generating…", id="loading-widget")
         yield InputBox()
         # Wrap ProgressBar in vertical container to dock it right
         with Vertical(id="context-info"):
-            cwd = os.getcwd()
-            if cwd.startswith(os.path.expanduser("~")):
-                cwd = cwd.replace(os.path.expanduser("~"), "~", 1)
+            cwd = self.get_current_working_directory()
             yield Static(f"{cwd}", id="context-cwd")
             with Horizontal(id="context-progress-container"):
                 yield Static("Context: ", id="context-progress-label")

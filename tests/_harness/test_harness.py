@@ -6,13 +6,19 @@ from unittest.mock import MagicMock
 
 from agents import Agent
 from openai.types.responses import ResponseInputItemParam
+from textual.app import ComposeResult
 
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
 from vibecore.session import JSONLSession
+from vibecore.widgets.core import AppFooter
 
 # Get the vibecore source directory for CSS paths
 VIBECORE_SRC = Path(__file__).parent.parent.parent / "src" / "vibecore"
+
+
+# Fixed working directory path for consistent snapshots
+FIXED_CWD = "~/test/workspace"
 
 
 class VibecoreTestApp(VibecoreApp):
@@ -113,6 +119,23 @@ class VibecoreTestApp(VibecoreApp):
 
         # Mark that we should load history
         self._session_id_provided = True
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the app with patched AppFooter."""
+        from textual.widgets import Header
+
+        from vibecore.widgets.core import MainScroll
+        from vibecore.widgets.info import Welcome
+
+        # Create a patched AppFooter instance
+        footer = AppFooter()
+        # Override the method on this instance
+        footer.get_current_working_directory = lambda: FIXED_CWD
+
+        yield Header()
+        yield footer  # Use our patched footer instance
+        with MainScroll(id="messages"):
+            yield Welcome()
 
     async def on_mount(self) -> None:
         """Override on_mount to disable cursor blinking in MyTextArea for deterministic snapshots."""
