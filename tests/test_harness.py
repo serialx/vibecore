@@ -114,6 +114,14 @@ class VibecoreTestApp(VibecoreApp):
         # Mark that we should load history
         self._session_id_provided = True
 
+    async def on_mount(self) -> None:
+        """Override on_mount to disable cursor blinking in MyTextArea for deterministic snapshots."""
+        # Find MyTextArea and disable cursor blinking
+        from vibecore.widgets.core import MyTextArea
+
+        text_area = self.query_one(MyTextArea)
+        text_area.cursor_blink = False
+
 
 def create_test_app(session_fixture: str | Path | None = None) -> VibecoreTestApp:
     """Create a test app instance with optional session fixture.
