@@ -258,6 +258,11 @@ MCPToolMessage {
             height: auto;
             width: 1fr;
             
+            .mcp-arguments-label {
+                color: $text-muted;
+                # margin-bottom: 1;
+            }
+            
             .mcp-arguments-text {
                 color: $text-muted;
                 text-overflow: ellipsis;

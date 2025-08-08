@@ -1,5 +1,6 @@
 """Simple test harness for message widget snapshot testing."""
 
+import json
 from pathlib import Path
 from typing import ClassVar
 
@@ -209,7 +210,7 @@ class MCPToolMessageTestApp(MessageTestApp):
             server_name="filesystem",
             tool_name="read_file",
             arguments='{"path": "/etc/hosts"}',
-            output="127.0.0.1 localhost",
+            output=json.dumps({"type": "text", "text": "127.0.0.1 localhost"}),
             status=MessageStatus.SUCCESS,
         )
 
@@ -218,7 +219,7 @@ class MCPToolMessageTestApp(MessageTestApp):
             server_name="github",
             tool_name="list_repositories",
             arguments="{}",
-            output='["repo1", "repo2", "repo3"]',
+            output=json.dumps({"type": "text", "text": '["repo1", "repo2", "repo3"]'}),
             status=MessageStatus.SUCCESS,
         )
 
@@ -227,7 +228,6 @@ class MCPToolMessageTestApp(MessageTestApp):
             server_name="docker",
             tool_name="list_containers",
             arguments='{"all": true}',
-            output="",
             status=MessageStatus.EXECUTING,
         )
 
@@ -236,7 +236,7 @@ class MCPToolMessageTestApp(MessageTestApp):
             server_name="database",
             tool_name="execute_query",
             arguments='{"query": "SELECT * FROM users"}',
-            output="Error: Connection refused",
+            output=json.dumps({"type": "text", "text": "Error: Connection refused"}),
             status=MessageStatus.ERROR,
         )
 
@@ -249,7 +249,7 @@ class MCPToolMessageTestApp(MessageTestApp):
                 '"headers": {"Authorization": "Bearer token123", "Content-Type": "application/json"}, '
                 '"body": {"user": "test", "action": "update"}}'
             ),
-            output="Response: 200 OK",
+            output=json.dumps({"type": "text", "text": "Response: 200 OK"}),
             status=MessageStatus.SUCCESS,
         )
 
@@ -258,7 +258,10 @@ class MCPToolMessageTestApp(MessageTestApp):
             server_name="git",
             tool_name="get_diff",
             arguments='{"file": "main.py", "base": "main", "head": "feature"}',
-            output="""--- a/main.py
+            output=json.dumps(
+                {
+                    "type": "text",
+                    "text": """--- a/main.py
 +++ b/main.py
 @@ -10,7 +10,10 @@
  def process():
@@ -270,5 +273,61 @@ class MCPToolMessageTestApp(MessageTestApp):
 
  def main():
      process()""",
+                }
+            ),
+            status=MessageStatus.SUCCESS,
+        )
+
+        # MCP tool with JSON output (should be prettified)
+        yield MCPToolMessage(
+            server_name="api_server",
+            tool_name="get_user_profile",
+            arguments='{"user_id": "12345"}',
+            output=json.dumps(
+                {
+                    "type": "text",
+                    "text": (
+                        '{"id": "12345", "name": "John Doe", "email": "john@example.com", '
+                        '"roles": ["admin", "developer"], "created_at": "2024-01-15T10:30:00Z", '
+                        '"settings": {"theme": "dark", "notifications": true}}'
+                    ),
+                }
+            ),
+            status=MessageStatus.SUCCESS,
+        )
+
+        # MCP tool with nested JSON output
+        yield MCPToolMessage(
+            server_name="database",
+            tool_name="query_stats",
+            arguments='{"table": "users"}',
+            output=json.dumps(
+                {
+                    "type": "text",
+                    "text": (
+                        '{"table": "users", "stats": {"total_rows": 15234, "indexes": ["id", "email"], '
+                        '"size_mb": 42.5}, "recent_operations": [{"type": "INSERT", "count": 123}, '
+                        '{"type": "UPDATE", "count": 456}]}'
+                    ),
+                }
+            ),
+            status=MessageStatus.SUCCESS,
+        )
+
+        # MCP tool with JSON array output
+        yield MCPToolMessage(
+            server_name="filesystem",
+            tool_name="list_directory",
+            arguments='{"path": "/home/user/documents"}',
+            output=json.dumps(
+                {
+                    "type": "text",
+                    "text": (
+                        '[{"name": "report.pdf", "size": 102400, "modified": "2024-01-20"}, '
+                        '{"name": "notes.txt", "size": 2048, "modified": "2024-01-21"}, '
+                        '{"name": "project", "type": "directory", "modified": "2024-01-19"}]'
+                    ),
+                }
+            ),
             status=MessageStatus.SUCCESS,
         )

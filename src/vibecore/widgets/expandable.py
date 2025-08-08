@@ -75,7 +75,7 @@ class ExpandableMarkdown(Widget):
 
         Args:
             code: The full code to display
-            language: Programming language for syntax highlighting
+            language: Programming language for syntax highlighting (empty string for plain markdown)
             truncated_lines: Number of lines to show when collapsed
             **kwargs: Additional keyword arguments for Widget
         """
@@ -88,20 +88,30 @@ class ExpandableMarkdown(Widget):
 
     def compose(self) -> ComposeResult:
         """Create child widgets based on expanded state."""
+        # Determine content format based on language
+        if self.language:
+            # Render as code block with syntax highlighting
+            full_content = f"```{self.language}\n{self.code}\n```"
+            truncated_lines = "\n".join(self.lines[: self.truncated_lines])
+            truncated_content = f"```{self.language}\n{truncated_lines}\n```"
+        else:
+            # Render as plain markdown (no code block)
+            full_content = self.code
+            truncated_content = "\n".join(self.lines[: self.truncated_lines])
+
         if self.expanded:
-            # Show all code
-            yield Markdown(f"```{self.language}\n{self.code}\n```", classes="expandable-markdown-full")
+            # Show all content
+            yield Markdown(full_content, classes="expandable-markdown-full")
             yield Static("▲ collapse", classes="expandable-toggle expanded")
         else:
-            # Show truncated code
+            # Show truncated content
             if self.total_lines > self.truncated_lines:
-                truncated_code = "\n".join(self.lines[: self.truncated_lines])
-                yield Markdown(f"```{self.language}\n{truncated_code}\n```", classes="expandable-markdown-truncated")
+                yield Markdown(truncated_content, classes="expandable-markdown-truncated")
                 remaining_lines = self.total_lines - self.truncated_lines
                 yield Static(f"… +{remaining_lines} more lines (view)", classes="expandable-toggle collapsed")
             else:
-                # If code fits, just show it all
-                yield Markdown(f"```{self.language}\n{self.code}\n```", classes="expandable-markdown-full")
+                # If content fits, just show it all
+                yield Markdown(full_content, classes="expandable-markdown-full")
 
     def on_click(self, event: Click) -> None:
         """Handle click events to toggle expansion."""

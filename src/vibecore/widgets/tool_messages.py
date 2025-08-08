@@ -4,6 +4,7 @@ This module contains specialized message widgets for displaying
 the execution and results of various tools.
 """
 
+import json
 import re
 from typing import TYPE_CHECKING
 
@@ -414,6 +415,28 @@ class MCPToolMessage(BaseToolMessage):
         self.arguments = arguments
         self.output = output
 
+    def _prettify_json_output(self, output: str) -> tuple[bool, str]:
+        """Try to prettify JSON output.
+
+        Args:
+            output: The raw output string.
+
+        Returns:
+            A tuple of (is_json, formatted_output).
+        """
+        if not output or not output.strip():
+            return False, output
+
+        try:
+            # Try to parse as JSON
+            json_obj = json.loads(output)
+            # Pretty print with 2-space indentation
+            formatted = json.dumps(json_obj, indent=2, ensure_ascii=False)
+            return True, formatted
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Not valid JSON, return as-is
+            return False, output
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the MCP tool message."""
         # Header line showing MCP server and tool
@@ -437,5 +460,24 @@ class MCPToolMessage(BaseToolMessage):
                     )
                     yield Static(f"Args: {display_args}", classes="mcp-arguments-text")
 
-        # Output
-        yield from self._render_output(self.output, truncated_lines=5)
+        # Output - check if it's JSON and prettify if so
+        if self.output:
+            if json_output := json.loads(self.output):
+                assert json_output.get("type") == "text", "Expected JSON output type to be 'text'"
+                is_json, processed_output = self._prettify_json_output(json_output.get("text", ""))
+            else:
+                # output should always be a JSON string, but if not, treat it as plain text
+                is_json, processed_output = False, self.output
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    if is_json:
+                        # Use ExpandableMarkdown for JSON with syntax highlighting
+                        yield ExpandableMarkdown(
+                            processed_output, language="json", truncated_lines=8, classes="mcp-output-json"
+                        )
+                    else:
+                        # Use ExpandableMarkdown for non-JSON content (renders as markdown without code block)
+                        yield ExpandableMarkdown(
+                            processed_output, language="", truncated_lines=5, classes="mcp-output-markdown"
+                        )
