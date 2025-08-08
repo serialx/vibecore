@@ -6,6 +6,7 @@ from vibecore.tools.todo.manager import TodoManager
 
 if TYPE_CHECKING:
     from vibecore.main import VibecoreApp
+    from vibecore.mcp import MCPManager
 
 
 @dataclass
@@ -14,6 +15,7 @@ class VibecoreContext:
     python_manager: PythonExecutionManager = field(default_factory=PythonExecutionManager)
     app: Optional["VibecoreApp"] = None
     context_fullness: float = 0.0
+    mcp_manager: Optional["MCPManager"] = None
 
     def reset_state(self) -> None:
         """Reset all context state for a new session."""

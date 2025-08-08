@@ -7,9 +7,11 @@ import agents
 import typer
 from textual.logging import TextualHandler
 
-from vibecore.agents.default import default_agent
+from vibecore.agents.default import create_default_agent
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
+from vibecore.mcp import MCPManager
+from vibecore.settings import settings
 
 app = typer.Typer()
 
@@ -81,6 +83,19 @@ def run(
     # Create context
     ctx = VibecoreContext()
 
+    # Initialize MCP manager if configured
+    mcp_servers = []
+    if settings.mcp_servers:
+        # Create MCP manager
+        mcp_manager = MCPManager(settings.mcp_servers)
+        ctx.mcp_manager = mcp_manager
+
+        # Get the MCP servers from the manager
+        mcp_servers = mcp_manager.servers
+
+    # Create agent with MCP servers
+    agent = create_default_agent(mcp_servers=mcp_servers)
+
     # Determine session to use
     session_to_load = None
     if continue_session:
@@ -94,7 +109,7 @@ def run(
         typer.echo(f"Loading session: {session_to_load}")
 
     # Create app
-    app_instance = VibecoreApp(ctx, default_agent, session_id=session_to_load, print_mode=print_mode)
+    app_instance = VibecoreApp(ctx, agent, session_id=session_to_load, print_mode=print_mode)
 
     if print_mode:
         # Run in print mode

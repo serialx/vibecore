@@ -25,6 +25,57 @@ class SessionSettings(BaseModel):
     )
 
 
+class MCPServerConfig(BaseModel):
+    """Configuration for an MCP server."""
+
+    name: str = Field(
+        description="Unique name for this MCP server",
+    )
+    type: Literal["stdio", "sse", "http"] = Field(
+        description="Type of MCP server connection",
+    )
+
+    # For stdio servers
+    command: str | None = Field(
+        default=None,
+        description="Command to run for stdio servers (e.g., 'node /path/to/server.js')",
+    )
+    args: list[str] = Field(
+        default_factory=list,
+        description="Arguments for the stdio command",
+    )
+    env: dict[str, str] = Field(
+        default_factory=dict,
+        description="Environment variables for stdio servers",
+    )
+
+    # For SSE/HTTP servers
+    url: str | None = Field(
+        default=None,
+        description="URL for SSE or HTTP servers",
+    )
+
+    # Tool filtering
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        description="List of allowed tool names (whitelist)",
+    )
+    blocked_tools: list[str] | None = Field(
+        default=None,
+        description="List of blocked tool names (blacklist)",
+    )
+
+    # Other options
+    cache_tools: bool = Field(
+        default=True,
+        description="Whether to cache the tool list",
+    )
+    timeout_seconds: float | None = Field(
+        default=30.0,
+        description="Timeout for server operations",
+    )
+
+
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
 
@@ -59,6 +110,12 @@ class Settings(BaseSettings):
     session: SessionSettings = Field(
         default_factory=SessionSettings,
         description="Session storage configuration",
+    )
+
+    # MCP server configuration
+    mcp_servers: list[MCPServerConfig] = Field(
+        default_factory=list,
+        description="List of MCP servers to connect to",
     )
 
     @property

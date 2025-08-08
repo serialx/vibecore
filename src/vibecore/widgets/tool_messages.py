@@ -379,3 +379,63 @@ class WriteToolMessage(BaseToolMessage):
                 yield Static("└─", classes="tool-output-prefix")
                 with Vertical(classes="tool-output-content"):
                     yield Static(self.output, classes="write-output-message")
+
+
+class MCPToolMessage(BaseToolMessage):
+    """A widget to display MCP tool execution messages."""
+
+    server_name: reactive[str] = reactive("")
+    tool_name: reactive[str] = reactive("")
+    arguments: reactive[str] = reactive("")
+
+    def __init__(
+        self,
+        server_name: str,
+        tool_name: str,
+        arguments: str,
+        output: str = "",
+        status: MessageStatus = MessageStatus.EXECUTING,
+        **kwargs,
+    ) -> None:
+        """
+        Construct an MCPToolMessage.
+
+        Args:
+            server_name: The name of the MCP server.
+            tool_name: The name of the tool being called.
+            arguments: JSON string of tool arguments.
+            output: The output from the tool (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.server_name = server_name
+        self.tool_name = tool_name
+        self.arguments = arguments
+        self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the MCP tool message."""
+        # Header line showing MCP server and tool
+        # Access the actual values, not the reactive descriptors
+        server_name = self.server_name
+        tool_name = self.tool_name
+        header = f"MCP[{server_name}]::{tool_name}"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Arguments display (if any)
+        if self.arguments and self.arguments != "{}":
+            with Horizontal(classes="mcp-arguments"):
+                yield Static("└─", classes="mcp-arguments-prefix")
+                with Vertical(classes="mcp-arguments-content"):
+                    # Truncate arguments if too long
+                    max_args_length = 100
+                    display_args = (
+                        self.arguments[:max_args_length] + "…"
+                        if len(self.arguments) > max_args_length
+                        else self.arguments
+                    )
+                    yield Static(f"Args: {display_args}", classes="mcp-arguments-text")
+
+        # Output
+        yield from self._render_output(self.output, truncated_lines=5)

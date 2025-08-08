@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from agents import Agent, ModelSettings
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 
@@ -11,6 +13,9 @@ from vibecore.tools.todo.tools import todo_read, todo_write
 
 from .prompts import COMMON_PROMPT
 
+if TYPE_CHECKING:
+    from agents.mcp import MCPServer
+
 INSTRUCTIONS = (
     COMMON_PROMPT + "\n\n"
     "You are a versatile AI assistant capable of helping with a wide range of tasks. "
@@ -22,8 +27,11 @@ INSTRUCTIONS = (
 )
 
 
-def create_analysis_agent() -> Agent[VibecoreContext]:
+def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[VibecoreContext]:
     """Create the general-purpose agent with appropriate tools.
+
+    Args:
+        mcp_servers: Optional list of MCP servers to connect to.
 
     Returns:
         Configured general-purpose agent.
@@ -55,9 +63,10 @@ def create_analysis_agent() -> Agent[VibecoreContext]:
         model_settings=ModelSettings(
             include_usage=True  # Ensure token usage is tracked in streaming mode
         ),
-        handoffs=[],  # Will be set dynamically in main.py
+        handoffs=[],
+        mcp_servers=mcp_servers or [],
     )
 
 
-# Create default agent without Databricks for backward compatibility
-default_agent = create_analysis_agent()
+# Create default agent without MCP servers for backward compatibility
+default_agent = create_default_agent()

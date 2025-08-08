@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 from textual.app import ComposeResult
+from textual.content import Content
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Markdown, Static
@@ -60,7 +61,8 @@ class MessageHeader(Widget):
         if self.use_markdown:
             self.query_one(".text", Markdown).update(text)
         else:
-            self.query_one(".text", Static).update(text)
+            # Use Content to prevent markup interpretation
+            self.query_one(".text", Static).update(Content(text))
 
     def watch__prefix_visible(self, visible: bool) -> None:
         """Watch for changes in the prefix visibility."""
@@ -72,7 +74,8 @@ class MessageHeader(Widget):
         if self.use_markdown:
             yield Markdown(self.text, classes="text")
         else:
-            yield Static(self.text, classes="text")
+            # Use Content to prevent markup interpretation of square brackets
+            yield Static(Content(self.text), classes="text")
 
     def _toggle_cursor_blink_visible(self) -> None:
         """Toggle visibility of the cursor for the purposes of 'cursor blink'."""

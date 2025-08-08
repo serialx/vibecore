@@ -29,6 +29,7 @@ Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](h
 
 - **AI-Powered Chat Interface** - Interact with state-of-the-art language models through an intuitive terminal interface
 - **Rich Tool Integration** - Built-in tools for file operations, shell commands, Python execution, and task management
+- **MCP Support** - Connect to external tools and services via Model Context Protocol servers
 - **Beautiful Terminal UI** - Modern, responsive interface with dark/light theme support
 - **Real-time Streaming** - See AI responses as they're generated with smooth streaming updates
 - **Extensible Architecture** - Easy to add new tools and capabilities
@@ -105,6 +106,56 @@ vibecore comes with powerful built-in tools:
 - Organize complex workflows
 ```
 
+### MCP (Model Context Protocol) Support
+
+vibecore supports the [Model Context Protocol](https://modelcontextprotocol.io/), allowing you to connect to external tools and services through MCP servers.
+
+#### Configuring MCP Servers
+
+Create a `config.yaml` file in your project directory or add MCP servers to your environment:
+
+```yaml
+mcp_servers:
+  # Filesystem server for enhanced file operations
+  - name: filesystem
+    type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"]
+    
+  # GitHub integration
+  - name: github
+    type: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "your-github-token"
+    
+  # Custom HTTP server
+  - name: my-server
+    type: http
+    url: "http://localhost:8080/mcp"
+    allowed_tools: ["specific_tool"]  # Optional: whitelist specific tools
+```
+
+#### Available MCP Server Types
+
+- **stdio**: Spawns a local process (npm packages, executables)
+- **sse**: Server-Sent Events connection
+- **http**: HTTP-based MCP servers
+
+#### Tool Filtering
+
+Control which tools are available from each server:
+
+```yaml
+mcp_servers:
+  - name: restricted-server
+    type: stdio
+    command: some-command
+    allowed_tools: ["safe_read", "safe_write"]  # Only these tools available
+    blocked_tools: ["dangerous_delete"]         # These tools are blocked
+```
+
 ## Development
 
 ### Setting Up Development Environment
@@ -145,6 +196,8 @@ vibecore/
 │   │   └── default.py       # Main agent with tool integrations
 │   ├── models/              # LLM provider integrations
 │   │   └── anthropic.py     # Claude model support via LiteLLM
+│   ├── mcp/                 # Model Context Protocol integration
+│   │   └── manager.py       # MCP server lifecycle management
 │   ├── handlers/            # Stream processing handlers
 │   │   └── stream_handler.py # Handle streaming agent responses
 │   ├── session/             # Session management
@@ -247,6 +300,7 @@ vibecore is built with a modular, extensible architecture:
 
 ## Recent Updates
 
+- **MCP Support**: Full integration with Model Context Protocol for external tool connections
 - **Tool Message Factory**: Centralized widget creation for consistent UI across streaming and session loading
 - **Enhanced Tool Widgets**: Specialized widgets for Python execution, file reading, and todo management
 - **Improved Session Support**: Seamless save/load of conversations with full UI state preservation
@@ -256,6 +310,7 @@ vibecore is built with a modular, extensible architecture:
 
 - [x] More custom tool views (Python, Read, Todo widgets)
 - [x] Automation (vibecore -p "prompt")
+- [x] MCP (Model Context Protocol) support
 - [ ] Permission model
 - [ ] Multi-agent system (agent-as-tools)
 - [ ] Plugin system for custom tools

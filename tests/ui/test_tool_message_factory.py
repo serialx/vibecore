@@ -178,3 +178,33 @@ class TestToolMessageFactory:
         assert isinstance(message, WriteToolMessage)
         assert message.file_path == ""
         assert message.content == ""
+
+    def test_unknown_tool_fallback(self):
+        """Test that unknown tools use the generic ToolMessage widget."""
+        msg = create_tool_message(
+            tool_name="unknown_tool",
+            arguments='{"some": "args"}',
+            output="Some output",
+            status=MessageStatus.SUCCESS,
+        )
+
+        assert isinstance(msg, ToolMessage)
+        assert msg.tool_name == "unknown_tool"
+        assert msg.command == '{"some": "args"}'
+        assert msg.output == "Some output"
+        assert msg.status == MessageStatus.SUCCESS
+
+    def test_mcp_tool_detection(self):
+        """Test that the factory currently treats MCP tools as generic tools."""
+        # Note: The factory doesn't have special handling for MCP tools yet
+        # They would be created as generic ToolMessage widgets
+        msg = create_tool_message(
+            tool_name="mcp_tool",
+            arguments='{"server": "test", "params": "value"}',
+            output="MCP tool output",
+            status=MessageStatus.SUCCESS,
+        )
+
+        # For now, MCP tools are treated as generic tools
+        assert isinstance(msg, ToolMessage)
+        assert msg.tool_name == "mcp_tool"

@@ -8,6 +8,7 @@ from textual.containers import VerticalScroll
 
 from vibecore.widgets.messages import AgentMessage, MessageStatus, UserMessage
 from vibecore.widgets.tool_messages import (
+    MCPToolMessage,
     PythonToolMessage,
     ReadToolMessage,
     TaskToolMessage,
@@ -194,5 +195,80 @@ if __name__ == '__main__':
             "- A data processing function using pandas\n"
             "- Proper main guard for script execution\n"
             "- Clean structure for CSV file processing",
+            status=MessageStatus.SUCCESS,
+        )
+
+
+class MCPToolMessageTestApp(MessageTestApp):
+    """Test app for MCPToolMessage widgets."""
+
+    def create_test_messages(self) -> ComposeResult:
+        """Create various MCPToolMessage test cases."""
+        # Simple MCP tool call
+        yield MCPToolMessage(
+            server_name="filesystem",
+            tool_name="read_file",
+            arguments='{"path": "/etc/hosts"}',
+            output="127.0.0.1 localhost",
+            status=MessageStatus.SUCCESS,
+        )
+
+        # MCP tool with no arguments
+        yield MCPToolMessage(
+            server_name="github",
+            tool_name="list_repositories",
+            arguments="{}",
+            output='["repo1", "repo2", "repo3"]',
+            status=MessageStatus.SUCCESS,
+        )
+
+        # MCP tool executing
+        yield MCPToolMessage(
+            server_name="docker",
+            tool_name="list_containers",
+            arguments='{"all": true}',
+            output="",
+            status=MessageStatus.EXECUTING,
+        )
+
+        # MCP tool with error
+        yield MCPToolMessage(
+            server_name="database",
+            tool_name="execute_query",
+            arguments='{"query": "SELECT * FROM users"}',
+            output="Error: Connection refused",
+            status=MessageStatus.ERROR,
+        )
+
+        # MCP tool with long arguments
+        yield MCPToolMessage(
+            server_name="api_server",
+            tool_name="make_request",
+            arguments=(
+                '{"url": "https://api.example.com/v1/users/data", "method": "POST", '
+                '"headers": {"Authorization": "Bearer token123", "Content-Type": "application/json"}, '
+                '"body": {"user": "test", "action": "update"}}'
+            ),
+            output="Response: 200 OK",
+            status=MessageStatus.SUCCESS,
+        )
+
+        # MCP tool with complex output
+        yield MCPToolMessage(
+            server_name="git",
+            tool_name="get_diff",
+            arguments='{"file": "main.py", "base": "main", "head": "feature"}',
+            output="""--- a/main.py
++++ b/main.py
+@@ -10,7 +10,10 @@
+ def process():
+-    print("Old implementation")
++    print("New implementation")
++    # Added feature
++    result = calculate()
++    return result
+
+ def main():
+     process()""",
             status=MessageStatus.SUCCESS,
         )

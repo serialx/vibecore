@@ -2,6 +2,7 @@
 
 from tests._harness.message_test_harness import (
     AgentMessageTestApp,
+    MCPToolMessageTestApp,
     MessageTestApp,
     MixedMessageTestApp,
     ToolMessageTestApp,
@@ -25,6 +26,11 @@ class TestMessageSnapshots:
     def test_tool_messages(self, snap_compare):
         """Test rendering of various tool message widgets."""
         app = ToolMessageTestApp()
+        assert snap_compare(app, press=[])
+
+    def test_mcp_tool_messages(self, snap_compare):
+        """Test rendering of MCP tool message widgets."""
+        app = MCPToolMessageTestApp()
         assert snap_compare(app, press=[])
 
     def test_mixed_conversation(self, snap_compare):
