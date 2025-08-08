@@ -12,6 +12,7 @@ from typing import Any
 from vibecore.widgets.messages import MessageStatus
 from vibecore.widgets.tool_messages import (
     BaseToolMessage,
+    MCPToolMessage,
     PythonToolMessage,
     ReadToolMessage,
     TaskToolMessage,
@@ -46,8 +47,36 @@ def create_tool_message(
     with contextlib.suppress(json.JSONDecodeError, KeyError):
         args_dict = json.loads(arguments)
 
+    # Check if this is an MCP tool based on the naming pattern
+    if tool_name.startswith("mcp__"):
+        # Extract server name and original tool name from the pattern: mcp__servername__toolname
+        parts = tool_name.split("__", 2)  # Split into at most 3 parts
+        if len(parts) == 3:
+            _, server_name, original_tool_name = parts
+            if output is not None:
+                return MCPToolMessage(
+                    server_name=server_name,
+                    tool_name=original_tool_name,
+                    arguments=arguments,
+                    output=output,
+                    status=status,
+                )
+            else:
+                return MCPToolMessage(
+                    server_name=server_name,
+                    tool_name=original_tool_name,
+                    arguments=arguments,
+                    status=status,
+                )
+        else:
+            # Malformed MCP tool name, fall back to generic tool message
+            if output is not None:
+                return ToolMessage(tool_name=tool_name, command=arguments, output=output, status=status)
+            else:
+                return ToolMessage(tool_name=tool_name, command=arguments, status=status)
+
     # Create tool-specific messages based on tool name
-    if tool_name == "execute_python":
+    elif tool_name == "execute_python":
         code = args_dict.get("code", "") if args_dict else ""
         if output is not None:
             return PythonToolMessage(code=code, output=output, status=status)

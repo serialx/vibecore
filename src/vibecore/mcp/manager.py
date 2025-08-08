@@ -19,6 +19,8 @@ from textual import log
 
 from vibecore.settings import MCPServerConfig
 
+from .server_wrapper import NameOverridingMCPServer
+
 if TYPE_CHECKING:
     from agents import AgentBase
 
@@ -37,10 +39,12 @@ class MCPManager:
         self._connected = False
         self._server_contexts: list[Any] = []  # Store context managers
 
-        # Create servers immediately
+        # Create servers immediately and wrap them
         for config in self.server_configs:
-            server = self._create_server(config)
-            self.servers.append(server)
+            actual_server = self._create_server(config)
+            # Wrap the server to override tool names
+            wrapped_server = NameOverridingMCPServer(actual_server)
+            self.servers.append(wrapped_server)
 
     async def connect(self) -> None:
         """Connect to all configured MCP servers."""
@@ -88,6 +92,7 @@ class MCPManager:
         if not self._connected:
             await self.connect()
 
+        # Get all tools using MCPUtil which handles the wrapped servers
         return await MCPUtil.get_all_function_tools(
             servers=self.servers,
             convert_schemas_to_strict=True,

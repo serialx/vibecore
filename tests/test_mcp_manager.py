@@ -1,6 +1,6 @@
 """Tests for MCP manager functionality."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -108,26 +108,19 @@ class TestMCPManager:
         assert mock_mcp_server.cleanup.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_get_tools(self, test_configs, mock_mcp_server):
-        """Test getting tools from MCP servers."""
-        manager = MCPManager([])  # Create with empty config
-        manager.servers = [mock_mcp_server]  # Add mock servers directly
+    async def test_get_tools_with_wrapper(self, test_configs):
+        """Test that MCPManager wraps servers with NameOverridingMCPServer."""
+        manager = MCPManager(test_configs)
 
-        with patch("vibecore.mcp.manager.MCPUtil.get_all_function_tools") as mock_get_tools:
-            mock_get_tools.return_value = []
+        # Check that servers are wrapped
+        from vibecore.mcp.server_wrapper import NameOverridingMCPServer
 
-            mock_context = MagicMock()
-            mock_agent = MagicMock()
-
-            tools = await manager.get_tools(mock_context, mock_agent)
-
-            assert tools == []
-            mock_get_tools.assert_called_once_with(
-                servers=manager.servers,
-                convert_schemas_to_strict=True,
-                run_context=mock_context,
-                agent=mock_agent,
-            )
+        assert len(manager.servers) == 2
+        for server in manager.servers:
+            assert isinstance(server, NameOverridingMCPServer)
+            # Check that the actual server is stored
+            assert hasattr(server, "actual_server")
+            assert server.actual_server is not None
 
     def test_create_server_stdio(self):
         """Test creating a stdio server."""

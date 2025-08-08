@@ -5,6 +5,7 @@ import json
 from vibecore.widgets.messages import MessageStatus
 from vibecore.widgets.tool_message_factory import create_tool_message
 from vibecore.widgets.tool_messages import (
+    MCPToolMessage,
     PythonToolMessage,
     ReadToolMessage,
     TodoWriteToolMessage,
@@ -195,16 +196,51 @@ class TestToolMessageFactory:
         assert msg.status == MessageStatus.SUCCESS
 
     def test_mcp_tool_detection(self):
-        """Test that the factory currently treats MCP tools as generic tools."""
-        # Note: The factory doesn't have special handling for MCP tools yet
-        # They would be created as generic ToolMessage widgets
+        """Test that MCP tools with mcp__servername__toolname pattern are correctly detected."""
+        # Test with proper MCP tool naming pattern
         msg = create_tool_message(
-            tool_name="mcp_tool",
-            arguments='{"server": "test", "params": "value"}',
-            output="MCP tool output",
+            tool_name="mcp__filesystem__read_file",
+            arguments='{"path": "/etc/hosts"}',
+            output="127.0.0.1 localhost",
             status=MessageStatus.SUCCESS,
         )
 
-        # For now, MCP tools are treated as generic tools
-        assert isinstance(msg, ToolMessage)
-        assert msg.tool_name == "mcp_tool"
+        # Should create MCPToolMessage with extracted server and tool names
+        assert isinstance(msg, MCPToolMessage)
+        assert msg.server_name == "filesystem"
+        assert msg.tool_name == "read_file"
+        assert msg.arguments == '{"path": "/etc/hosts"}'
+        assert msg.output == "127.0.0.1 localhost"
+        assert msg.status == MessageStatus.SUCCESS
+
+        # Test MCP tool without output
+        msg_no_output = create_tool_message(
+            tool_name="mcp__github__create_issue",
+            arguments='{"title": "Bug report", "body": "Description"}',
+        )
+        assert isinstance(msg_no_output, MCPToolMessage)
+        assert msg_no_output.server_name == "github"
+        assert msg_no_output.tool_name == "create_issue"
+        assert msg_no_output.status == MessageStatus.EXECUTING
+
+        # Test malformed MCP tool name (missing parts)
+        msg_malformed = create_tool_message(
+            tool_name="mcp__malformed",
+            arguments='{"test": "data"}',
+            output="output",
+            status=MessageStatus.SUCCESS,
+        )
+        # Should fall back to generic ToolMessage
+        assert isinstance(msg_malformed, ToolMessage)
+        assert msg_malformed.tool_name == "mcp__malformed"
+
+        # Test non-MCP tool (doesn't start with mcp__)
+        msg_non_mcp = create_tool_message(
+            tool_name="regular_tool",
+            arguments='{"param": "value"}',
+            output="result",
+            status=MessageStatus.SUCCESS,
+        )
+        # Should be generic ToolMessage
+        assert isinstance(msg_non_mcp, ToolMessage)
+        assert msg_non_mcp.tool_name == "regular_tool"
