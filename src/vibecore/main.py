@@ -5,11 +5,13 @@ from typing import ClassVar, Literal
 
 from agents import (
     Agent,
+    ModelSettings,
     Runner,
     RunResultStreaming,
     StreamEvent,
     TResponseInputItem,
 )
+from openai.types import Reasoning
 from openai.types.responses.response_output_message import Content
 from textual import log, work
 from textual.app import App, ComposeResult
@@ -29,6 +31,28 @@ from vibecore.widgets.info import Welcome
 from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, SystemMessage, UserMessage
 
 AgentStatus = Literal["idle", "running"]
+
+
+def detect_reasoning_effort(prompt: str) -> Literal["low", "medium", "high"] | None:
+    """Detect reasoning effort level from user prompt keywords.
+
+    Args:
+        prompt: User input text
+
+    Returns:
+        Reasoning effort level or None if no keywords detected
+    """
+    prompt_lower = prompt.lower()
+
+    # Check for highest priority keywords first
+    if "ultrathink" in prompt_lower:
+        return "high"
+    elif "think hard" in prompt_lower:
+        return "medium"
+    elif "think" in prompt_lower:
+        return "low"
+
+    return None
 
 
 class VibecoreApp(App):
@@ -235,9 +259,34 @@ class VibecoreApp(App):
                     status="Generating…", metadata=f"{queued_count} message{'s' if queued_count > 1 else ''} queued"
                 )
             else:
+                # Detect reasoning effort from prompt keywords
+                detected_effort = detect_reasoning_effort(event.text)
+                reasoning_effort = detected_effort or settings.reasoning_effort
+
+                # Create agent with appropriate reasoning effort
+                agent_to_use = self.agent
+                if reasoning_effort is not None:
+                    # Create a copy of the agent with updated model settings
+                    current_settings = self.agent.model_settings or ModelSettings()
+                    new_reasoning = Reasoning(effort=reasoning_effort, summary="auto")
+                    updated_settings = ModelSettings(
+                        include_usage=current_settings.include_usage,
+                        reasoning=new_reasoning,
+                    )
+                    agent_to_use = Agent[VibecoreContext](
+                        name=self.agent.name,
+                        handoff_description=self.agent.handoff_description,
+                        instructions=self.agent.instructions,
+                        tools=self.agent.tools,
+                        model=self.agent.model,
+                        model_settings=updated_settings,
+                        handoffs=self.agent.handoffs,
+                        mcp_servers=self.agent.mcp_servers,
+                    )
+
                 # Process the message immediately
                 result = Runner.run_streamed(
-                    self.agent,
+                    agent_to_use,
                     input=event.text,  # Pass string directly when using session
                     context=self.context,
                     max_turns=settings.max_turns,

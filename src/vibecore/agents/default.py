@@ -55,6 +55,11 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
 
     instructions = prompt_with_handoff_instructions(instructions)
 
+    # Configure reasoning based on settings
+    reasoning_config = Reasoning(summary="auto")
+    if settings.reasoning_effort is not None:
+        reasoning_config = Reasoning(effort=settings.reasoning_effort, summary="auto")
+
     return Agent[VibecoreContext](
         name="Vibecore Agent",
         handoff_description="A versatile general-purpose assistant",
@@ -63,7 +68,7 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
         model=settings.model,
         model_settings=ModelSettings(
             include_usage=True,  # Ensure token usage is tracked in streaming mode
-            reasoning=Reasoning(summary="auto"),
+            reasoning=reasoning_config,
         ),
         handoffs=[],
         mcp_servers=mcp_servers or [],
