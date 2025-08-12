@@ -7,7 +7,7 @@ from typing import ClassVar
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll
 
-from vibecore.widgets.messages import AgentMessage, MessageStatus, UserMessage
+from vibecore.widgets.messages import AgentMessage, MessageStatus, ReasoningMessage, UserMessage
 from vibecore.widgets.tool_messages import (
     MCPToolMessage,
     PythonToolMessage,
@@ -197,6 +197,39 @@ if __name__ == '__main__':
             "- Proper main guard for script execution\n"
             "- Clean structure for CSV file processing",
             status=MessageStatus.SUCCESS,
+        )
+
+
+class ReasoningMessageTestApp(MessageTestApp):
+    """Test app for ReasoningMessage widgets."""
+
+    def create_test_messages(self) -> ComposeResult:
+        """Create various ReasoningMessage test cases."""
+        # Simple reasoning summary
+        yield ReasoningMessage(
+            "Let me think about the best approach to implement this feature.", status=MessageStatus.IDLE
+        )
+
+        # More detailed reasoning
+        yield ReasoningMessage(
+            "**Analysis**\n\n"
+            "I need to consider several factors:\n\n"
+            "1. **Performance**: The algorithm should be efficient\n"
+            "2. **Maintainability**: Code should be readable\n"
+            "3. **Scalability**: Solution should handle large datasets\n\n"
+            "Based on these requirements, I'll use a hash-based approach.",
+            status=MessageStatus.IDLE,
+        )
+
+        # Short reasoning
+        yield ReasoningMessage("Processing the user's request step by step.", status=MessageStatus.IDLE)
+
+        # Reasoning with code mentions
+        yield ReasoningMessage(
+            "I should create a `ReasoningMessage` widget that extends `BaseMessage` "
+            "and displays reasoning summaries with a star icon (*) to distinguish "
+            "it from regular agent messages.",
+            status=MessageStatus.EXECUTING,
         )
 
 

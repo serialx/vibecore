@@ -197,3 +197,36 @@ class SystemMessage(BaseMessage):
     def get_header_params(self) -> tuple[str, str, bool]:
         """Get parameters for MessageHeader."""
         return ("!", self.text, False)
+
+
+class ReasoningMessage(BaseMessage):
+    """A widget to display reasoning summaries from AI agents."""
+
+    text: reactive[str] = reactive("")
+
+    def __init__(self, text: str = "", status: MessageStatus = MessageStatus.IDLE, **kwargs) -> None:
+        """
+        Construct a ReasoningMessage.
+
+        Args:
+            text: The reasoning summary text to display.
+            status: The status of the message.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.set_reactive(ReasoningMessage.text, text)
+        self.add_class("reasoning-message")
+
+    def get_header_params(self) -> tuple[str, str, bool]:
+        """Get parameters for MessageHeader."""
+        return ("*", self.text, True)
+
+    def update(self, text: str, status: MessageStatus | None = None) -> None:
+        """Update the text of the reasoning message."""
+        self.text = text
+        if status is not None:
+            self.status = status
+
+    def watch_text(self, text: str) -> None:
+        """Watch for changes in the text and update the header."""
+        self.query_one(MessageHeader).text = text

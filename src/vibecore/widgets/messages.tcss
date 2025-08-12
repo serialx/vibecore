@@ -71,3 +71,15 @@ SystemMessage {
 SystemMessage > MessageHeader > .prefix {
     color: $accent;
 }
+
+ReasoningMessage {
+    color: $text-muted;
+
+    MessageHeader.status-executing > .prefix {
+        color: $text-muted;
+    }
+
+    MessageHeader > Markdown {
+        color: $text-muted;
+    }
+}

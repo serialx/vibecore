@@ -7,6 +7,7 @@ from openai.types.responses import (
     ResponseInputItemParam,
     ResponseOutputItem,
     ResponseOutputMessage,
+    ResponseReasoningItem,
 )
 from pydantic import TypeAdapter
 from textual import log
@@ -17,6 +18,7 @@ from vibecore.widgets.messages import (
     AgentMessage,
     BaseMessage,
     MessageStatus,
+    ReasoningMessage,
     UserMessage,
 )
 from vibecore.widgets.tool_message_factory import create_tool_message
@@ -88,6 +90,11 @@ class SessionLoader:
                     # User message
                     text_content = TextExtractor.extract_from_content(content)
                     return UserMessage(text_content)
+
+                case ResponseReasoningItem(summary=summary):
+                    # assert len(summary) == 1, "Summary must contain exactly one item"
+                    summary_merged = "\n\n".join(item.text for item in summary) if summary else "Thinking..."
+                    return ReasoningMessage(summary_merged, status=MessageStatus.IDLE)
 
                 case ResponseOutputMessage(role="assistant", content=content):
                     # Handle assistant messages
