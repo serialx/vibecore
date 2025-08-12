@@ -77,17 +77,61 @@ def run(
     logger = logging.getLogger("openai.agents")
     logger.addHandler(TextualHandler())
 
+    if print_mode:
+        # Run in print mode with async MCP lifecycle
+        import asyncio
+        asyncio.run(_run_print_mode(prompt))
+    else:
+        # Run normal TUI mode with async MCP lifecycle
+        import asyncio
+        asyncio.run(_run_tui_mode(continue_session, session_id))
+
+
+async def _run_print_mode(prompt: str | None) -> None:
+    """Run the application in print mode with proper MCP lifecycle management."""
     # Create context
     ctx = VibecoreContext()
 
     # Initialize MCP manager if configured
+    mcp_manager = None
     mcp_servers = []
     if settings.mcp_servers:
-        # Create MCP manager
         mcp_manager = MCPManager(settings.mcp_servers)
         ctx.mcp_manager = mcp_manager
+        mcp_servers = mcp_manager.servers
 
-        # Get the MCP servers from the manager
+    # Create agent with MCP servers
+    agent = create_default_agent(mcp_servers=mcp_servers)
+
+    # Create app
+    app_instance = VibecoreApp(ctx, agent, session_id=None, print_mode=True)
+
+    # Use MCP manager as async context manager if available
+    if mcp_manager:
+        async with mcp_manager:
+            result = await app_instance.run_print(prompt)
+            if result:
+                print(result)
+    else:
+        result = await app_instance.run_print(prompt)
+        if result:
+            print(result)
+
+
+async def _run_tui_mode(
+    continue_session: bool,
+    session_id: str | None
+) -> None:
+    """Run the application in TUI mode with proper MCP lifecycle management."""
+    # Create context
+    ctx = VibecoreContext()
+
+    # Initialize MCP manager if configured
+    mcp_manager = None
+    mcp_servers = []
+    if settings.mcp_servers:
+        mcp_manager = MCPManager(settings.mcp_servers)
+        ctx.mcp_manager = mcp_manager
         mcp_servers = mcp_manager.servers
 
     # Create agent with MCP servers
@@ -106,19 +150,13 @@ def run(
         typer.echo(f"Loading session: {session_to_load}")
 
     # Create app
-    app_instance = VibecoreApp(ctx, agent, session_id=session_to_load, print_mode=print_mode)
+    app_instance = VibecoreApp(ctx, agent, session_id=session_to_load, print_mode=False)
 
-    if print_mode:
-        # Run in print mode
-        import asyncio
-
-        # Use provided prompt or None to read from stdin
-        result = asyncio.run(app_instance.run_print(prompt))
-        # Print raw output to stdout
-        if result:
-            print(result)
+    # Use MCP manager as async context manager if available
+    if mcp_manager:
+        async with mcp_manager:
+            app_instance.run()
     else:
-        # Run normal TUI mode
         app_instance.run()
 
 
