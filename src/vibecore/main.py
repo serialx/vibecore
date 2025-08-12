@@ -413,6 +413,9 @@ class VibecoreApp(App):
         from agents import RawResponsesStreamEvent
         from openai.types.responses import ResponseTextDeltaEvent
 
+        if self.context.mcp_manager:
+            await self.context.mcp_manager.connect()
+
         # Run the agent
         result = Runner.run_streamed(
             self.agent,
@@ -432,6 +435,9 @@ class VibecoreApp(App):
                     match data:
                         case ResponseTextDeltaEvent(delta=delta) if delta:
                             agent_output += delta
+
+        if self.context.mcp_manager:
+            await self.context.mcp_manager.disconnect()
 
         return agent_output.strip()
 
