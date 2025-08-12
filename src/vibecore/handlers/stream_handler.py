@@ -139,7 +139,6 @@ class AgentStreamHandler:
                         reasoning_message.update(updated, status=MessageStatus.EXECUTING)
 
                     case ResponseReasoningSummaryTextDeltaEvent(item_id=reasoning_id, delta=delta):
-                        log(f"Received reasoning summary text delta: {reasoning_id} - {delta}")
                         reasoning_message = self.reasoning_messages[reasoning_id]
                         assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
                         updated = reasoning_message.text + delta
@@ -181,9 +180,6 @@ class AgentStreamHandler:
                             task_tool_message.prompt = args.get("prompt", "")
                         else:
                             await self.handle_tool_call(tool_name, arguments, call_id)
-
-                    case _ as e:
-                        log(f"Unhandled raw response event: {e.type}")
 
             case RunItemStreamEvent(item=item):
                 match item:
