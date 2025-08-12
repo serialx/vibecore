@@ -69,8 +69,15 @@ uv run vibecore
 Once vibecore is running, you can:
 
 - **Chat naturally** - Type messages and press Enter to send
-- **Switch themes** - Press `d` to toggle between dark and light modes
-- **Exit** - Press `Control-Q` to quit the application
+- **Toggle theme** - Press `Ctrl+Shift+D` to toggle dark/light
+- **Cancel agent** - Press `Esc` to cancel the current operation
+- **Navigate history** - Use `Up/Down` arrows
+- **Exit** - Press `Ctrl+D` twice to confirm
+
+### Commands
+
+- `/help` - Show help and keyboard shortcuts
+- `/clear` - Clear the current session and start a new one
 
 ### Available Tools
 
@@ -244,6 +251,11 @@ uv run ruff check . && uv run ruff format --check . && uv run pyright . && uv ru
 
 ## Configuration
 
+### Reasoning Effort
+
+- Set default via env var: `VIBECORE_REASONING_EFFORT` (minimal | low | medium | high)
+- Keyword triggers: `think` → low, `think hard` → medium, `ultrathink` → high
+
 ### Environment Variables
 
 ```bash
@@ -300,11 +312,12 @@ vibecore is built with a modular, extensible architecture:
 
 ## Recent Updates
 
+- **Reasoning View**: New ReasoningMessage widget with live reasoning summaries during streaming
+- **Context Usage Bar & CWD**: Footer shows token usage progress and current working directory
+- **Keyboard & Commands**: Ctrl+Shift+D toggles theme, Esc cancels, Ctrl+D double-press to exit, `/help` and `/clear` commands
+- **MCP Tool Output**: Improved rendering with Markdown and JSON prettification
 - **MCP Support**: Full integration with Model Context Protocol for external tool connections
-- **Tool Message Factory**: Centralized widget creation for consistent UI across streaming and session loading
-- **Enhanced Tool Widgets**: Specialized widgets for Python execution, file reading, and todo management
-- **Improved Session Support**: Seamless save/load of conversations with full UI state preservation
-- **Print Mode**: New `-p` flag for automation and Unix pipe integration
+- **Print Mode**: `-p` flag to print response and exit for pipes/automation
 
 ## Roadmap
 
