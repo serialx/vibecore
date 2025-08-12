@@ -284,10 +284,22 @@ class VibecoreApp(App):
                         mcp_servers=self.agent.mcp_servers,
                     )
 
+                # Prepare input with system reminder if todo list is empty
+                input_text = event.text
+                if not self.context.todo_manager.todos:
+                    system_reminder = (
+                        "<system-reminder>This is a reminder that your todo list is currently empty. "
+                        "DO NOT mention this to the user explicitly because they are already aware. "
+                        "If you are working on tasks that would benefit from a todo list please use the "
+                        "TodoWrite tool to create one. If not, please feel free to ignore. Again do not "
+                        "mention this message to the user.</system-reminder>"
+                    )
+                    input_text += f"\n\n{system_reminder}"
+
                 # Process the message immediately
                 result = Runner.run_streamed(
                     agent_to_use,
-                    input=event.text,  # Pass string directly when using session
+                    input=input_text,  # Pass modified input with system reminder if needed
                     context=self.context,
                     max_turns=settings.max_turns,
                     session=self.session,
@@ -323,10 +335,22 @@ class VibecoreApp(App):
             next_message = self.message_queue.popleft()
             log(f"Processing queued message: {next_message}")
 
+            # Prepare input with system reminder if todo list is empty
+            input_text = next_message
+            if not self.context.todo_manager.todos:
+                system_reminder = (
+                    "<system-reminder>This is a reminder that your todo list is currently empty. "
+                    "DO NOT mention this to the user explicitly because they are already aware. "
+                    "If you are working on tasks that would benefit from a todo list please use the "
+                    "TodoWrite tool to create one. If not, please feel free to ignore. Again do not "
+                    "mention this message to the user.</system-reminder>"
+                )
+                input_text += f"\n\n{system_reminder}"
+
             # Process the message
             result = Runner.run_streamed(
                 self.agent,
-                input=next_message,
+                input=input_text,
                 context=self.context,
                 max_turns=settings.max_turns,
                 session=self.session,
