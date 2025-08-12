@@ -18,13 +18,19 @@ from openai.types.responses import (
     ResponseFunctionToolCall,
     ResponseOutputItemAddedEvent,
     ResponseOutputItemDoneEvent,
+    ResponseReasoningItem,
+    ResponseReasoningSummaryPartAddedEvent,
+    ResponseReasoningSummaryTextDeltaEvent,
+    ResponseReasoningSummaryTextDoneEvent,
     ResponseTextDeltaEvent,
 )
+from textual import log
 
 from vibecore.widgets.messages import (
     AgentMessage,
     BaseMessage,
     MessageStatus,
+    ReasoningMessage,
 )
 from vibecore.widgets.tool_message_factory import create_tool_message
 from vibecore.widgets.tool_messages import BaseToolMessage, TaskToolMessage
@@ -63,6 +69,7 @@ class AgentStreamHandler:
         self.message_content = ""
         self.agent_message: AgentMessage | None = None
         self.tool_messages: dict[str, BaseToolMessage] = {}
+        self.reasoning_messages: dict[str, ReasoningMessage] = {}
 
     async def handle_text_delta(self, delta: str) -> None:
         """Handle incremental text updates from the agent.
@@ -118,8 +125,34 @@ class AgentStreamHandler:
         match event:
             case RawResponsesStreamEvent(data=data):
                 match data:
-                    case ResponseTextDeltaEvent(delta=delta) if delta:
-                        await self.handle_text_delta(delta)
+                    case ResponseOutputItemAddedEvent(item=ResponseReasoningItem() as item):
+                        reasoning_id = item.id
+                        reasoning_message = ReasoningMessage("Thinking...", status=MessageStatus.EXECUTING)
+                        self.reasoning_messages[reasoning_id] = reasoning_message
+                        await self.message_handler.handle_agent_message(reasoning_message)
+
+                    case ResponseReasoningSummaryPartAddedEvent() as e:
+                        reasoning_id = e.item_id
+                        reasoning_message = self.reasoning_messages[reasoning_id]
+                        assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
+                        updated = reasoning_message.text + "\n\n" if reasoning_message.text != "Thinking..." else ""
+                        reasoning_message.update(updated, status=MessageStatus.EXECUTING)
+
+                    case ResponseReasoningSummaryTextDeltaEvent(item_id=reasoning_id, delta=delta):
+                        log(f"Received reasoning summary text delta: {reasoning_id} - {delta}")
+                        reasoning_message = self.reasoning_messages[reasoning_id]
+                        assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
+                        updated = reasoning_message.text + delta
+                        reasoning_message.update(updated, status=MessageStatus.EXECUTING)
+
+                    case ResponseReasoningSummaryTextDoneEvent(item_id=reasoning_id) as e:
+                        pass
+
+                    case ResponseOutputItemDoneEvent(item=ResponseReasoningItem() as item):
+                        reasoning_id = item.id
+                        reasoning_message = self.reasoning_messages[reasoning_id]
+                        assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
+                        reasoning_message.update(reasoning_message.text, status=MessageStatus.IDLE)
 
                     case ResponseOutputItemAddedEvent(item=ResponseFunctionToolCall(name=tool_name, call_id=call_id)):
                         # TODO(serialx): We should move all tool call lifecycle start to here
@@ -129,6 +162,9 @@ class AgentStreamHandler:
                         #               I'm deferring this because `arguments` is not available here... need to refactor
                         if tool_name == "task":
                             await self.handle_tool_call(tool_name, "{}", call_id)
+
+                    case ResponseTextDeltaEvent(delta=delta) if delta:
+                        await self.handle_text_delta(delta)
 
                     case ResponseOutputItemDoneEvent(
                         item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
@@ -145,6 +181,9 @@ class AgentStreamHandler:
                             task_tool_message.prompt = args.get("prompt", "")
                         else:
                             await self.handle_tool_call(tool_name, arguments, call_id)
+
+                    case _ as e:
+                        log(f"Unhandled raw response event: {e.type}")
 
             case RunItemStreamEvent(item=item):
                 match item:

@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from agents import Agent, ModelSettings
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+from openai.types import Reasoning
 
 from vibecore.context import VibecoreContext
 from vibecore.settings import settings
@@ -61,7 +62,8 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
         tools=tools,
         model=settings.model,
         model_settings=ModelSettings(
-            include_usage=True  # Ensure token usage is tracked in streaming mode
+            include_usage=True,  # Ensure token usage is tracked in streaming mode
+            reasoning=Reasoning(summary="auto"),
         ),
         handoffs=[],
         mcp_servers=mcp_servers or [],

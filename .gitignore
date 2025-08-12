@@ -14,3 +14,4 @@ wheels/
 # Claude Code
 .claude/settings.local.json
 config.yaml
+snapshot_report.html

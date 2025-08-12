@@ -3,7 +3,6 @@
 import logging
 from pathlib import Path
 
-import agents
 import typer
 from textual.logging import TextualHandler
 
@@ -77,8 +76,6 @@ def run(
 
     logger = logging.getLogger("openai.agents")
     logger.addHandler(TextualHandler())
-
-    agents.set_default_openai_api("chat_completions")
 
     # Create context
     ctx = VibecoreContext()

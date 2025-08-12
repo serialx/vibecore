@@ -2,6 +2,7 @@
 
 from agents import Agent, ModelSettings
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
+from openai.types import Reasoning
 
 from vibecore.context import VibecoreContext
 from vibecore.settings import settings
@@ -58,7 +59,8 @@ def create_task_agent(prompt: str) -> Agent[VibecoreContext]:
         tools=tools,
         model=settings.model,
         model_settings=ModelSettings(
-            include_usage=True  # Ensure token usage is tracked in streaming mode
+            include_usage=True,  # Ensure token usage is tracked in streaming mode
+            reasoning=Reasoning(summary="auto"),
         ),
         handoffs=[],
     )
