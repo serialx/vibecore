@@ -11,6 +11,7 @@ from vibecore.tools.python.tools import execute_python
 from vibecore.tools.shell.tools import bash, glob, grep, ls
 from vibecore.tools.task.tools import task
 from vibecore.tools.todo.tools import todo_read, todo_write
+from vibecore.tools.web.tools import web_search
 
 from .prompts import COMMON_PROMPT
 
@@ -21,10 +22,10 @@ INSTRUCTIONS = (
     COMMON_PROMPT + "\n\n"
     "You are a versatile AI assistant capable of helping with a wide range of tasks. "
     "You have access to various tools including file operations, shell commands, "
-    "Python execution, and task management. "
+    "Python execution, web search, and task management. "
     "Use the appropriate tools to accomplish any task the user requests. "
     "You can handle programming, system administration, file manipulation, "
-    "automation, and general problem-solving tasks."
+    "automation, research, and general problem-solving tasks."
 )
 
 
@@ -50,6 +51,7 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
         grep,
         ls,
         task,
+        web_search,
     ]
     instructions = INSTRUCTIONS
 

@@ -382,6 +382,94 @@ class WriteToolMessage(BaseToolMessage):
                     yield Static(self.output, classes="write-output-message")
 
 
+class WebSearchToolMessage(BaseToolMessage):
+    """A widget to display web search results with rich formatting."""
+
+    search_query: reactive[str] = reactive("")
+    num_results: reactive[int] = reactive(10)
+
+    def __init__(
+        self,
+        query: str,
+        num_results: int = 10,
+        output: str = "",
+        status: MessageStatus = MessageStatus.EXECUTING,
+        **kwargs,
+    ) -> None:
+        """
+        Construct a WebSearchToolMessage.
+
+        Args:
+            query: The search query.
+            num_results: Number of results requested.
+            output: The search results JSON (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.search_query = query
+        self.num_results = num_results
+        self.output = output
+
+    def _parse_search_results(self, output: str) -> tuple[bool, list[dict] | None]:
+        """Parse search results from JSON output.
+
+        Args:
+            output: Raw JSON output from web search.
+
+        Returns:
+            A tuple of (is_valid_json, parsed_results).
+        """
+        if not output or not output.strip():
+            return False, None
+
+        try:
+            data = json.loads(output)
+            if isinstance(data, dict) and "results" in data:
+                return True, data["results"]
+            return False, None
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return False, None
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the web search message."""
+        # Header line showing search query
+        max_query_length = 60
+        display_query = (
+            self.search_query[:max_query_length] + "…"
+            if len(self.search_query) > max_query_length
+            else self.search_query
+        )
+        header = f"WebSearch({display_query})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Parse and display results
+        if self.output:
+            is_valid, results = self._parse_search_results(self.output)
+
+            if is_valid and results:
+                with Horizontal(classes="websearch-results"):
+                    yield Static("└─", classes="websearch-results-prefix")
+                    with Vertical(classes="websearch-results-content"):
+                        # Show results count
+                        yield Static(f"Found {len(results)} results:", classes="websearch-count")
+
+                        # Display each result as a formatted entry
+                        for i, result in enumerate(results[:10], 1):  # Limit display to first 10
+                            title = result.get("title", "No title")
+                            url = result.get("url", "")
+                            snippet = result.get("snippet", "No description available")
+
+                            # Create formatted result entry
+                            result_content = f"**{i}. {title}**\n{url}\n{snippet}\n"
+                            yield ExpandableContent(
+                                Content(result_content), truncated_lines=2, classes="websearch-result-item"
+                            )
+            else:
+                # Fallback for invalid JSON or error messages
+                yield from self._render_output(self.output, truncated_lines=5)
+
+
 class MCPToolMessage(BaseToolMessage):
     """A widget to display MCP tool execution messages."""
 

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 
 [[package]]
@@ -1870,6 +1870,7 @@ name = "vibecore"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "litellm" },
     { name = "openai-agents", extra = ["litellm"] },
     { name = "pydantic-settings" },
@@ -1891,6 +1892,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.25.0" },
     { name = "litellm", specifier = ">=1.72.4" },
     { name = "openai-agents", extras = ["litellm"], specifier = ">=0.2.2" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
