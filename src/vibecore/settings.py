@@ -105,9 +105,9 @@ class Settings(BaseSettings):
         default=200,
         description="Maximum number of turns for agent conversation",
     )
-    reasoning_effort: Literal["low", "medium", "high"] | None = Field(
+    reasoning_effort: Literal["minimal", "low", "medium", "high"] | None = Field(
         default=None,
-        description="Default reasoning effort level for agents (null, 'low', 'medium', 'high')",
+        description="Default reasoning effort level for agents (null, 'minimal', 'low', 'medium', 'high')",
     )
 
     # Session configuration
