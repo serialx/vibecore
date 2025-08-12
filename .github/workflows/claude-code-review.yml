@@ -47,7 +47,7 @@ jobs:
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4)
           # model: "claude-opus-4-20250514"
-          model: "claude-opus-4-20250514"
+          model: "claude-opus-4-1-20250805"
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
