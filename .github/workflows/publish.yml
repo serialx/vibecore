@@ -139,7 +139,7 @@ jobs:
           UV_PUBLISH_TOKEN: ${{ secrets.TESTPYPI_API_TOKEN }}
         run: |
           uv publish \
-            --index testpypi \
+            --publish-url https://test.pypi.org/legacy/ \
             --token $UV_PUBLISH_TOKEN
 
       - name: Verify installation from TestPyPI
