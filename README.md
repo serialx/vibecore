@@ -43,6 +43,26 @@ Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](h
 ### Prerequisites
 
 - Python 3.11 or higher
+- (Optional) [uv](https://docs.astral.sh/uv/) for quick testing and better package management
+
+### Quick Test (No Installation)
+
+Try vibecore instantly without installing it:
+
+```bash
+# Install uv if you don't have it (optional)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Configure your API key
+export ANTHROPIC_API_KEY="your-api-key-here"
+# or
+export OPENAI_API_KEY="your-api-key-here"
+
+# Run vibecore directly with uvx
+uvx vibecore
+```
+
+This will download and run vibecore in an isolated environment without affecting your system Python installation.
 
 ### Install from PyPI
 
