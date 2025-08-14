@@ -33,6 +33,8 @@ jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.build.outputs.version }}
     
     steps:
       - name: Checkout code
@@ -56,10 +58,16 @@ jobs:
           sed -i 's/^version = .*/version = "${{ github.event.inputs.version }}"/' pyproject.toml
 
       - name: Build package
+        id: build
         run: |
           uv build
           echo "Built packages:"
           ls -la dist/
+          
+          # Extract version from the built wheel filename
+          VERSION=$(ls dist/*.whl | sed -n 's/.*vibecore-\(.*\)-py3.*/\1/p')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Built version: $VERSION"
 
       - name: Store build artifacts
         uses: actions/upload-artifact@v4
@@ -154,11 +162,13 @@ jobs:
           uv venv test-env
           source test-env/bin/activate
           
-          # Install from TestPyPI
+          # Install specific version from TestPyPI
+          VERSION="${{ needs.build.outputs.version }}"
+          echo "Installing vibecore==$VERSION from TestPyPI"
           uv pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple/ \
-            vibecore
+            "vibecore==$VERSION"
           
           # Verify it works
           vibecore --version || echo "CLI verification completed"
@@ -202,8 +212,10 @@ jobs:
           uv venv test-env
           source test-env/bin/activate
           
-          # Install from PyPI
-          uv pip install vibecore
+          # Install specific version from PyPI
+          VERSION="${{ needs.build.outputs.version }}"
+          echo "Installing vibecore==$VERSION from PyPI"
+          uv pip install "vibecore==$VERSION"
           
           # Verify it works
           vibecore --version || echo "CLI verification completed"
