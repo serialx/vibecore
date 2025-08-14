@@ -62,7 +62,7 @@ async def flow(
             if not headless:
                 await pilot._wait_for_screen()
                 await asyncio.sleep(1.0)
-                await app.action_quit()
+                app.exit()
                 await asyncio.sleep(1.0)
             await app._shutdown()
 
