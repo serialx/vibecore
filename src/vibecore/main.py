@@ -268,7 +268,7 @@ class VibecoreApp(App):
                 if reasoning_effort is not None:
                     # Create a copy of the agent with updated model settings
                     current_settings = self.agent.model_settings or ModelSettings()
-                    new_reasoning = Reasoning(effort=reasoning_effort, summary="auto")
+                    new_reasoning = Reasoning(effort=reasoning_effort, summary=settings.reasoning_summary)
                     updated_settings = ModelSettings(
                         include_usage=current_settings.include_usage,
                         reasoning=new_reasoning,

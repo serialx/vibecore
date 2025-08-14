@@ -109,6 +109,10 @@ class Settings(BaseSettings):
         default=None,
         description="Default reasoning effort level for agents (null, 'minimal', 'low', 'medium', 'high')",
     )
+    reasoning_summary: Literal["auto", "concise", "detailed"] | None = Field(
+        default="auto",
+        description="Reasoning summary mode ('auto', 'concise', 'detailed', or null for off)",
+    )
 
     # Session configuration
     session: SessionSettings = Field(
