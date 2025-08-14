@@ -156,7 +156,7 @@ jobs:
       - name: Verify installation from TestPyPI
         run: |
           # Wait for package to be available
-          sleep 30
+          sleep 60
           
           # Create a temporary venv and install from TestPyPI
           uv venv test-env
@@ -168,6 +168,7 @@ jobs:
           uv pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple/ \
+            --index-strategy unsafe-best-match \
             "vibecore==$VERSION"
           
           # Verify it works
