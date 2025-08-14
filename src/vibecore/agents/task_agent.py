@@ -60,7 +60,7 @@ def create_task_agent(prompt: str) -> Agent[VibecoreContext]:
         model=settings.model,
         model_settings=ModelSettings(
             include_usage=True,  # Ensure token usage is tracked in streaming mode
-            reasoning=Reasoning(summary="auto"),
+            reasoning=Reasoning(summary=settings.reasoning_summary),
         ),
         handoffs=[],
     )

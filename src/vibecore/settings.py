@@ -6,7 +6,7 @@ from typing import Literal
 
 from agents import Model, OpenAIChatCompletionsModel
 from agents.models.multi_provider import MultiProvider
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, YamlConfigSettingsSource
 
 from vibecore.models import AnthropicModel
@@ -109,6 +109,18 @@ class Settings(BaseSettings):
         default=None,
         description="Default reasoning effort level for agents (null, 'minimal', 'low', 'medium', 'high')",
     )
+    reasoning_summary: Literal["auto", "concise", "detailed"] | None = Field(
+        default="auto",
+        description="Reasoning summary mode ('auto', 'concise', 'detailed', or 'off')",
+    )
+
+    @field_validator("reasoning_summary", mode="before")
+    @classmethod
+    def validate_reasoning_summary(cls, v):
+        """Convert string 'null' to None for reasoning_summary field."""
+        if v == "off" or v == "":
+            return None
+        return v
 
     # Session configuration
     session: SessionSettings = Field(

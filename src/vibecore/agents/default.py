@@ -56,9 +56,9 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
     instructions = prompt_with_handoff_instructions(instructions)
 
     # Configure reasoning based on settings
-    reasoning_config = Reasoning(summary="auto")
+    reasoning_config = Reasoning(summary=settings.reasoning_summary)
     if settings.reasoning_effort is not None:
-        reasoning_config = Reasoning(effort=settings.reasoning_effort, summary="auto")
+        reasoning_config = Reasoning(effort=settings.reasoning_effort, summary=settings.reasoning_summary)
 
     return Agent[VibecoreContext](
         name="Vibecore Agent",
