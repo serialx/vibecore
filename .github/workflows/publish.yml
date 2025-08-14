@@ -93,6 +93,9 @@ jobs:
 
       - name: Install package from wheel
         run: |
+          # Create a virtual environment
+          uv venv
+          
           # Install the built wheel to test it
           uv pip install dist/*.whl
           
@@ -100,7 +103,7 @@ jobs:
           uv pip show vibecore
           
           # Test that the CLI entry point works
-          vibecore --version || echo "CLI test completed"
+          uv run vibecore --version || echo "CLI test completed"
 
       - name: Run tests
         run: |
