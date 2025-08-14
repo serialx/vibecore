@@ -155,15 +155,35 @@ jobs:
 
       - name: Verify installation from TestPyPI
         run: |
-          # Wait for package to be available
-          sleep 60
+          # Wait for package to be available on TestPyPI
+          VERSION="${{ needs.build.outputs.version }}"
+          echo "Waiting for vibecore==$VERSION to appear on TestPyPI..."
+          
+          for i in {1..10}; do
+            if curl -s https://test.pypi.org/pypi/vibecore/json | python -c "
+import sys, json
+data = json.load(sys.stdin)
+versions = list(data.get('releases', {}).keys())
+sys.exit(0 if '$VERSION' in versions else 1)
+            "; then
+              echo "Package vibecore==$VERSION is now available on TestPyPI!"
+              break
+            fi
+            
+            if [ $i -eq 10 ]; then
+              echo "Timeout: Package not available after 10 minutes"
+              exit 1
+            fi
+            
+            echo "Attempt $i/10: Package not yet available, waiting 60 seconds..."
+            sleep 60
+          done
           
           # Create a temporary venv and install from TestPyPI
           uv venv test-env
           source test-env/bin/activate
           
           # Install specific version from TestPyPI
-          VERSION="${{ needs.build.outputs.version }}"
           echo "Installing vibecore==$VERSION from TestPyPI"
           uv pip install \
             --index-url https://test.pypi.org/simple/ \
@@ -206,15 +226,35 @@ jobs:
 
       - name: Verify installation from PyPI
         run: |
-          # Wait for package to be available
-          sleep 30
+          # Wait for package to be available on PyPI
+          VERSION="${{ needs.build.outputs.version }}"
+          echo "Waiting for vibecore==$VERSION to appear on PyPI..."
+          
+          for i in {1..10}; do
+            if curl -s https://pypi.org/pypi/vibecore/json | python -c "
+import sys, json
+data = json.load(sys.stdin)
+versions = list(data.get('releases', {}).keys())
+sys.exit(0 if '$VERSION' in versions else 1)
+            "; then
+              echo "Package vibecore==$VERSION is now available on PyPI!"
+              break
+            fi
+            
+            if [ $i -eq 10 ]; then
+              echo "Timeout: Package not available after 10 minutes"
+              exit 1
+            fi
+            
+            echo "Attempt $i/10: Package not yet available, waiting 60 seconds..."
+            sleep 60
+          done
           
           # Create a temporary venv and install from PyPI
           uv venv test-env
           source test-env/bin/activate
           
           # Install specific version from PyPI
-          VERSION="${{ needs.build.outputs.version }}"
           echo "Installing vibecore==$VERSION from PyPI"
           uv pip install "vibecore==$VERSION"
           
