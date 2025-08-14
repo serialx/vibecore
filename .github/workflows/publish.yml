@@ -37,6 +37,15 @@ jobs:
       version: ${{ steps.build.outputs.version }}
     
     steps:
+      - name: Debug GitHub Context
+        run: |
+          echo "github.ref = ${{ github.ref }}"
+          echo "github.ref_name = ${{ github.ref_name }}"
+          echo "github.ref_type = ${{ github.ref_type }}"
+          echo "contains 'a' = ${{ contains(github.ref, 'a') }}"
+          echo "contains 'b' = ${{ contains(github.ref, 'b') }}"
+          echo "startsWith refs/tags/v = ${{ startsWith(github.ref, 'refs/tags/v') }}"
+          
       - name: Checkout code
         uses: actions/checkout@v4
         with:
