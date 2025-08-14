@@ -1,6 +1,7 @@
 """Vibecore CLI interface using typer."""
 
 import logging
+from importlib.metadata import version
 from pathlib import Path
 
 import typer
@@ -13,6 +14,17 @@ from vibecore.mcp import MCPManager
 from vibecore.settings import settings
 
 app = typer.Typer()
+
+
+def version_callback(value: bool):
+    """Handle --version flag."""
+    if value:
+        try:
+            pkg_version = version("vibecore")
+        except Exception:
+            pkg_version = "unknown"
+        typer.echo(f"vibecore {pkg_version}")
+        raise typer.Exit()
 
 
 def find_latest_session(project_path: Path | None = None, base_dir: Path | None = None) -> str | None:
@@ -65,6 +77,13 @@ def run(
         "--print",
         "-p",
         help="Print response and exit (useful for pipes)",
+    ),
+    version: bool | None = typer.Option(
+        None,
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show version and exit",
     ),
 ):
     """Run the Vibecore TUI application."""

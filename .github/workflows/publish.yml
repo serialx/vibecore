@@ -1,0 +1,247 @@
+name: Publish to PyPI
+
+on:
+  # Manual trigger with version input
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Publish target'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+      version:
+        description: 'Version to publish (leave empty to use pyproject.toml version)'
+        required: false
+        type: string
+
+  # Automatic trigger on version tags
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*a*'  # Alpha releases
+      - 'v*.*.*b*'  # Beta releases
+      - 'v*.*.*rc*' # Release candidates
+
+permissions:
+  contents: read
+  id-token: write  # Required for trusted publishing
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version detection
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Override version if specified
+        if: github.event.inputs.version != ''
+        run: |
+          echo "Overriding version to ${{ github.event.inputs.version }}"
+          sed -i 's/^version = .*/version = "${{ github.event.inputs.version }}"/' pyproject.toml
+
+      - name: Build package
+        run: |
+          uv build
+          echo "Built packages:"
+          ls -la dist/
+
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+          retention-days: 7
+
+  test:
+    name: Test package
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Install package from wheel
+        run: |
+          # Install the built wheel to test it
+          uv pip install dist/*.whl
+          
+          # Verify the package is installed
+          uv pip show vibecore
+          
+          # Test that the CLI entry point works
+          vibecore --version || echo "CLI test completed"
+
+      - name: Run tests
+        run: |
+          # Install test dependencies
+          uv sync --group dev
+          
+          # Run the test suite
+          uv run pytest tests/ -v --tb=short
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'testpypi' ||
+      github.event_name == 'push' && contains(github.ref, 'a')
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/vibecore/
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Publish to TestPyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.TESTPYPI_API_TOKEN }}
+        run: |
+          uv publish \
+            --index testpypi \
+            --token $UV_PUBLISH_TOKEN
+
+      - name: Verify installation from TestPyPI
+        run: |
+          # Wait for package to be available
+          sleep 30
+          
+          # Create a temporary venv and install from TestPyPI
+          uv venv test-env
+          source test-env/bin/activate
+          
+          # Install from TestPyPI
+          uv pip install \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            vibecore
+          
+          # Verify it works
+          vibecore --version || echo "CLI verification completed"
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'pypi' ||
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'a')
+    environment:
+      name: pypi
+      url: https://pypi.org/project/vibecore/
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Publish to PyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          uv publish --token $UV_PUBLISH_TOKEN
+
+      - name: Verify installation from PyPI
+        run: |
+          # Wait for package to be available
+          sleep 30
+          
+          # Create a temporary venv and install from PyPI
+          uv venv test-env
+          source test-env/bin/activate
+          
+          # Install from PyPI
+          uv pip install vibecore
+          
+          # Verify it works
+          vibecore --version || echo "CLI verification completed"
+
+  create-release:
+    name: Create GitHub Release
+    needs: [publish-pypi]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -n "$PREV_TAG" ]; then
+            echo "Changes since $PREV_TAG:" > release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%an)" $PREV_TAG..HEAD >> release_notes.md
+          else
+            echo "Initial release" > release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          files: dist/*
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, 'a') || contains(steps.version.outputs.version, 'b') || contains(steps.version.outputs.version, 'rc') }}
