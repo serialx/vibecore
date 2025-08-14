@@ -1,7 +1,6 @@
 import asyncio
 
-from agents import Agent, ModelSettings, Runner
-from openai.types import Reasoning
+from agents import Agent, Runner
 
 from vibecore.context import VibecoreContext
 from vibecore.flow import flow
@@ -23,10 +22,7 @@ agent = Agent[VibecoreContext](
         ls,
     ],
     model=settings.model,
-    model_settings=ModelSettings(
-        include_usage=True,  # Ensure token usage is tracked in streaming mode
-        reasoning=Reasoning(summary="auto"),
-    ),
+    model_settings=settings.default_model_settings,
     handoffs=[],
 )
 

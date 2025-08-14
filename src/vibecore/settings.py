@@ -4,8 +4,9 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from agents import Model, OpenAIChatCompletionsModel
+from agents import Model, ModelSettings, OpenAIChatCompletionsModel
 from agents.models.multi_provider import MultiProvider
+from openai.types import Reasoning
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, YamlConfigSettingsSource
 
@@ -149,6 +150,17 @@ class Settings(BaseSettings):
             openai_provider = MultiProvider().openai_provider
             return OpenAIChatCompletionsModel(self.default_model, openai_provider._get_client())
         return self.default_model
+
+    @property
+    def default_model_settings(self) -> ModelSettings:
+        """Get the default model settings."""
+        return ModelSettings(
+            include_usage=True,
+            reasoning=Reasoning(
+                summary=self.reasoning_summary,
+                effort=self.reasoning_effort,
+            ),
+        )
 
     @classmethod
     def settings_customise_sources(

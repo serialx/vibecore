@@ -7,7 +7,7 @@ from agents import (
 )
 from textual import log
 
-from vibecore.agents.task_agent import create_task_agent
+from vibecore.agents.task import create_task_agent
 from vibecore.context import VibecoreContext
 from vibecore.settings import settings
 
