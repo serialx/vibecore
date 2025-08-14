@@ -30,7 +30,7 @@ from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
 from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, SystemMessage, UserMessage
 
-AgentStatus = Literal["idle", "running"]
+AgentStatus = Literal["idle", "running", "waiting_user_input"]
 
 
 def detect_reasoning_effort(prompt: str) -> Literal["low", "medium", "high"] | None:
@@ -225,6 +225,14 @@ class VibecoreApp(App):
         else:
             footer.hide_loading()
 
+    async def wait_for_user_input(self) -> str:
+        """Used in flow mode. See examples/basic_agent.py"""
+        self.agent_status = "waiting_user_input"
+        self.user_input_event = asyncio.Event()
+        await self.user_input_event.wait()
+        user_input = self.message_queue.pop()
+        return user_input
+
     async def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
         """Handle user messages from the text area."""
         if event.text:
@@ -248,8 +256,11 @@ class VibecoreApp(App):
             await self.add_message(user_message)
             user_message.scroll_visible()
 
-            # If agent is running, queue the message
+            if self.agent_status == "waiting_user_input":
+                self.message_queue.append(event.text)
+                self.user_input_event.set()
             if self.agent_status == "running":
+                # If agent is running, queue the message
                 self.message_queue.append(event.text)
                 log(f"Message queued: {event.text}")
                 footer = self.query_one(AppFooter)
