@@ -24,7 +24,6 @@ from openai.types.responses import (
     ResponseReasoningSummaryTextDoneEvent,
     ResponseTextDeltaEvent,
 )
-from textual import log
 
 from vibecore.widgets.messages import (
     AgentMessage,

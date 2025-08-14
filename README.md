@@ -2,8 +2,10 @@
 
 <div align="center">
 
+[![PyPI version](https://badge.fury.io/py/vibecore.svg)](https://badge.fury.io/py/vibecore)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI downloads](https://img.shields.io/pypi/dm/vibecore.svg)](https://pypistats.org/packages/vibecore)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 
@@ -41,16 +43,33 @@ Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](h
 ### Prerequisites
 
 - Python 3.11 or higher
-- [uv](https://github.com/astral-sh/uv) package manager
 
-### Quick Start
+### Install from PyPI
+
+```bash
+# Install vibecore
+pip install vibecore
+
+# Configure your API key
+export ANTHROPIC_API_KEY="your-api-key-here"
+# or
+export OPENAI_API_KEY="your-api-key-here"
+
+# Run vibecore
+vibecore
+```
+
+### Install from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/serialx/vibecore.git
 cd vibecore
 
-# Install dependencies using uv
+# Install with pip
+pip install -e .
+
+# Or install with uv (recommended for development)
 uv sync
 
 # Configure your API key
@@ -59,6 +78,8 @@ export ANTHROPIC_API_KEY="your-api-key-here"
 export OPENAI_API_KEY="your-api-key-here"
 
 # Run vibecore
+vibecore
+# or with uv
 uv run vibecore
 ```
 
