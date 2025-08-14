@@ -1,6 +1,6 @@
 [project]
 name = "vibecore"
-version = "0.2.0a4"
+version = "0.2.0a5"
 description = "Build your own AI-powered automation tools in the terminal with this extensible agent framework"
 readme = "README.md"
 authors = [
