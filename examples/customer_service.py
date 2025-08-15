@@ -101,7 +101,7 @@ seat_booking_agent = Agent[AirlineAgentContext](
     name="Seat Booking Agent",
     handoff_description="A helpful agent that can update a seat on a flight.",
     instructions=f"""{RECOMMENDED_PROMPT_PREFIX}
-    You are a seat booking agent. If you are speaking to a customer, you probably were transferred to from the triage agent.
+    You are a seat booking agent. If you are speaking to a customer, you were transferred to from the triage agent.
     Use the following routine to support the customer.
     # Routine
     1. Ask for their confirmation number.
@@ -131,32 +131,34 @@ seat_booking_agent.handoffs.append(triage_agent)
 ### RUN
 
 
-async def main():
+async def logic(app, ctx, user_input):
     current_agent: Agent[AirlineAgentContext] = triage_agent
+    input_items: list[TResponseInputItem] = []
+    context = AirlineAgentContext()
 
-    async with flow(current_agent) as (app, ctx, user_input):
-        input_items: list[TResponseInputItem] = []
-        context = AirlineAgentContext()
+    # Normally, each input from the user would be an API request to your app, and you can wrap the request in a trace()
+    # Here, we'll just use a random UUID for the conversation ID
+    conversation_id = uuid.uuid4().hex[:16]
 
-        # Normally, each input from the user would be an API request to your app, and you can wrap the request in a trace()
-        # Here, we'll just use a random UUID for the conversation ID
-        conversation_id = uuid.uuid4().hex[:16]
+    while True:
+        user_input_ = await user_input()
+        with trace("Customer service", group_id=conversation_id):
+            input_items.append({"content": user_input_, "role": "user"})
+            result = Runner.run_streamed(current_agent, input_items, context=context)
 
-        while True:
-            user_input_ = await user_input()
-            with trace("Customer service", group_id=conversation_id):
-                input_items.append({"content": user_input_, "role": "user"})
-                result = Runner.run_streamed(current_agent, input_items, context=context)
+            app.current_worker = app.handle_streamed_response(result)
+            await app.current_worker.wait()
 
-                app.current_worker = app.handle_streamed_response(result)
-                await app.current_worker.wait()
+            for new_item in result.new_items:
+                if isinstance(new_item, HandoffOutputItem):
+                    message = f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
+                    await app.add_message(SystemMessage(message))
+            input_items = result.to_input_list()
+            current_agent = result.last_agent
 
-                for new_item in result.new_items:
-                    if isinstance(new_item, HandoffOutputItem):
-                        message = f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
-                        await app.add_message(SystemMessage(message))
-                input_items = result.to_input_list()
-                current_agent = result.last_agent
+
+async def main():
+    await flow(agent=triage_agent, logic=logic)
 
 
 if __name__ == "__main__":

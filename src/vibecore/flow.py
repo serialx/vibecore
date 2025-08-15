@@ -1,7 +1,6 @@
 import asyncio
 import threading
-from collections.abc import AsyncGenerator, Callable, Coroutine
-from contextlib import asynccontextmanager
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 from agents import Agent
@@ -12,10 +11,12 @@ from vibecore.main import VibecoreApp
 from vibecore.widgets.core import MyTextArea
 
 
-@asynccontextmanager
 async def flow(
-    agent: Agent, headless: bool = False, shutdown: bool = False
-) -> AsyncGenerator[tuple[VibecoreApp, VibecoreContext, Callable[[], Coroutine[Any, Any, str]]], None]:
+    agent: Agent,
+    logic: Callable[[VibecoreApp, VibecoreContext, Callable[[], Coroutine[Any, Any, str]]], Coroutine],
+    headless: bool = False,
+    shutdown: bool = False,
+):
     ctx = VibecoreContext()
     app = VibecoreApp(ctx, agent)
 
@@ -53,11 +54,17 @@ async def flow(
     app_task = asyncio.create_task(run_app(app), name=f"with_app({app})")
     await app_ready_event.wait()
     pilot = Pilot(app)
-    try:
-        await pilot._wait_for_screen()
-        app.query_one(MyTextArea).disabled = True
-        yield (app, ctx, user_input)
-    finally:
+    logic_task: asyncio.Task | None = None
+
+    await pilot._wait_for_screen()
+    app.query_one(MyTextArea).disabled = True
+    logic_task = asyncio.create_task(logic(app, ctx, user_input), name="logic_task")
+    done, pending = await asyncio.wait([logic_task, app_task], return_when=asyncio.FIRST_COMPLETED)
+
+    if app_task in done and logic_task in pending:
+        logic_task.cancel()
+
+    elif logic_task in done and app_task in pending:
         if shutdown:
             if not headless:
                 await pilot._wait_for_screen()
@@ -67,5 +74,5 @@ async def flow(
             await app._shutdown()
 
         # Enable text input so users can interact freely
-        app.query_one(MyTextArea).disabled = True
+        app.query_one(MyTextArea).disabled = False
         await app_task

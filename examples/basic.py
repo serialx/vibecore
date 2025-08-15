@@ -27,23 +27,26 @@ agent = Agent[VibecoreContext](
 )
 
 
-async def main():
-    async with flow(agent) as (app, ctx, user_input):
-        await app.add_message(SystemMessage("Input your message:"))
-        user_message = await user_input()
-        await app.add_message(SystemMessage(f"Starting generation of '{user_message}'..."))
-        result = Runner.run_streamed(
-            agent,
-            input=user_message,  # Pass string directly when using session
-            context=ctx,
-            max_turns=settings.max_turns,
-            session=app.session,
-        )
+async def logic(app, ctx, user_input):
+    await app.add_message(SystemMessage("Input your message:"))
+    user_message = await user_input()
+    await app.add_message(SystemMessage(f"Starting generation of '{user_message}'..."))
+    result = Runner.run_streamed(
+        agent,
+        input=user_message,  # Pass string directly when using session
+        context=ctx,
+        max_turns=settings.max_turns,
+        session=app.session,
+    )
 
-        app.current_worker = app.handle_streamed_response(result)
-        await app.current_worker.wait()
-        await app.add_message(SystemMessage("Done!"))
+    app.current_worker = app.handle_streamed_response(result)
+    await app.current_worker.wait()
+    await app.add_message(SystemMessage("Done!"))
     print(result.final_output)
+
+
+async def main():
+    await flow(agent, logic)
 
 
 if __name__ == "__main__":
