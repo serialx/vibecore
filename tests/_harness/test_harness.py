@@ -135,7 +135,8 @@ class VibecoreTestApp(VibecoreApp):
         yield Header()
         yield footer  # Use our patched footer instance
         with MainScroll(id="messages"):
-            yield Welcome()
+            if self.show_welcome:
+                yield Welcome()
 
     async def on_mount(self) -> None:
         """Override on_mount to disable cursor blinking in MyTextArea for deterministic snapshots."""

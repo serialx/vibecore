@@ -86,6 +86,7 @@ class VibecoreApp(App):
         agent: Agent,
         session_id: str | None = None,
         print_mode: bool = False,
+        show_welcome: bool = True,
     ) -> None:
         """Initialize the Vibecore app with context and agent.
 
@@ -94,6 +95,7 @@ class VibecoreApp(App):
             agent: The Agent instance to use
             session_id: Optional session ID to load existing session
             print_mode: Whether to run in print mode (useful for pipes)
+            show_welcome: Whether to show the welcome message (default: True)
         """
         self.context = context
         self.context.app = self  # Set the app reference in context
@@ -103,6 +105,7 @@ class VibecoreApp(App):
         self.current_worker: Worker[None] | None = None
         self._session_id_provided = session_id is not None  # Track if continuing session
         self.print_mode = print_mode
+        self.show_welcome = show_welcome
         self.message_queue: deque[str] = deque()  # Queue for user messages
 
         # Initialize session based on settings
@@ -128,7 +131,8 @@ class VibecoreApp(App):
         yield Header()
         yield AppFooter()
         with MainScroll(id="messages"):
-            yield Welcome()
+            if self.show_welcome:
+                yield Welcome()
 
     async def on_mount(self) -> None:
         """Called when the app is mounted."""
@@ -513,8 +517,9 @@ class VibecoreApp(App):
         for welcome in main_scroll.query("Welcome"):
             welcome.remove()
 
-        # Add welcome widget back
-        await main_scroll.mount(Welcome())
+        # Add welcome widget back if show_welcome is True
+        if self.show_welcome:
+            await main_scroll.mount(Welcome())
 
         # Show system message to confirm the clear operation
         system_message = SystemMessage(f"✨ Session cleared! Started new session: {new_session_id}")

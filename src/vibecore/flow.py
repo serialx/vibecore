@@ -35,7 +35,7 @@ async def flow(
     disable_user_input: bool = True,
 ):
     ctx = VibecoreContext()
-    app = VibecoreApp(ctx, agent)
+    app = VibecoreApp(ctx, agent, show_welcome=False)
 
     app_ready_event = asyncio.Event()
 
