@@ -481,3 +481,79 @@ class MCPToolMessage(BaseToolMessage):
                         yield ExpandableMarkdown(
                             processed_output, language="", truncated_lines=5, classes="mcp-output-markdown"
                         )
+
+
+class WebSearchToolMessage(BaseToolMessage):
+    """A widget to display web search results."""
+
+    search_query: reactive[str] = reactive("")
+
+    def __init__(self, query: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs) -> None:
+        """
+        Construct a WebSearchToolMessage.
+
+        Args:
+            query: The search query.
+            output: The search results as JSON string (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.search_query = query
+        self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the search message."""
+        # Header line
+        header = f"WebSearch({self.search_query})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Process and display search results
+        if self.output:
+            try:
+                result_data = json.loads(self.output)
+                if result_data.get("success") and result_data.get("results"):
+                    with Horizontal(classes="tool-output"):
+                        yield Static("└─", classes="tool-output-prefix")
+                        with Vertical(classes="tool-output-content"):
+                            # Format results as markdown
+                            markdown_results = []
+                            for i, result in enumerate(result_data["results"], 1):
+                                title = result.get("title", "No title")
+                                href = result.get("href", "")
+                                body = result.get("body", "")
+
+                                # Format each result
+                                result_md = f"**{i}. [{title}]({href})**"
+                                if body:
+                                    # Truncate body if too long
+                                    max_body_length = 200
+                                    if len(body) > max_body_length:
+                                        body = body[:max_body_length] + "..."
+                                    result_md += f"\n   {body}"
+                                if href:
+                                    result_md += f"\n   🔗 {href}"
+
+                                markdown_results.append(result_md)
+
+                            # Join all results with spacing
+                            all_results = "\n\n".join(markdown_results)
+
+                            # Add result count message
+                            count_msg = result_data.get("message", "")
+                            if count_msg:
+                                all_results = f"_{count_msg}_\n\n{all_results}"
+
+                            yield ExpandableMarkdown(
+                                all_results, language="", truncated_lines=10, classes="websearch-results"
+                            )
+                else:
+                    # No results or error
+                    with Horizontal(classes="tool-output"):
+                        yield Static("└─", classes="tool-output-prefix")
+                        with Vertical(classes="tool-output-content"):
+                            message = result_data.get("message", "No results found")
+                            yield Static(message, classes="websearch-no-results")
+            except (json.JSONDecodeError, KeyError, TypeError):
+                # Fallback to raw output if JSON parsing fails
+                yield from self._render_output(self.output, truncated_lines=5)

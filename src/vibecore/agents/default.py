@@ -10,6 +10,7 @@ from vibecore.tools.python.tools import execute_python
 from vibecore.tools.shell.tools import bash, glob, grep, ls
 from vibecore.tools.task.tools import task
 from vibecore.tools.todo.tools import todo_read, todo_write
+from vibecore.tools.websearch.tools import websearch
 
 from .prompts import COMMON_PROMPT
 
@@ -49,6 +50,7 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
         grep,
         ls,
         task,
+        websearch,
     ]
     instructions = INSTRUCTIONS
 

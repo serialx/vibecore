@@ -18,6 +18,7 @@ from vibecore.widgets.tool_messages import (
     TaskToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
+    WebSearchToolMessage,
     WriteToolMessage,
 )
 
@@ -112,6 +113,13 @@ def create_tool_message(
             return WriteToolMessage(file_path=file_path, content=content, output=output, status=status)
         else:
             return WriteToolMessage(file_path=file_path, content=content, status=status)
+
+    elif tool_name == "websearch":
+        query = args_dict.get("query", "") if args_dict else ""
+        if output is not None:
+            return WebSearchToolMessage(query=query, output=output, status=status)
+        else:
+            return WebSearchToolMessage(query=query, status=status)
 
     # Default to generic ToolMessage for all other tools
     else:
