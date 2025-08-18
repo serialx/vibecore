@@ -8,8 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python), vibecore provides the foundation for creating your own AI-powered automation tools. Whether you're automating development workflows, building custom AI assistants, or experimenting with agent-based systems, vibecore gives you the building blocks to craft exactly what you need.
 
+⭐ **KEY DIFFERENTIATOR - Flow Mode**: The core innovation of vibecore is **Flow Mode** - a system that enables building structured agent-based applications with programmatic conversation control. This transforms vibecore from a chat interface into a framework for creating sophisticated multi-agent applications with minimal code changes from the OpenAI Agents SDK examples.
+
 ### Key Features
 
+- **Flow Mode (Experimental)** - Build structured agent-based applications with programmatic conversation control
 - **AI-Powered Chat Interface** - Interact with state-of-the-art language models through an intuitive terminal interface
 - **Rich Tool Integration** - Built-in tools for file operations, shell commands, Python execution, and task management
 - **Beautiful Terminal UI** - Modern, responsive interface with dark/light theme support
@@ -32,6 +35,7 @@ vibecore/
 │   ├── cli.py               # Command-line interface entry
 │   ├── context.py           # Central state management for agents
 │   ├── settings.py          # Configuration with Pydantic
+│   ├── flow.py              # Flow mode for programmatic conversation control
 │   ├── agents/              # Agent configurations & handoffs
 │   │   └── default.py       # Main agent with tool integrations
 │   ├── models/              # LLM provider integrations
@@ -73,6 +77,9 @@ vibecore/
 │   │   └── text.py          # Text processing utilities
 │   └── prompts/             # System prompts & instructions
 │       └── common_system_prompt.txt
+├── examples/                # Example flows and agent applications  
+│   ├── basic.py             # Simple single-agent flow example
+│   └── customer_service.py  # Multi-agent system with handoffs
 ├── tests/                   # Comprehensive test suite
 ├── pyproject.toml           # Project configuration & dependencies
 ├── uv.lock                  # Locked dependencies
@@ -165,7 +172,21 @@ uv run pytest -k "test_pattern"
    - **Todo Tools**: Task management and tracking
    - Each tool category has its own executor, rendering, and tool definition modules
 
-6. **Styling**: 
+6. **Flow Mode** (`src/vibecore/flow.py`) - **KEY FEATURE**:
+   - **Programmatic Conversation Control**: Define custom logic that controls agent behavior
+   - **Multi-Step Workflows**: Build structured interactions with defined sequences
+   - **Multi-Agent Orchestration**: Support for agent handoffs with context preservation
+   - **State Management**: Maintain conversation state across interactions
+   - **Application Framework**: Transform from chat interface to agent-based applications
+   - Key components:
+     - `flow()`: Entry point that initializes VibecoreApp with custom logic
+     - `UserInputFunc`: Type for programmatic user input collection
+     - Custom `logic()` functions: User-defined async functions controlling conversation flow
+   - Examples in `examples/` directory (adapted from OpenAI Agents SDK):
+     - `basic.py`: Simple flow with single agent
+     - `customer_service.py`: Complex multi-agent system with handoffs
+
+7. **Styling**: 
    - Uses TCSS (Textual CSS) with multiple stylesheets loaded via `CSS_PATH`
    - CSS files are resolved relative to the module location:
      - `widgets/core.tcss`: Core widget styles
@@ -199,6 +220,14 @@ uv run pytest -k "test_pattern"
   - Used by both `StreamHandler` (live streaming) and `SessionLoader` (history loading)
   - Ensures consistent widget creation and prevents code duplication
   - Easy to extend with new tool-specific widgets
+
+- **Flow Pattern**:
+  - User defines custom `logic()` function with conversation control
+  - `flow()` creates VibecoreApp instance with the custom logic
+  - `UserInputFunc` allows programmatic input collection
+  - Supports both single-agent and multi-agent scenarios
+  - Maintains session state across tool executions
+  - Examples demonstrate minimal changes needed from OpenAI Agents SDK
 
 - **Widget Communication**: Uses Textual's message system for inter-widget communication
 - **Async Operations**: Leverages Python's async/await for responsive UI

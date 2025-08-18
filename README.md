@@ -29,6 +29,7 @@ Built on [Textual](https://textual.textualize.io/) and the [OpenAI Agents SDK](h
 
 ### Key Features
 
+- **Flow Mode (Experimental)** - Build structured agent-based applications with programmatic conversation control
 - **AI-Powered Chat Interface** - Interact with state-of-the-art language models through an intuitive terminal interface
 - **Rich Tool Integration** - Built-in tools for file operations, shell commands, Python execution, and task management
 - **MCP Support** - Connect to external tools and services via Model Context Protocol servers
@@ -119,6 +120,88 @@ Once vibecore is running, you can:
 
 - `/help` - Show help and keyboard shortcuts
 - `/clear` - Clear the current session and start a new one
+
+## Flow Mode (Experimental)
+
+Flow Mode is vibecore's **key differentiator** - it transforms the framework from a chat interface into a platform for building structured agent-based applications with programmatic conversation control.
+
+### What is Flow Mode?
+
+Flow Mode allows you to:
+- **Define custom conversation logic** that controls how agents process user input
+- **Build multi-step workflows** with defined sequences and decision points
+- **Orchestrate multiple agents** with handoffs and shared context
+- **Maintain conversation state** across interactions
+- **Create agent-based applications** rather than just chatbots
+
+### Example: Simple Flow
+
+```python
+import asyncio
+from agents import Agent, Runner
+from vibecore.flow import flow, UserInputFunc
+from vibecore.context import VibecoreContext
+
+# Define your agent with tools
+agent = Agent[VibecoreContext](
+    name="Assistant",
+    instructions="You are a helpful assistant",
+    tools=[...],  # Your tools here
+)
+
+# Define your conversation logic
+async def logic(app, ctx: VibecoreContext, user_input: UserInputFunc):
+    # Get user input programmatically
+    user_message = await user_input("What would you like to do?")
+    
+    # Process with agent
+    result = Runner.run_streamed(
+        agent,
+        input=user_message,
+        context=ctx,
+        session=app.session,
+    )
+    
+    # Handle the response
+    app.current_worker = app.handle_streamed_response(result)
+    await app.current_worker.wait()
+
+# Run the flow
+async def main():
+    await flow(agent, logic)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### Example: Multi-Agent Customer Service
+
+Flow Mode shines when building complex multi-agent systems. See `examples/customer_service.py` for a complete implementation featuring:
+
+- **Triage Agent**: Routes requests to appropriate specialists
+- **FAQ Agent**: Handles frequently asked questions
+- **Booking Agent**: Manages seat reservations
+- **Agent Handoffs**: Seamless transitions between agents with context preservation
+- **Shared State**: Maintains customer information across the conversation
+
+### Key Components
+
+- **`flow()`**: Entry point that sets up the Vibecore app with your custom logic
+- **`logic()`**: Your async function that controls the conversation flow
+- **`UserInputFunc`**: Provides programmatic user input collection
+- **`VibecoreContext`**: Shared state across tools and agents
+- **Agent Handoffs**: Transfer control between specialized agents
+
+### Use Cases
+
+Flow Mode enables building:
+- **Customer service systems** with routing and escalation
+- **Guided workflows** for complex tasks
+- **Interactive tutorials** with step-by-step guidance
+- **Task automation** with human-in-the-loop controls
+- **Multi-stage data processing** pipelines
+
+The examples in the `examples/` directory are adapted from the official OpenAI Agents SDK with minimal modifications, demonstrating how easily you can build sophisticated agent applications with vibecore.
 
 ### Available Tools
 
