@@ -13,6 +13,19 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 from vibecore.models import AnthropicModel
 
 
+class AuthSettings(BaseModel):
+    """Configuration for authentication."""
+
+    use_pro_max: bool = Field(
+        default=False,
+        description="Use Anthropic Pro/Max authentication if available",
+    )
+    auto_refresh: bool = Field(
+        default=True,
+        description="Automatically refresh OAuth tokens",
+    )
+
+
 class SessionSettings(BaseModel):
     """Configuration for session storage."""
 
@@ -124,6 +137,12 @@ class Settings(BaseSettings):
             return None
         return v
 
+    # Authentication configuration
+    auth: AuthSettings = Field(
+        default_factory=AuthSettings,
+        description="Authentication configuration",
+    )
+
     # Session configuration
     session: SessionSettings = Field(
         default_factory=SessionSettings,
@@ -140,13 +159,20 @@ class Settings(BaseSettings):
     def model(self) -> str | Model:
         """Get the configured model.
 
-        Returns an AnthropicModel instance if the model name starts with 'anthropic/',
+        Returns an AnthropicProMaxModel instance if auth is enabled and model is Anthropic,
+        returns an AnthropicModel instance if the model name starts with 'anthropic/',
         returns a OpenAIChatCompletionsModel instance if there is a custom base URL set,
         otherwise returns the model name as a plain string (for OpenAI/LiteLLM models).
         """
         custom_base = "OPENAI_BASE_URL" in os.environ
         if self.default_model.startswith("anthropic/"):
-            return AnthropicModel(self.default_model)
+            # Check if Pro/Max auth should be used
+            if self.auth.use_pro_max:
+                from vibecore.models.anthropic_auth import AnthropicProMaxModel
+
+                return AnthropicProMaxModel(self.default_model, use_auth=True)
+            else:
+                return AnthropicModel(self.default_model)
         elif custom_base:
             openai_provider = MultiProvider().openai_provider
             return OpenAIChatCompletionsModel(self.default_model, openai_provider._get_client())

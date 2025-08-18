@@ -1,5 +1,6 @@
 """Vibecore CLI interface using typer."""
 
+import asyncio
 import logging
 from importlib.metadata import version
 from pathlib import Path
@@ -14,6 +15,10 @@ from vibecore.mcp import MCPManager
 from vibecore.settings import settings
 
 app = typer.Typer()
+
+# Create auth subcommand group
+auth_app = typer.Typer(help="Manage Anthropic authentication")
+app.add_typer(auth_app, name="auth")
 
 
 def version_callback(value: bool):
@@ -57,9 +62,15 @@ def find_latest_session(project_path: Path | None = None, base_dir: Path | None 
     return session_files[0].stem
 
 
-@app.command()
-def run(
-    prompt: str | None = typer.Argument(None, help="Prompt text (requires -p flag)"),
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    prompt: str | None = typer.Option(
+        None,
+        "--prompt",
+        "-p",
+        help="Initial prompt to send to the agent (reads from stdin if -p is used without argument)",
+    ),
     continue_session: bool = typer.Option(
         False,
         "--continue",
@@ -75,7 +86,6 @@ def run(
     print_mode: bool = typer.Option(
         False,
         "--print",
-        "-p",
         help="Print response and exit (useful for pipes)",
     ),
     version: bool | None = typer.Option(
@@ -87,6 +97,10 @@ def run(
     ),
 ):
     """Run the Vibecore TUI application."""
+    # If a subcommand was invoked, don't run the main app
+    if ctx.invoked_subcommand is not None:
+        return
+
     # Set up logging
     logging.basicConfig(
         level="WARNING",
@@ -97,14 +111,14 @@ def run(
     logger.addHandler(TextualHandler())
 
     # Create context
-    ctx = VibecoreContext()
+    vibecore_ctx = VibecoreContext()
 
     # Initialize MCP manager if configured
     mcp_servers = []
     if settings.mcp_servers:
         # Create MCP manager
         mcp_manager = MCPManager(settings.mcp_servers)
-        ctx.mcp_manager = mcp_manager
+        vibecore_ctx.mcp_manager = mcp_manager
 
         # Get the MCP servers from the manager
         mcp_servers = mcp_manager.servers
@@ -125,7 +139,7 @@ def run(
         typer.echo(f"Loading session: {session_to_load}")
 
     # Create app
-    app_instance = VibecoreApp(ctx, agent, session_id=session_to_load, print_mode=print_mode)
+    app_instance = VibecoreApp(vibecore_ctx, agent, session_id=session_to_load, print_mode=print_mode)
 
     if print_mode:
         # Run in print mode
@@ -141,10 +155,85 @@ def run(
         app_instance.run()
 
 
-def main():
+@auth_app.command("login")
+def auth_login(
+    provider: str = typer.Argument("anthropic", help="Authentication provider (currently only 'anthropic')"),
+    api_key: str = typer.Option(None, "--api-key", "-k", help="Use API key instead of OAuth"),
+    mode: str = typer.Option(
+        "max", "--mode", "-m", help="OAuth mode: 'max' for claude.ai, 'console' for console.anthropic.com"
+    ),
+):
+    """Authenticate with Anthropic Pro/Max or API key."""
+    if provider.lower() != "anthropic":
+        typer.echo(f"❌ Provider '{provider}' not supported. Currently only 'anthropic' is supported.")
+        raise typer.Exit(1)
+
+    from vibecore.auth.manager import AnthropicAuthManager
+
+    auth_manager = AnthropicAuthManager()
+
+    if api_key:
+        # API key authentication
+        success = asyncio.run(auth_manager.authenticate_with_api_key(api_key))
+        if not success:
+            raise typer.Exit(1)
+    else:
+        # OAuth Pro/Max authentication
+        success = asyncio.run(auth_manager.authenticate_pro_max(mode))
+        if not success:
+            raise typer.Exit(1)
+
+
+@auth_app.command("logout")
+def auth_logout(
+    provider: str = typer.Argument("anthropic", help="Authentication provider"),
+):
+    """Remove stored authentication."""
+    if provider.lower() != "anthropic":
+        typer.echo(f"❌ Provider '{provider}' not supported. Currently only 'anthropic' is supported.")
+        raise typer.Exit(1)
+
+    from vibecore.auth.manager import AnthropicAuthManager
+
+    auth_manager = AnthropicAuthManager()
+    asyncio.run(auth_manager.logout())
+
+
+@auth_app.command("status")
+def auth_status():
+    """Check authentication status."""
+    from vibecore.auth.manager import AnthropicAuthManager
+
+    auth_manager = AnthropicAuthManager()
+
+    if asyncio.run(auth_manager.is_authenticated()):
+        auth_type = asyncio.run(auth_manager.get_auth_type())
+        if auth_type == "oauth":
+            typer.echo("✅ Authenticated with Anthropic Pro/Max (OAuth)")
+        else:
+            typer.echo("✅ Authenticated with Anthropic API key")
+    else:
+        typer.echo("❌ Not authenticated with Anthropic")
+
+
+@auth_app.command("test")
+def auth_test():
+    """Test authentication by making a simple API call."""
+    from vibecore.auth.manager import AnthropicAuthManager
+
+    auth_manager = AnthropicAuthManager()
+
+    typer.echo("🔍 Testing authentication...")
+    success = asyncio.run(auth_manager.test_connection())
+
+    if not success:
+        raise typer.Exit(1)
+
+
+def cli_main():
     """Entry point for the CLI."""
     app()
 
 
 if __name__ == "__main__":
-    main()
+    cli_main()

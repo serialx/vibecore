@@ -1965,6 +1965,7 @@ source = { editable = "." }
 dependencies = [
     { name = "ddgs" },
     { name = "html2text" },
+    { name = "httpx" },
     { name = "litellm" },
     { name = "openai-agents", extra = ["litellm"] },
     { name = "pydantic-settings" },
@@ -1988,6 +1989,7 @@ dev = [
 requires-dist = [
     { name = "ddgs", specifier = ">=9.5.4" },
     { name = "html2text", specifier = ">=2024.2.26" },
+    { name = "httpx", specifier = ">=0.24.0" },
     { name = "litellm", specifier = ">=1.72.4" },
     { name = "openai-agents", extras = ["litellm"], specifier = ">=0.2.2" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
