@@ -93,9 +93,10 @@ class Settings(BaseSettings):
     default_model: str = Field(
         # default="o3",
         # default="gpt-4.1",
+        default="gpt-5",
         # default="qwen3-30b-a3b-mlx@8bit",
         # default="mistralai/devstral-small-2507",
-        default="anthropic/claude-sonnet-4-20250514",
+        # default="anthropic/claude-sonnet-4-20250514",
         # default="anthropic/claude-3-5-haiku-20241022",
         # default="litellm/deepseek/deepseek-chat",
         description="Default model to use for agents (e.g., 'gpt-4.1', 'o3-mini', 'anthropic/claude-sonnet-4')",
