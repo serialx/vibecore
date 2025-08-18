@@ -15,6 +15,7 @@ from agents import (
     ToolCallOutputItem,
 )
 from openai.types.responses import (
+    ResponseCompletedEvent,
     ResponseFunctionToolCall,
     ResponseOutputItemAddedEvent,
     ResponseOutputItemDoneEvent,
@@ -123,6 +124,7 @@ class AgentStreamHandler:
         """
         match event:
             case RawResponsesStreamEvent(data=data):
+                # log(f"RawResponsesStreamEvent data: {data.type}")
                 match data:
                     case ResponseOutputItemAddedEvent(item=ResponseReasoningItem() as item):
                         reasoning_id = item.id
@@ -180,7 +182,19 @@ class AgentStreamHandler:
                         else:
                             await self.handle_tool_call(tool_name, arguments, call_id)
 
+                    case ResponseCompletedEvent():
+                        # When in agent handoff or stop at tool situations, the tools should be in executing status.
+                        # We find all the executing status tool messages and mark them as success.
+                        for tool_message in self.tool_messages.values():
+                            if tool_message.status == MessageStatus.EXECUTING:
+                                tool_message.status = MessageStatus.SUCCESS
+
+                        # Since response completed, we can clear the tool and reasoning message reference mappings
+                        self.tool_messages.clear()
+                        self.reasoning_messages.clear()
+
             case RunItemStreamEvent(item=item):
+                # log(f"RunItemStreamEvent item: {item.type}")
                 match item:
                     case ToolCallItem():
                         pass
@@ -196,6 +210,7 @@ class AgentStreamHandler:
                         await self.handle_message_complete()
 
             case AgentUpdatedStreamEvent(new_agent=new_agent):
+                # log(f"AgentUpdatedStreamEvent new_agent: {new_agent.name}")
                 await self.message_handler.handle_agent_update(new_agent)
 
     async def handle_task_tool_event(self, tool_name: str, tool_call_id: str, event: StreamEvent) -> None:
