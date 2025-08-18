@@ -557,3 +557,44 @@ class WebSearchToolMessage(BaseToolMessage):
             except (json.JSONDecodeError, KeyError, TypeError):
                 # Fallback to raw output if JSON parsing fails
                 yield from self._render_output(self.output, truncated_lines=5)
+
+
+class WebFetchToolMessage(BaseToolMessage):
+    """A widget to display fetched web content."""
+
+    fetch_url: reactive[str] = reactive("")
+
+    def __init__(self, url: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs) -> None:
+        """
+        Construct a WebFetchToolMessage.
+
+        Args:
+            url: The URL that was fetched.
+            output: The fetched content as Markdown (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.fetch_url = url
+        self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the fetch message."""
+        # Header line
+        header = f"WebFetch({self.fetch_url})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Display fetched content
+        if self.output:
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    # Check if it's an error message
+                    if self.output.startswith("Error:"):
+                        yield Static(self.output, classes="webfetch-error")
+                    else:
+                        # Display as expandable markdown content
+                        # Default to showing first 15 lines since web content can be long
+                        yield ExpandableMarkdown(
+                            self.output, language="", truncated_lines=15, classes="webfetch-content"
+                        )

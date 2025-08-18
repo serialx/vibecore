@@ -18,6 +18,7 @@ from vibecore.widgets.tool_messages import (
     TaskToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
+    WebFetchToolMessage,
     WebSearchToolMessage,
     WriteToolMessage,
 )
@@ -120,6 +121,13 @@ def create_tool_message(
             return WebSearchToolMessage(query=query, output=output, status=status)
         else:
             return WebSearchToolMessage(query=query, status=status)
+
+    elif tool_name == "webfetch":
+        url = args_dict.get("url", "") if args_dict else ""
+        if output is not None:
+            return WebFetchToolMessage(url=url, output=output, status=status)
+        else:
+            return WebFetchToolMessage(url=url, status=status)
 
     # Default to generic ToolMessage for all other tools
     else:
