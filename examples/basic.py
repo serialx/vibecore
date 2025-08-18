@@ -3,8 +3,8 @@ import asyncio
 from agents import Agent, Runner
 
 from vibecore.context import VibecoreContext
-from vibecore.flow import flow
-from vibecore.main import SystemMessage
+from vibecore.flow import UserInputFunc, flow
+from vibecore.main import SystemMessage, VibecoreApp
 from vibecore.settings import settings
 from vibecore.tools.file.tools import read
 from vibecore.tools.shell.tools import glob, grep, ls
@@ -27,9 +27,8 @@ agent = Agent[VibecoreContext](
 )
 
 
-async def logic(app, ctx, user_input):
-    await app.add_message(SystemMessage("Input your message:"))
-    user_message = await user_input()
+async def logic(app: VibecoreApp, ctx: VibecoreContext, user_input: UserInputFunc):
+    user_message = await user_input("Input your message:")
     await app.add_message(SystemMessage(f"Starting generation of '{user_message}'..."))
     result = Runner.run_streamed(
         agent,

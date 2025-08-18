@@ -33,6 +33,10 @@ from vibecore.widgets.messages import AgentMessage, BaseMessage, MessageStatus, 
 AgentStatus = Literal["idle", "running", "waiting_user_input"]
 
 
+class AppIsExiting(Exception):
+    pass
+
+
 def detect_reasoning_effort(prompt: str) -> Literal["low", "medium", "high"] | None:
     """Detect reasoning effort level from user prompt keywords.
 
@@ -162,6 +166,8 @@ class VibecoreApp(App):
         Args:
             message: The message to add
         """
+        if not self.is_running:
+            raise AppIsExiting("App is not running")
         main_scroll = self.query_one("#messages", MainScroll)
         await main_scroll.mount(message)
 

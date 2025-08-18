@@ -17,8 +17,8 @@ from agents import (
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from pydantic import BaseModel
 
-from vibecore.flow import flow
-from vibecore.main import SystemMessage
+from vibecore.flow import UserInputFunc, flow
+from vibecore.main import SystemMessage, VibecoreApp, VibecoreContext
 
 ### CONTEXT
 
@@ -131,7 +131,7 @@ seat_booking_agent.handoffs.append(triage_agent)
 ### RUN
 
 
-async def logic(app, ctx, user_input):
+async def logic(app: VibecoreApp, ctx: VibecoreContext, user_input: UserInputFunc):
     current_agent: Agent[AirlineAgentContext] = triage_agent
     input_items: list[TResponseInputItem] = []
     context = AirlineAgentContext()
