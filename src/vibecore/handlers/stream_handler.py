@@ -189,10 +189,6 @@ class AgentStreamHandler:
                             if tool_message.status == MessageStatus.EXECUTING:
                                 tool_message.status = MessageStatus.SUCCESS
 
-                        # Since response completed, we can clear the tool and reasoning message reference mappings
-                        self.tool_messages.clear()
-                        self.reasoning_messages.clear()
-
             case RunItemStreamEvent(item=item):
                 # log(f"RunItemStreamEvent item: {item.type}")
                 match item:
