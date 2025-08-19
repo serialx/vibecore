@@ -82,7 +82,7 @@ class AnthropicRequestInterceptor:
             ANTHROPIC_CONFIG.BETA_OAUTH,
             ANTHROPIC_CONFIG.BETA_CLAUDE_CODE,  # Critical for spoofing
             ANTHROPIC_CONFIG.BETA_INTERLEAVED_THINKING,
-            ANTHROPIC_CONFIG.BETA_FINE_GRAINED_STREAMING,
+            # ANTHROPIC_CONFIG.BETA_FINE_GRAINED_STREAMING,
         ]
 
         # Set the beta header (this is what makes Anthropic think we're Claude Code)
