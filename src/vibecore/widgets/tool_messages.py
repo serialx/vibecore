@@ -486,6 +486,7 @@ class MCPToolMessage(BaseToolMessage):
 class RichToolMessage(BaseToolMessage):
     """A widget to display rich (json/markdown) custom tool execution messages."""
 
+    SQL_QUERY_KEY = "query"
     tool_name: reactive[str] = reactive("")
     arguments: reactive[str] = reactive("")
 
@@ -534,6 +535,15 @@ class RichToolMessage(BaseToolMessage):
             # Not valid JSON, return as-is
             return False, output
 
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
+        if event.button.has_class("copy-button"):
+            arg_dict = json.loads(self.arguments)
+            if self.SQL_QUERY_KEY in arg_dict:
+                # XXX(serialx): Special case for SQL queries
+                query = arg_dict[self.SQL_QUERY_KEY]
+                self.app.copy_to_clipboard(query)
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the rich tool message."""
         # Header line showing MCP server and tool
@@ -548,12 +558,12 @@ class RichToolMessage(BaseToolMessage):
                     # Truncate arguments if too long
                     max_args_length = 100
                     arg_dict = json.loads(self.arguments)
-                    SQL_QUERY_KEY = "query"
-                    if SQL_QUERY_KEY in arg_dict:
+                    if self.SQL_QUERY_KEY in arg_dict:
                         # XXX(serialx): Special case for SQL queries
-                        query = arg_dict[SQL_QUERY_KEY]
+                        query = arg_dict[self.SQL_QUERY_KEY]
+                        yield Button("Copy", classes="copy-button", variant="primary")
                         yield ExpandableMarkdown(query, language="sql", truncated_lines=8, classes="rich-output-sql")
-                        del arg_dict[SQL_QUERY_KEY]
+                        del arg_dict[self.SQL_QUERY_KEY]
 
                     display_args = arg_dict[:max_args_length] + "…" if len(arg_dict) > max_args_length else arg_dict
                     yield Static(f"Args: {display_args}", classes="rich-arguments-text")
