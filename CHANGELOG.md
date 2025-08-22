@@ -5,17 +5,7 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0b2] - 2025-01-19
-
-### Added
-- **Anthropic Pro/Max OAuth authentication support**: Native integration with Claude Pro/Max accounts via OAuth flow
-
-### Fixed
-- Tool call functionality with Claude Pro/Max authentication
-- Tool call results not displaying properly in the UI
-- Tool execution status handling during agent handoffs and response completion
-
-## [0.3.0b1] - 2025-01-18
+## [0.3.0] - 2025-01-22
 
 ### Added
 - **Flow Mode (Experimental)**: New programmatic conversation control system for building structured agent-based applications
@@ -25,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Web Tools**: New tools for web interaction
   - `websearch` tool with extensible backend architecture
   - `webfetch` tool for fetching and converting web content
+- **Anthropic Pro/Max OAuth authentication support**: Native integration with Claude Pro/Max accounts via OAuth flow
+- **Rich tool call rendering**: New `rich_tool_names` setting for enhanced tool call display
 - **Configurable Features**:
   - Make reasoning summary configurable via settings
   - Optional welcome message in VibecoreApp
@@ -36,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced settings system with default_model_settings
 
 ### Fixed
+- Tool call functionality with Claude Pro/Max authentication
+- Tool call results not displaying properly in the UI
+- Tool execution status handling during agent handoffs and response completion
 - Early exit handling in flow prototype
 - GitHub workflow conditions for stable PyPI releases
 - Version detection using github.ref_name
