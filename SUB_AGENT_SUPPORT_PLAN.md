@@ -355,6 +355,38 @@ async def complex_flow(app, ctx, user_input):
 6. **Maintainability**: Less code duplication, cleaner architecture
 7. **Extensibility**: Easy to add new contexts and behaviors
 
+## Validation from Demo
+
+Three demonstration files validate the proposed architecture:
+
+### 1. `examples/sub_agent_demo.py`
+Full integration with vibecore's flow system, showing:
+- Sequential workflows using standard `Runner.run_streamed()`
+- Parallel execution with `asyncio.gather()`
+- Mixed execution patterns
+- UI properly displays agent messages and tool outputs
+- Flow mode successfully orchestrates multi-agent interactions
+
+### 2. `examples/sub_agent_simple.py`
+Standalone demonstration without TUI, showing:
+- Direct agent execution with print output
+- Error handling for max turns exceeded
+- Simplified API for testing
+
+### 3. `examples/sub_agent_mock.py`
+Mock implementation demonstrating all patterns:
+- **Sequential**: Agents run one after another (1.5s + 2.0s = 3.5s total)
+- **Parallel**: Multiple agents run simultaneously (2.0s total vs 4.5s sequential)
+- **Mixed**: Combination of sequential and parallel patterns
+- **Nested**: Agents spawning their own sub-agents
+
+**Key Findings**:
+1. Current infrastructure already supports most sub-agent patterns
+2. Parallel execution provides significant performance benefits
+3. The main missing piece is a dedicated `SubAgentMessage` widget for better visual nesting
+4. The `app.run_sub_agent()` method would simplify the API but isn't strictly necessary
+5. Event routing works correctly with the existing stream handler
+
 ## Testing Plan
 
 1. **Unit Tests**:
@@ -363,9 +395,9 @@ async def complex_flow(app, ctx, user_input):
    - Test status updates (executing → success/error)
 
 2. **Integration Tests**:
-   - Sequential sub-agent execution
-   - Parallel sub-agent execution with 3+ agents
-   - Mixed execution patterns
+   - Sequential sub-agent execution (validated in demo)
+   - Parallel sub-agent execution with 3+ agents (validated in demo)
+   - Mixed execution patterns (validated in demo)
    - Error handling when sub-agent fails
    - Cancellation during execution
 
