@@ -483,6 +483,108 @@ class MCPToolMessage(BaseToolMessage):
                         )
 
 
+class RichToolMessage(BaseToolMessage):
+    """A widget to display rich (json/markdown) custom tool execution messages."""
+
+    tool_name: reactive[str] = reactive("")
+    arguments: reactive[str] = reactive("")
+
+    def __init__(
+        self,
+        tool_name: str,
+        arguments: str,
+        output: str = "",
+        status: MessageStatus = MessageStatus.EXECUTING,
+        **kwargs,
+    ) -> None:
+        """
+        Construct an RichToolMessage.
+
+        Args:
+            tool_name: The name of the tool being called.
+            arguments: JSON string of tool arguments.
+            output: The output from the tool (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.tool_name = tool_name
+        self.arguments = arguments
+        self.output = output
+
+    def _prettify_json_output(self, output: str) -> tuple[bool, str]:
+        """Try to prettify JSON output.
+
+        Args:
+            output: The raw output string.
+
+        Returns:
+            A tuple of (is_json, formatted_output).
+        """
+        if not output or not output.strip():
+            return False, output
+
+        try:
+            # Try to parse as JSON
+            json_obj = json.loads(output)
+            # Pretty print with 2-space indentation
+            formatted = json.dumps(json_obj, indent=2, ensure_ascii=False)
+            return True, formatted
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Not valid JSON, return as-is
+            return False, output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the rich tool message."""
+        # Header line showing MCP server and tool
+        # Access the actual values, not the reactive descriptors
+        yield MessageHeader("⏺", self.tool_name, status=self.status)
+
+        # Arguments display (if any)
+        if self.arguments and self.arguments != "{}":
+            with Horizontal(classes="rich-arguments"):
+                yield Static("└─", classes="rich-arguments-prefix")
+                with Vertical(classes="rich-arguments-content"):
+                    # Truncate arguments if too long
+                    max_args_length = 100
+                    arg_dict = json.loads(self.arguments)
+                    SQL_QUERY_KEY = "query"
+                    if SQL_QUERY_KEY in arg_dict:
+                        # XXX(serialx): Special case for SQL queries
+                        query = arg_dict[SQL_QUERY_KEY]
+                        yield ExpandableMarkdown(query, language="sql", truncated_lines=8, classes="rich-output-sql")
+                        del arg_dict[SQL_QUERY_KEY]
+
+                    display_args = arg_dict[:max_args_length] + "…" if len(arg_dict) > max_args_length else arg_dict
+                    yield Static(f"Args: {display_args}", classes="rich-arguments-text")
+
+        # Output - check if it's JSON and prettify if so
+        if self.output:
+            try:
+                json_output = json.loads(self.output)
+            except json.JSONDecodeError:
+                json_output = None
+            if json_output:
+                assert json_output.get("type") == "text", "Expected JSON output type to be 'text'"
+                is_json, processed_output = self._prettify_json_output(json_output.get("text", ""))
+            else:
+                # output should always be a JSON string, but if not, treat it as plain text
+                is_json, processed_output = False, self.output
+            with Horizontal(classes="tool-output"):
+                yield Static("└─", classes="tool-output-prefix")
+                with Vertical(classes="tool-output-content"):
+                    if is_json:
+                        # Use ExpandableMarkdown for JSON with syntax highlighting
+                        yield ExpandableMarkdown(
+                            processed_output, language="json", truncated_lines=8, classes="rich-output-json"
+                        )
+                    else:
+                        # Use ExpandableMarkdown for non-JSON content (renders as markdown without code block)
+                        yield ExpandableMarkdown(
+                            processed_output, language="", truncated_lines=5, classes="rich-output-markdown"
+                        )
+
+
 class WebSearchToolMessage(BaseToolMessage):
     """A widget to display web search results."""
 

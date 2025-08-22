@@ -288,6 +288,52 @@ MCPToolMessage {
     }
 }
 
+RichToolMessage {
+    Horizontal.rich-arguments {
+        height: auto;
+
+        &> .rich-arguments-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.rich-arguments-content {
+            height: auto;
+            width: 1fr;
+
+            .rich-arguments-label {
+                color: $text-muted;
+                # margin-bottom: 1;
+            }
+
+            .rich-arguments-text {
+                color: $text-muted;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+    
+    Horizontal.tool-output {
+        height: auto;
+
+        &> .tool-output-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        &> Vertical.tool-output-content {
+            height: auto;
+            width: 1fr;
+        }
+    }
+}
+
 WebSearchToolMessage {
     Horizontal.tool-output {
         height: auto;

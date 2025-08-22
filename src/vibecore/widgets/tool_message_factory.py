@@ -9,12 +9,14 @@ import contextlib
 import json
 from typing import Any
 
+from vibecore.settings import settings
 from vibecore.widgets.messages import MessageStatus
 from vibecore.widgets.tool_messages import (
     BaseToolMessage,
     MCPToolMessage,
     PythonToolMessage,
     ReadToolMessage,
+    RichToolMessage,
     TaskToolMessage,
     TodoWriteToolMessage,
     ToolMessage,
@@ -128,6 +130,12 @@ def create_tool_message(
             return WebFetchToolMessage(url=url, output=output, status=status)
         else:
             return WebFetchToolMessage(url=url, status=status)
+
+    elif tool_name in settings.rich_tool_names:
+        if output is not None:
+            return RichToolMessage(tool_name=tool_name, arguments=arguments, output=output, status=status)
+        else:
+            return RichToolMessage(tool_name=tool_name, arguments=arguments, status=status)
 
     # Default to generic ToolMessage for all other tools
     else:

@@ -155,6 +155,11 @@ class Settings(BaseSettings):
         description="List of MCP servers to connect to",
     )
 
+    rich_tool_names: list[str] = Field(
+        default_factory=list,
+        description="List of tools to render with RichToolMessage (temporary settings)",
+    )
+
     @property
     def model(self) -> str | Model:
         """Get the configured model.
