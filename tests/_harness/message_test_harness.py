@@ -7,7 +7,7 @@ from typing import ClassVar
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll
 
-from vibecore.widgets.messages import AgentMessage, MessageStatus, ReasoningMessage, UserMessage
+from vibecore.widgets.messages import AgentMessage, MessageStatus, ReasoningMessage, SubAgentMessage, UserMessage
 from vibecore.widgets.tool_messages import (
     MCPToolMessage,
     PythonToolMessage,
@@ -362,5 +362,70 @@ class MCPToolMessageTestApp(MessageTestApp):
                     ),
                 }
             ),
+            status=MessageStatus.SUCCESS,
+        )
+
+
+class SubAgentMessageTestApp(MessageTestApp):
+    """Test app for SubAgentMessage widgets."""
+
+    def create_test_messages(self) -> ComposeResult:
+        """Create various SubAgentMessage test cases."""
+        # Simple sub-agent message - executing
+        yield SubAgentMessage(
+            agent_name="Search Agent",
+            content="Searching for information...",
+            status=MessageStatus.EXECUTING,
+        )
+
+        # Sub-agent with metadata
+        yield SubAgentMessage(
+            agent_name="Research Agent (quantum computing)",
+            content="Found 15 relevant papers on quantum algorithms.",
+            metadata={"keyword": "quantum algorithms", "source": "arxiv"},
+            status=MessageStatus.SUCCESS,
+        )
+
+        # Sub-agent with longer content
+        yield SubAgentMessage(
+            agent_name="Analysis Agent",
+            content=(
+                "## Analysis Complete\n\n"
+                "I've analyzed the codebase and found:\n"
+                "- 10 Python files\n"
+                "- 3 test modules\n"
+                "- 95% test coverage\n\n"
+                "The code follows PEP8 standards."
+            ),
+            status=MessageStatus.SUCCESS,
+        )
+
+        # Sub-agent with error
+        yield SubAgentMessage(
+            agent_name="Data Fetcher",
+            content="Failed to retrieve data: Connection timeout",
+            metadata={"retry_count": "3", "timeout": "30s"},
+            status=MessageStatus.ERROR,
+        )
+
+        # Multiple sub-agents showing parallel execution
+        yield SubAgentMessage(
+            agent_name="Worker 1",
+            content="Processing batch 1 of 5...",
+            metadata={"batch": "1", "total": "5"},
+            status=MessageStatus.EXECUTING,
+        )
+
+        yield SubAgentMessage(
+            agent_name="Worker 2",
+            content="Processing batch 2 of 5...",
+            metadata={"batch": "2", "total": "5"},
+            status=MessageStatus.EXECUTING,
+        )
+
+        yield SubAgentMessage(
+            agent_name="Worker 3",
+            content="Completed batch 3 of 5.",
+            metadata={"batch": "3", "total": "5"},
             status=MessageStatus.SUCCESS,
         )

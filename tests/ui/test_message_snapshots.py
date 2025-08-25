@@ -6,6 +6,7 @@ from tests._harness.message_test_harness import (
     MessageTestApp,
     MixedMessageTestApp,
     ReasoningMessageTestApp,
+    SubAgentMessageTestApp,
     ToolMessageTestApp,
     UserMessageTestApp,
 )
@@ -37,6 +38,11 @@ class TestMessageSnapshots:
     def test_reasoning_messages(self, snap_compare):
         """Test rendering of ReasoningMessage widgets."""
         app = ReasoningMessageTestApp()
+        assert snap_compare(app, press=[])
+
+    def test_sub_agent_messages(self, snap_compare):
+        """Test rendering of SubAgentMessage widgets."""
+        app = SubAgentMessageTestApp()
         assert snap_compare(app, press=[])
 
     def test_mixed_conversation(self, snap_compare):

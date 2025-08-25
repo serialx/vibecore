@@ -474,6 +474,95 @@ class VibecoreApp(App):
         """
         await self.agent_stream_handler.handle_task_tool_event(tool_name, tool_call_id, event)
 
+    def handle_sub_agent_streamed_response(
+        self, result: RunResultStreaming, agent_name: str, metadata: dict | None = None
+    ) -> Worker:
+        """Handle streaming response from a sub-agent.
+
+        Args:
+            result: The streaming result from the sub-agent
+            agent_name: Name of the sub-agent
+            metadata: Optional metadata from parent agent
+
+        Returns:
+            Worker instance for the streaming task
+        """
+
+        # Create a custom message handler for the sub-agent
+        class SubAgentMessageHandlerImpl:
+            def __init__(self, app: VibecoreApp):
+                self.app = app
+                self.sub_agent_message = None
+
+            async def handle_agent_message(self, message: BaseMessage) -> None:
+                # Add tool messages from sub-agent to the sub-agent message widget
+                if self.sub_agent_message:
+                    await self.sub_agent_message.add_tool_message(message)
+
+            async def handle_agent_update(self, new_agent: Agent) -> None:
+                # Sub-agents don't typically handoff, but handle if needed
+                pass
+
+            async def handle_agent_error(self, error: Exception) -> None:
+                # Update the sub-agent message with error status
+                if self.sub_agent_message:
+                    self.sub_agent_message.update_status(MessageStatus.ERROR)
+
+            async def handle_agent_finished(self) -> None:
+                # Mark sub-agent as complete
+                if self.sub_agent_message:
+                    self.sub_agent_message.update_status(MessageStatus.SUCCESS)
+
+            async def handle_sub_agent_message(self, message) -> None:
+                # Mount the sub-agent message in the main scroll
+                self.sub_agent_message = message
+                main_scroll = self.app.query_one("#messages", MainScroll)
+                await main_scroll.mount(message)
+
+            async def handle_sub_agent_complete(self, output: str) -> None:
+                # Sub-agent completed successfully
+                pass
+
+            async def handle_sub_agent_error(self, error: Exception) -> None:
+                # Handle sub-agent error
+                log(f"Sub-agent error: {error}")
+
+        # Import here to avoid circular dependency
+        from vibecore.handlers.sub_agent_stream_handler import SubAgentStreamHandler
+
+        # Create handler with sub-agent specific behavior
+        message_handler_impl = SubAgentMessageHandlerImpl(self)
+        handler = SubAgentStreamHandler(
+            message_handler_impl, message_handler_impl, agent_name=agent_name, parent_context=metadata
+        )
+
+        # Use @work decorator for non-blocking execution
+        @work(exclusive=False, thread=False)
+        async def process_sub_agent_stream():
+            try:
+                return await handler.process_stream(result)
+            except Exception as e:
+                log(f"Error processing sub-agent stream: {e}")
+                raise
+
+        return process_sub_agent_stream()
+
+    def create_sub_session(self) -> JSONLSession:
+        """Create an isolated session for sub-agent execution.
+
+        Returns:
+            A new session that doesn't interfere with main conversation
+        """
+        # Create a sub-session with a unique ID
+        import datetime
+
+        sub_session_id = f"sub-{self.session.session_id}-{datetime.datetime.now().strftime('%H%M%S%f')}"
+        return JSONLSession(
+            session_id=sub_session_id,
+            project_path=self.session.project_path,
+            base_dir=self.session.base_dir,
+        )
+
     async def handle_clear_command(self) -> None:
         """Handle the /clear command to create a new session and clear the UI."""
         log("Clearing session and creating new session")

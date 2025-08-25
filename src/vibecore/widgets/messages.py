@@ -230,3 +230,81 @@ class ReasoningMessage(BaseMessage):
     def watch_text(self, text: str) -> None:
         """Watch for changes in the text and update the header."""
         self.query_one(MessageHeader).text = text
+
+
+class SubAgentMessage(BaseMessage):
+    """A widget to display sub-agent execution and streaming output."""
+
+    content: reactive[str] = reactive("")
+    agent_name: reactive[str] = reactive("")
+
+    def __init__(
+        self,
+        agent_name: str,
+        content: str = "",
+        metadata: dict | None = None,
+        status: MessageStatus = MessageStatus.EXECUTING,
+        **kwargs,
+    ) -> None:
+        """
+        Construct a SubAgentMessage.
+
+        Args:
+            agent_name: Name of the sub-agent.
+            content: The content/output from the sub-agent.
+            metadata: Optional metadata from parent agent.
+            status: The status of the sub-agent execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.set_reactive(SubAgentMessage.agent_name, agent_name)
+        self.set_reactive(SubAgentMessage.content, content)
+        self.metadata = metadata or {}
+        self.tool_messages = []  # Store tool messages from sub-agent
+        self.add_class("sub-agent-message")
+
+    def get_header_params(self) -> tuple[str, str, bool]:
+        """Get parameters for MessageHeader."""
+        # Use ⚡ for sub-agents to differentiate from regular agents
+        header_text = f"[Sub-Agent: {self.agent_name}]"
+        if self.metadata:
+            # Add metadata info if present
+            meta_str = ", ".join(f"{k}={v}" for k, v in self.metadata.items())
+            header_text += f" ({meta_str})"
+        return ("⚡", header_text, False)
+
+    def update_content(self, content: str) -> None:
+        """Update the content of the sub-agent message during streaming."""
+        self.content = content
+
+    def update_status(self, status: MessageStatus) -> None:
+        """Update the status of the sub-agent execution."""
+        self.status = status
+
+    async def add_tool_message(self, tool_message: BaseMessage) -> None:
+        """Add a tool call made by the sub-agent.
+
+        Args:
+            tool_message: The tool message widget to add
+        """
+        self.tool_messages.append(tool_message)
+        # Mount the tool message as a child widget
+        await self.mount(tool_message)
+
+    def watch_content(self, content: str) -> None:
+        """Watch for changes in content and update display."""
+        # Update the content display
+        if content and self.query(".sub-agent-content"):
+            # Use Content to prevent markup interpretation
+            self.query_one(".sub-agent-content", Static).update(Content(content))
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the sub-agent message."""
+        # First yield the header
+        yield from super().compose()
+
+        # Then yield the content if any
+        if self.content:
+            yield Static(Content(self.content), classes="sub-agent-content")
+
+        # Tool messages will be mounted dynamically via add_tool_message
