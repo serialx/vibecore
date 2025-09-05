@@ -39,6 +39,48 @@ class SessionSettings(BaseModel):
     )
 
 
+class PathConfinementSettings(BaseModel):
+    """Configuration for path confinement."""
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable path confinement for file and shell tools",
+    )
+
+    allowed_directories: list[Path] = Field(
+        default_factory=lambda: [Path.cwd()],
+        description="List of directories that tools can access",
+    )
+
+    allow_home: bool = Field(
+        default=False,
+        description="Allow access to user's home directory",
+    )
+
+    allow_temp: bool = Field(
+        default=True,
+        description="Allow access to system temp directories",
+    )
+
+    strict_mode: bool = Field(
+        default=False,
+        description="Strict mode prevents any path traversal attempts",
+    )
+
+    @field_validator("allowed_directories", mode="before")
+    @classmethod
+    def resolve_paths(cls, v: list[str | Path]) -> list[Path]:
+        """Resolve and validate directory paths."""
+        paths = []
+        for p in v:
+            path = Path(p).expanduser().resolve()
+            if not path.exists():
+                # Create directory if it doesn't exist
+                path.mkdir(parents=True, exist_ok=True)
+            paths.append(path)
+        return paths
+
+
 class MCPServerConfig(BaseModel):
     """Configuration for an MCP server."""
 
@@ -153,6 +195,12 @@ class Settings(BaseSettings):
     mcp_servers: list[MCPServerConfig] = Field(
         default_factory=list,
         description="List of MCP servers to connect to",
+    )
+
+    # Path confinement configuration
+    path_confinement: PathConfinementSettings = Field(
+        default_factory=PathConfinementSettings,
+        description="Path confinement configuration",
     )
 
     rich_tool_names: list[str] = Field(

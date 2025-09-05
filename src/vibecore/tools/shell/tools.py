@@ -58,7 +58,7 @@ async def bash(
     Returns:
         The command output or error message
     """
-    output, exit_code = await bash_executor(command, timeout)
+    output, exit_code = await bash_executor(ctx, command, timeout)
     if exit_code != 0:
         return f"{output}\nExit code: {exit_code}"
     return output
@@ -90,7 +90,7 @@ async def glob(
     Returns:
         List of matching file paths, one per line
     """
-    files = await glob_files(pattern, path)
+    files = await glob_files(ctx, pattern, path)
     if files and files[0].startswith("Error:"):
         return files[0]
     return "\n".join(files) if files else "No files found matching pattern"
@@ -124,7 +124,7 @@ async def grep(
     Returns:
         List of file paths containing matches, one per line
     """
-    files = await grep_files(pattern, path, include)
+    files = await grep_files(ctx, pattern, path, include)
     if files and files[0].startswith("Error:"):
         return files[0]
     return "\n".join(files) if files else "No files found containing pattern"
@@ -150,7 +150,7 @@ async def ls(
     Returns:
         List of entries in the directory, one per line
     """
-    entries = await list_directory(path, ignore)
+    entries = await list_directory(ctx, path, ignore)
     if entries and entries[0].startswith("Error:"):
         return entries[0]
     return "\n".join(entries) if entries else "Empty directory"

@@ -2,13 +2,22 @@
 
 from typing import Any
 
-from .utils import PathValidationError, format_line_with_number, validate_file_path
+from agents import RunContextWrapper
+
+from vibecore.context import VibecoreContext
+from vibecore.settings import settings
+from vibecore.tools.file.utils import PathValidationError
+
+from .utils import format_line_with_number
 
 
-async def read_file(file_path: str, offset: int | None = None, limit: int | None = None) -> str:
+async def read_file(
+    ctx: RunContextWrapper[VibecoreContext], file_path: str, offset: int | None = None, limit: int | None = None
+) -> str:
     """Read a file and return its contents in cat -n format.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         file_path: The path to the file to read
         offset: The line number to start reading from (1-based)
         limit: The maximum number of lines to read
@@ -17,8 +26,14 @@ async def read_file(file_path: str, offset: int | None = None, limit: int | None
         The file contents with line numbers, or an error message
     """
     try:
-        # Validate the file path
-        validated_path = validate_file_path(file_path)
+        # Validate the file path using context if path confinement is enabled
+        if settings.path_confinement.enabled:
+            validated_path = ctx.context.path_validator.validate_path(file_path, operation="read")
+        else:
+            # Fall back to simple validation against CWD
+            from .utils import validate_file_path
+
+            validated_path = validate_file_path(file_path)
 
         # Check if file exists
         if not validated_path.exists():
@@ -84,10 +99,13 @@ async def read_file(file_path: str, offset: int | None = None, limit: int | None
         return f"Error: Unexpected error reading file: {e}"
 
 
-async def edit_file(file_path: str, old_string: str, new_string: str, replace_all: bool = False) -> str:
+async def edit_file(
+    ctx: RunContextWrapper[VibecoreContext], file_path: str, old_string: str, new_string: str, replace_all: bool = False
+) -> str:
     """Edit a file by replacing strings.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         file_path: The path to the file to edit
         old_string: The text to replace
         new_string: The text to replace it with
@@ -97,8 +115,14 @@ async def edit_file(file_path: str, old_string: str, new_string: str, replace_al
         Success message or error message
     """
     try:
-        # Validate the file path
-        validated_path = validate_file_path(file_path)
+        # Validate the file path using context if path confinement is enabled
+        if settings.path_confinement.enabled:
+            validated_path = ctx.context.path_validator.validate_path(file_path, operation="edit")
+        else:
+            # Fall back to simple validation against CWD
+            from .utils import validate_file_path
+
+            validated_path = validate_file_path(file_path)
 
         # Check if file exists
         if not validated_path.exists():
@@ -158,10 +182,11 @@ async def edit_file(file_path: str, old_string: str, new_string: str, replace_al
         return f"Error: Unexpected error editing file: {e}"
 
 
-async def multi_edit_file(file_path: str, edits: list[dict[str, Any]]) -> str:
+async def multi_edit_file(ctx: RunContextWrapper[VibecoreContext], file_path: str, edits: list[dict[str, Any]]) -> str:
     """Edit a file by applying multiple replacements sequentially.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         file_path: The path to the file to edit
         edits: List of edit operations, each containing old_string, new_string, and optional replace_all
 
@@ -169,8 +194,14 @@ async def multi_edit_file(file_path: str, edits: list[dict[str, Any]]) -> str:
         Success message or error message
     """
     try:
-        # Validate the file path
-        validated_path = validate_file_path(file_path)
+        # Validate the file path using context if path confinement is enabled
+        if settings.path_confinement.enabled:
+            validated_path = ctx.context.path_validator.validate_path(file_path, operation="multi_edit")
+        else:
+            # Fall back to simple validation against CWD
+            from .utils import validate_file_path
+
+            validated_path = validate_file_path(file_path)
 
         # Check if file exists
         if not validated_path.exists():
@@ -239,10 +270,11 @@ async def multi_edit_file(file_path: str, edits: list[dict[str, Any]]) -> str:
         return f"Error: Unexpected error editing file: {e}"
 
 
-async def write_file(file_path: str, content: str) -> str:
+async def write_file(ctx: RunContextWrapper[VibecoreContext], file_path: str, content: str) -> str:
     """Write content to a file.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         file_path: The path to the file to write
         content: The content to write to the file
 
@@ -250,8 +282,14 @@ async def write_file(file_path: str, content: str) -> str:
         Success message or error message
     """
     try:
-        # Validate the file path
-        validated_path = validate_file_path(file_path)
+        # Validate the file path using context if path confinement is enabled
+        if settings.path_confinement.enabled:
+            validated_path = ctx.context.path_validator.validate_path(file_path, operation="write")
+        else:
+            # Fall back to simple validation against CWD
+            from .utils import validate_file_path
+
+            validated_path = validate_file_path(file_path)
 
         # Check if it's a directory
         if validated_path.exists() and validated_path.is_dir():

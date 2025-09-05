@@ -15,3 +15,4 @@ wheels/
 .claude/settings.local.json
 config.yaml
 snapshot_report.html
+.env

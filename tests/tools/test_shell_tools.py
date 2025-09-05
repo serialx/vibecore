@@ -19,100 +19,105 @@ from vibecore.tools.shell.tools import ls as ls_tool
 @pytest.fixture
 def mock_context():
     """Create a mock RunContextWrapper with VibecoreContext."""
+    from pathlib import Path
+
     mock_ctx = MagicMock(spec=RunContextWrapper)
-    # Create a real VibecoreContext
-    mock_ctx.context = VibecoreContext()
+
+    # Create a real VibecoreContext with current working directory only
+    allowed_dirs = [Path.cwd()]
+    mock_ctx.context = VibecoreContext(allowed_directories=allowed_dirs)
     return mock_ctx
 
 
 @pytest.fixture
-def temp_dir():
-    """Create a temporary directory for testing within CWD."""
-    # Create temp dir in current directory to avoid path validation issues
-    import shutil
-    import uuid
+def temp_dir(tmp_path):
+    """Use pytest's tmp_path fixture for temporary directory."""
+    return tmp_path
 
-    temp_name = f"test_temp_{uuid.uuid4().hex[:8]}"
-    temp_path = Path.cwd() / temp_name
-    temp_path.mkdir(exist_ok=True)
-    try:
-        yield temp_path
-    finally:
-        # Clean up
-        if temp_path.exists():
-            shutil.rmtree(temp_path)
+
+@pytest.fixture
+def context_with_temp_dir(temp_dir):
+    """Create a RunContextWrapper with VibecoreContext for the temp directory."""
+    from pathlib import Path
+
+    mock_ctx = MagicMock(spec=RunContextWrapper)
+
+    # Create VibecoreContext with the temp directory as allowed
+    allowed_dirs = [Path.cwd(), temp_dir]
+    mock_ctx.context = VibecoreContext(allowed_directories=allowed_dirs)
+    return mock_ctx
 
 
 @pytest.mark.asyncio
 class TestBashExecutor:
     """Test the bash executor functionality."""
 
-    async def test_bash_simple_command(self):
+    async def test_bash_simple_command(self, mock_context):
         """Test executing a simple command."""
-        output, exit_code = await bash_executor("echo 'Hello World'")
+        output, exit_code = await bash_executor(mock_context, "echo 'Hello World'")
         assert exit_code == 0
         assert "Hello World" in output
 
-    async def test_bash_command_with_error(self):
+    async def test_bash_command_with_error(self, mock_context):
         """Test command that returns non-zero exit code."""
-        _, exit_code = await bash_executor("exit 42")
+        _, exit_code = await bash_executor(mock_context, "exit 42")
         assert exit_code == 42
 
-    async def test_bash_command_not_found(self):
+    async def test_bash_command_not_found(self, mock_context):
         """Test command that doesn't exist."""
-        output, exit_code = await bash_executor("this_command_does_not_exist_12345")
+        output, exit_code = await bash_executor(mock_context, "this_command_does_not_exist_12345")
         assert exit_code != 0
         assert "command not found" in output.lower() or "not found" in output.lower()
 
-    async def test_bash_timeout(self):
+    async def test_bash_timeout(self, mock_context):
         """Test command timeout."""
         # Use a command that will definitely take longer than timeout
-        output, exit_code = await bash_executor("sleep 5", timeout=100)  # 100ms timeout
+        output, exit_code = await bash_executor(mock_context, "sleep 5", timeout=100)  # 100ms timeout
         assert exit_code == 124  # Timeout exit code
         assert "timed out" in output.lower()
 
-    async def test_bash_invalid_timeout(self):
+    async def test_bash_invalid_timeout(self, mock_context):
         """Test invalid timeout values."""
-        output, exit_code = await bash_executor("echo test", timeout=-1)
+        output, exit_code = await bash_executor(mock_context, "echo test", timeout=-1)
         assert exit_code == 1
         assert "Timeout must be positive" in output
 
-        output, exit_code = await bash_executor("echo test", timeout=700000)
+        output, exit_code = await bash_executor(mock_context, "echo test", timeout=700000)
         assert exit_code == 1
         assert "cannot exceed 600000ms" in output
 
-    async def test_bash_output_truncation(self):
+    async def test_bash_output_truncation(self, mock_context):
         """Test that long output is truncated."""
         # Generate output > 30000 chars
         command = f"echo '{'x' * 35000}'"
-        output, exit_code = await bash_executor(command)
+        output, exit_code = await bash_executor(mock_context, command)
         assert exit_code == 0
         assert len(output) < 35000
         assert "output truncated" in output
 
-    async def test_bash_multiline_output(self):
+    async def test_bash_multiline_output(self, mock_context):
         """Test command with multiline output."""
-        output, exit_code = await bash_executor("echo -e 'line1\\nline2\\nline3'")
+        output, exit_code = await bash_executor(mock_context, "echo -e 'line1\\nline2\\nline3'")
         assert exit_code == 0
         assert "line1" in output
         assert "line2" in output
         assert "line3" in output
 
-    async def test_bash_environment_variables(self):
+    async def test_bash_environment_variables(self, mock_context):
         """Test that environment variables are accessible."""
-        output, exit_code = await bash_executor("echo $HOME")
+        output, exit_code = await bash_executor(mock_context, "echo $HOME")
         assert exit_code == 0
         assert output.strip() != ""  # HOME should be set
 
-    async def test_bash_pipe_commands(self):
+    async def test_bash_pipe_commands(self, mock_context):
         """Test piped commands."""
-        output, exit_code = await bash_executor("echo 'hello world' | grep world")
+        output, exit_code = await bash_executor(mock_context, "echo 'hello world' | grep world")
         assert exit_code == 0
         assert "hello world" in output
 
-    async def test_bash_working_directory(self):
+    async def test_bash_working_directory(self, mock_context):
         """Test that commands run in the correct directory."""
-        output, exit_code = await bash_executor("pwd")
+        output, exit_code = await bash_executor(mock_context, "pwd")
         assert exit_code == 0
         # Should run in current working directory
         assert str(Path.cwd()) in output
@@ -122,20 +127,20 @@ class TestBashExecutor:
 class TestGlobFiles:
     """Test the glob files functionality."""
 
-    async def test_glob_simple_pattern(self, temp_dir):
+    async def test_glob_simple_pattern(self, temp_dir, context_with_temp_dir):
         """Test simple glob pattern."""
         # Create test files
         (temp_dir / "test1.txt").touch()
         (temp_dir / "test2.txt").touch()
         (temp_dir / "other.py").touch()
 
-        files = await glob_files("*.txt", str(temp_dir))
+        files = await glob_files(context_with_temp_dir, "*.txt", str(temp_dir))
         assert len(files) == 2
         assert any("test1.txt" in f for f in files)
         assert any("test2.txt" in f for f in files)
         assert not any("other.py" in f for f in files)
 
-    async def test_glob_recursive_pattern(self, temp_dir):
+    async def test_glob_recursive_pattern(self, temp_dir, context_with_temp_dir):
         """Test recursive glob pattern."""
         # Create nested structure
         subdir = temp_dir / "subdir"
@@ -143,32 +148,34 @@ class TestGlobFiles:
         (temp_dir / "top.py").touch()
         (subdir / "nested.py").touch()
 
-        files = await glob_files("**/*.py", str(temp_dir))
+        files = await glob_files(context_with_temp_dir, "**/*.py", str(temp_dir))
         assert len(files) == 2
         assert any("top.py" in f for f in files)
         assert any("nested.py" in f for f in files)
 
-    async def test_glob_no_matches(self, temp_dir):
+    async def test_glob_no_matches(self, temp_dir, context_with_temp_dir):
         """Test glob with no matches."""
-        files = await glob_files("*.nonexistent", str(temp_dir))
+        files = await glob_files(context_with_temp_dir, "*.nonexistent", str(temp_dir))
         assert files == []
 
-    async def test_glob_nonexistent_path(self):
+    async def test_glob_nonexistent_path(self, mock_context):
         """Test glob with non-existent path."""
-        files = await glob_files("*.txt", "/path/that/does/not/exist")
+        files = await glob_files(mock_context, "*.txt", "/path/that/does/not/exist")
         assert len(files) == 1
-        assert "outside the allowed directory" in files[0]
+        assert (
+            "Error: Path" in files[0] and "outside the allowed director" in files[0]
+        )  # Matches both directory/directories
 
-    async def test_glob_file_as_path(self, temp_dir):
+    async def test_glob_file_as_path(self, temp_dir, context_with_temp_dir):
         """Test glob with file as path."""
         test_file = temp_dir / "file.txt"
         test_file.touch()
 
-        files = await glob_files("*.txt", str(test_file))
+        files = await glob_files(context_with_temp_dir, "*.txt", str(test_file))
         assert len(files) == 1
         assert files[0].startswith("Error: Path is not a directory:")
 
-    async def test_glob_default_path(self, temp_dir):
+    async def test_glob_default_path(self, temp_dir, context_with_temp_dir):
         """Test glob with default path (CWD)."""
         # Save current directory
         original_cwd = Path.cwd()
@@ -177,7 +184,7 @@ class TestGlobFiles:
             os.chdir(temp_dir)
             (temp_dir / "test.txt").touch()
 
-            files = await glob_files("*.txt")
+            files = await glob_files(context_with_temp_dir, "*.txt")
             assert len(files) == 1
             assert "test.txt" in files[0]
             # Should return relative path when using CWD
@@ -185,7 +192,7 @@ class TestGlobFiles:
         finally:
             os.chdir(original_cwd)
 
-    async def test_glob_sorted_by_mtime(self, temp_dir):
+    async def test_glob_sorted_by_mtime(self, temp_dir, context_with_temp_dir):
         """Test that results are sorted by modification time."""
         import time
 
@@ -197,18 +204,18 @@ class TestGlobFiles:
         file2 = temp_dir / "new.txt"
         file2.touch()
 
-        files = await glob_files("*.txt", str(temp_dir))
+        files = await glob_files(context_with_temp_dir, "*.txt", str(temp_dir))
         assert len(files) == 2
         # Newer file should come first
         assert "new.txt" in files[0]
         assert "old.txt" in files[1]
 
-    async def test_glob_excludes_directories(self, temp_dir):
+    async def test_glob_excludes_directories(self, temp_dir, context_with_temp_dir):
         """Test that glob only returns files, not directories."""
         (temp_dir / "file.txt").touch()
         (temp_dir / "subdir").mkdir()
 
-        files = await glob_files("*", str(temp_dir))
+        files = await glob_files(context_with_temp_dir, "*", str(temp_dir))
         assert len(files) == 1
         assert "file.txt" in files[0]
         assert "subdir" not in str(files)
@@ -218,7 +225,7 @@ class TestGlobFiles:
 class TestGrepFiles:
     """Test the grep files functionality."""
 
-    async def test_grep_simple_pattern(self, temp_dir):
+    async def test_grep_simple_pattern(self, temp_dir, context_with_temp_dir):
         """Test simple grep pattern."""
         # Create test files with content
         file1 = temp_dir / "test1.txt"
@@ -230,22 +237,22 @@ class TestGrepFiles:
         file3 = temp_dir / "test3.txt"
         file3.write_text("Hello Again")
 
-        files = await grep_files("Hello", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "Hello", str(temp_dir))
         assert len(files) == 2
         assert any("test1.txt" in f for f in files)
         assert any("test3.txt" in f for f in files)
         assert not any("test2.txt" in f for f in files)
 
-    async def test_grep_regex_pattern(self, temp_dir):
+    async def test_grep_regex_pattern(self, temp_dir, context_with_temp_dir):
         """Test regex pattern."""
         file1 = temp_dir / "test.txt"
         file1.write_text("Error: Something went wrong\nInfo: All good")
 
-        files = await grep_files("Error:.*wrong", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "Error:.*wrong", str(temp_dir))
         assert len(files) == 1
         assert "test.txt" in files[0]
 
-    async def test_grep_with_include_filter(self, temp_dir):
+    async def test_grep_with_include_filter(self, temp_dir, context_with_temp_dir):
         """Test grep with include filter."""
         # Create mixed file types
         py_file = temp_dir / "code.py"
@@ -254,25 +261,25 @@ class TestGrepFiles:
         txt_file = temp_dir / "doc.txt"
         txt_file.write_text("def test(): pass")
 
-        files = await grep_files("def", str(temp_dir), include="*.py")
+        files = await grep_files(context_with_temp_dir, "def", str(temp_dir), include="*.py")
         assert len(files) == 1
         assert "code.py" in files[0]
 
-    async def test_grep_invalid_regex(self, temp_dir):
+    async def test_grep_invalid_regex(self, temp_dir, context_with_temp_dir):
         """Test grep with invalid regex."""
-        files = await grep_files("[invalid(regex", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "[invalid(regex", str(temp_dir))
         assert len(files) == 1
         assert files[0].startswith("Error: Invalid regex pattern:")
 
-    async def test_grep_no_matches(self, temp_dir):
+    async def test_grep_no_matches(self, temp_dir, context_with_temp_dir):
         """Test grep with no matches."""
         file1 = temp_dir / "test.txt"
         file1.write_text("Nothing here")
 
-        files = await grep_files("NotFound", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "NotFound", str(temp_dir))
         assert files == []
 
-    async def test_grep_binary_files_skipped(self, temp_dir):
+    async def test_grep_binary_files_skipped(self, temp_dir, context_with_temp_dir):
         """Test that binary files are skipped."""
         # Create a binary file
         binary_file = temp_dir / "binary.bin"
@@ -282,11 +289,11 @@ class TestGrepFiles:
         text_file = temp_dir / "text.txt"
         text_file.write_text("Hello World")
 
-        files = await grep_files("Hello", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "Hello", str(temp_dir))
         # Should find text file, binary file handling may vary
         assert any("text.txt" in f for f in files)
 
-    async def test_grep_nested_directories(self, temp_dir):
+    async def test_grep_nested_directories(self, temp_dir, context_with_temp_dir):
         """Test grep in nested directories."""
         subdir = temp_dir / "subdir"
         subdir.mkdir()
@@ -297,12 +304,12 @@ class TestGrepFiles:
         file2 = subdir / "nested.txt"
         file2.write_text("pattern here too")
 
-        files = await grep_files("pattern", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "pattern", str(temp_dir))
         assert len(files) == 2
         assert any("top.txt" in f for f in files)
         assert any("nested.txt" in f for f in files)
 
-    async def test_grep_sorted_by_mtime(self, temp_dir):
+    async def test_grep_sorted_by_mtime(self, temp_dir, context_with_temp_dir):
         """Test that results are sorted by modification time."""
         import time
 
@@ -314,7 +321,7 @@ class TestGrepFiles:
         file2 = temp_dir / "new.txt"
         file2.write_text("pattern")
 
-        files = await grep_files("pattern", str(temp_dir))
+        files = await grep_files(context_with_temp_dir, "pattern", str(temp_dir))
         assert len(files) == 2
         # Newer file should come first
         assert "new.txt" in files[0]
@@ -325,39 +332,39 @@ class TestGrepFiles:
 class TestListDirectory:
     """Test the list directory functionality."""
 
-    async def test_list_simple_directory(self, temp_dir):
+    async def test_list_simple_directory(self, temp_dir, context_with_temp_dir):
         """Test listing a simple directory."""
         # Create test files and directories
         (temp_dir / "file1.txt").touch()
         (temp_dir / "file2.py").touch()
         (temp_dir / "subdir").mkdir()
 
-        entries = await list_directory(str(temp_dir))
+        entries = await list_directory(context_with_temp_dir, str(temp_dir))
         assert len(entries) == 3
         assert "file1.txt" in entries
         assert "file2.py" in entries
         assert "subdir/" in entries  # Directories have trailing slash
 
-    async def test_list_empty_directory(self, temp_dir):
+    async def test_list_empty_directory(self, temp_dir, context_with_temp_dir):
         """Test listing an empty directory."""
-        entries = await list_directory(str(temp_dir))
+        entries = await list_directory(context_with_temp_dir, str(temp_dir))
         assert entries == []
 
-    async def test_list_with_ignore_patterns(self, temp_dir):
+    async def test_list_with_ignore_patterns(self, temp_dir, context_with_temp_dir):
         """Test listing with ignore patterns."""
         (temp_dir / "file.txt").touch()
         (temp_dir / "file.pyc").touch()
         (temp_dir / ".hidden").touch()
         (temp_dir / "keep.py").touch()
 
-        entries = await list_directory(str(temp_dir), ignore=["*.pyc", ".*"])
+        entries = await list_directory(context_with_temp_dir, str(temp_dir), ignore=["*.pyc", ".*"])
         assert len(entries) == 2
         assert "file.txt" in entries
         assert "keep.py" in entries
         assert "file.pyc" not in entries
         assert ".hidden" not in entries
 
-    async def test_list_non_absolute_path(self, temp_dir):
+    async def test_list_non_absolute_path(self, temp_dir, context_with_temp_dir):
         """Test with relative path (which gets resolved to absolute)."""
         # Create a subdirectory
         sub_dir = temp_dir / "subdir"
@@ -365,36 +372,38 @@ class TestListDirectory:
         (sub_dir / "file.txt").touch()
 
         # Use relative path from temp_dir
-        entries = await list_directory(str(sub_dir))
+        entries = await list_directory(context_with_temp_dir, str(sub_dir))
         assert "file.txt" in entries
 
-    async def test_list_nonexistent_path(self, temp_dir):
+    async def test_list_nonexistent_path(self, temp_dir, mock_context):
         """Test listing non-existent directory."""
         # Try to list a path outside allowed directory
-        entries = await list_directory("/path/that/does/not/exist")
+        entries = await list_directory(mock_context, "/path/that/does/not/exist")
         assert len(entries) == 1
-        assert "outside the allowed directory" in entries[0]
+        assert (
+            "Error: Path" in entries[0] and "outside the allowed director" in entries[0]
+        )  # Matches both directory/directories
 
-    async def test_list_file_instead_of_directory(self, temp_dir):
+    async def test_list_file_instead_of_directory(self, temp_dir, context_with_temp_dir):
         """Test error when path is a file."""
         test_file = temp_dir / "file.txt"
         test_file.touch()
 
-        entries = await list_directory(str(test_file))
+        entries = await list_directory(context_with_temp_dir, str(test_file))
         assert len(entries) == 1
         assert entries[0].startswith("Error: Path is not a directory:")
 
-    async def test_list_sorted_entries(self, temp_dir):
+    async def test_list_sorted_entries(self, temp_dir, context_with_temp_dir):
         """Test that entries are sorted."""
         (temp_dir / "z_file.txt").touch()
         (temp_dir / "a_file.txt").touch()
         (temp_dir / "m_file.txt").touch()
 
-        entries = await list_directory(str(temp_dir))
+        entries = await list_directory(context_with_temp_dir, str(temp_dir))
         assert entries == ["a_file.txt", "m_file.txt", "z_file.txt"]
 
     @pytest.mark.skipif(sys.platform == "win32", reason="Permission test not reliable on Windows")
-    async def test_list_permission_denied(self, temp_dir):
+    async def test_list_permission_denied(self, temp_dir, context_with_temp_dir):
         """Test handling permission denied."""
         # Create directory with no read permission
         no_read = temp_dir / "no_read"
@@ -402,7 +411,7 @@ class TestListDirectory:
         no_read.chmod(0o000)
 
         try:
-            entries = await list_directory(str(no_read))
+            entries = await list_directory(context_with_temp_dir, str(no_read))
             assert len(entries) == 1
             assert "Permission denied" in entries[0]
         finally:

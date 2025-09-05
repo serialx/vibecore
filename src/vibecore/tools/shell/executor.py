@@ -6,13 +6,20 @@ import re
 import subprocess
 from pathlib import Path
 
+from agents import RunContextWrapper
+
+from vibecore.context import VibecoreContext
+from vibecore.settings import settings
 from vibecore.tools.file.utils import PathValidationError, validate_file_path
 
 
-async def bash_executor(command: str, timeout: int | None = None) -> tuple[str, int]:
+async def bash_executor(
+    ctx: RunContextWrapper[VibecoreContext], command: str, timeout: int | None = None
+) -> tuple[str, int]:
     """Execute a bash command asynchronously.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         command: The bash command to execute
         timeout: Optional timeout in milliseconds (max 600000)
 
@@ -31,6 +38,13 @@ async def bash_executor(command: str, timeout: int | None = None) -> tuple[str, 
 
     # Convert timeout to seconds
     timeout_seconds = timeout / 1000.0
+
+    # Validate command paths if path confinement is enabled
+    if settings.path_confinement.enabled:
+        try:
+            ctx.context.path_validator.validate_command_paths(command)
+        except PathValidationError as e:
+            return f"Error: {e}", 1
 
     process = None
     try:
@@ -66,10 +80,11 @@ async def bash_executor(command: str, timeout: int | None = None) -> tuple[str, 
         return f"Error executing command: {e}", 1
 
 
-async def glob_files(pattern: str, path: str | None = None) -> list[str]:
+async def glob_files(ctx: RunContextWrapper[VibecoreContext], pattern: str, path: str | None = None) -> list[str]:
     """Find files matching a glob pattern.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         pattern: The glob pattern to match
         path: Optional directory to search in (defaults to CWD)
 
@@ -78,7 +93,23 @@ async def glob_files(pattern: str, path: str | None = None) -> list[str]:
     """
     try:
         # Validate and resolve the path
-        search_path = Path.cwd() if path is None else validate_file_path(path)
+        if path is None:
+            search_path = Path.cwd()
+            # Validate CWD is in allowed directories if path confinement is enabled
+            if settings.path_confinement.enabled:
+                try:
+                    ctx.context.path_validator.validate_path(search_path, operation="glob")
+                except PathValidationError as e:
+                    return [f"Error: {e}"]
+        else:
+            # Validate the provided path
+            if settings.path_confinement.enabled:
+                try:
+                    search_path = ctx.context.path_validator.validate_path(path, operation="glob")
+                except PathValidationError as e:
+                    return [f"Error: {e}"]
+            else:
+                search_path = validate_file_path(path)
 
         # Validate path is a directory
         if not search_path.is_dir():
@@ -110,10 +141,13 @@ async def glob_files(pattern: str, path: str | None = None) -> list[str]:
         return [f"Error: {e}"]
 
 
-async def grep_files(pattern: str, path: str | None = None, include: str | None = None) -> list[str]:
+async def grep_files(
+    ctx: RunContextWrapper[VibecoreContext], pattern: str, path: str | None = None, include: str | None = None
+) -> list[str]:
     """Search file contents using regular expressions.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         pattern: The regex pattern to search for
         path: Directory to search in (defaults to CWD)
         include: File pattern to include (e.g. "*.js")
@@ -123,7 +157,23 @@ async def grep_files(pattern: str, path: str | None = None, include: str | None 
     """
     try:
         # Validate and resolve the path
-        search_path = Path.cwd() if path is None else validate_file_path(path)
+        if path is None:
+            search_path = Path.cwd()
+            # Validate CWD is in allowed directories if path confinement is enabled
+            if settings.path_confinement.enabled:
+                try:
+                    ctx.context.path_validator.validate_path(search_path, operation="grep")
+                except PathValidationError as e:
+                    return [f"Error: {e}"]
+        else:
+            # Validate the provided path
+            if settings.path_confinement.enabled:
+                try:
+                    search_path = ctx.context.path_validator.validate_path(path, operation="grep")
+                except PathValidationError as e:
+                    return [f"Error: {e}"]
+            else:
+                search_path = validate_file_path(path)
 
         # Validate path is a directory
         if not search_path.is_dir():
@@ -175,10 +225,13 @@ async def grep_files(pattern: str, path: str | None = None, include: str | None 
         return [f"Error: {e}"]
 
 
-async def list_directory(path: str, ignore: list[str] | None = None) -> list[str]:
+async def list_directory(
+    ctx: RunContextWrapper[VibecoreContext], path: str, ignore: list[str] | None = None
+) -> list[str]:
     """List files and directories in a given path.
 
     Args:
+        ctx: The context wrapper containing the VibecoreContext
         path: The absolute path to list
         ignore: Optional list of glob patterns to ignore
 
@@ -187,7 +240,10 @@ async def list_directory(path: str, ignore: list[str] | None = None) -> list[str
     """
     try:
         # Validate and resolve the path
-        dir_path = validate_file_path(path)
+        if settings.path_confinement.enabled:
+            dir_path = ctx.context.path_validator.validate_path(path, operation="list")
+        else:
+            dir_path = validate_file_path(path)
 
         # Validate path is a directory
         if not dir_path.is_dir():

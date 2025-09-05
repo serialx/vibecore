@@ -375,6 +375,38 @@ uv run ruff check . && uv run ruff format --check . && uv run pyright . && uv ru
 
 ## Configuration
 
+### Path Confinement (Security)
+
+vibecore includes a path confinement system that restricts file and shell operations to specified directories for enhanced security. This prevents agents from accessing sensitive system files or directories outside your project.
+
+#### Configuration Options
+
+```yaml
+# config.yaml
+path_confinement:
+  enabled: true                    # Enable/disable path confinement (default: true)
+  allowed_directories:              # List of allowed directories (default: [current working directory])
+    - /home/user/projects
+    - /tmp
+  allow_home: false                # Allow access to user's home directory (default: false)
+  allow_temp: true                 # Allow access to system temp directory (default: true)
+  strict_mode: false               # Strict validation mode (default: false)
+```
+
+Or via environment variables:
+```bash
+export VIBECORE_PATH_CONFINEMENT__ENABLED=true
+export VIBECORE_PATH_CONFINEMENT__ALLOWED_DIRECTORIES='["/home/user/projects", "/tmp"]'
+export VIBECORE_PATH_CONFINEMENT__ALLOW_HOME=false
+export VIBECORE_PATH_CONFINEMENT__ALLOW_TEMP=true
+```
+
+When enabled, the path confinement system:
+- Validates all file read/write/edit operations
+- Checks paths in shell commands before execution
+- Resolves symlinks to prevent escapes
+- Blocks access to files outside allowed directories
+
 ### Reasoning Effort
 
 - Set default via env var: `VIBECORE_REASONING_EFFORT` (minimal | low | medium | high)
@@ -436,6 +468,7 @@ vibecore is built with a modular, extensible architecture:
 
 ## Recent Updates
 
+- **Path Confinement**: New security feature to restrict file and shell operations to specified directories
 - **Reasoning View**: New ReasoningMessage widget with live reasoning summaries during streaming
 - **Context Usage Bar & CWD**: Footer shows token usage progress and current working directory
 - **Keyboard & Commands**: Ctrl+Shift+D toggles theme, Esc cancels, Ctrl+D double-press to exit, `/help` and `/clear` commands
@@ -448,7 +481,7 @@ vibecore is built with a modular, extensible architecture:
 - [x] More custom tool views (Python, Read, Todo widgets)
 - [x] Automation (vibecore -p "prompt")
 - [x] MCP (Model Context Protocol) support
-- [ ] Permission model
+- [x] Path confinement for security
 - [ ] Multi-agent system (agent-as-tools)
 - [ ] Plugin system for custom tools
 - [ ] Automated workflow

@@ -49,7 +49,7 @@ async def read(
     Returns:
         The file contents with line numbers in cat -n format, or an error message
     """
-    return await read_file(file_path, offset, limit)
+    return await read_file(ctx, file_path, offset, limit)
 
 
 @function_tool
@@ -86,7 +86,7 @@ async def edit(
     Returns:
         Success message or error message
     """
-    return await edit_file(file_path, old_string, new_string, replace_all)
+    return await edit_file(ctx, file_path, old_string, new_string, replace_all)
 
 
 @function_tool
@@ -153,7 +153,7 @@ async def multi_edit(
     """
     # Convert EditOperation objects to dictionaries
     edit_dicts = [edit.model_dump() for edit in edits]
-    return await multi_edit_file(file_path, edit_dicts)
+    return await multi_edit_file(ctx, file_path, edit_dicts)
 
 
 @function_tool
@@ -181,4 +181,4 @@ async def write(
     Returns:
         Success message or error message
     """
-    return await write_file(file_path, content)
+    return await write_file(ctx, file_path, content)
