@@ -5,6 +5,20 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-01-30
+
+### Added
+- **Path Confinement System**: Enhanced security with comprehensive path validation
+  - Configurable allowed and blocked paths via settings
+  - Prevents access to sensitive system files and directories
+  - Validates both file and shell operations
+  - Supports pattern-based path restrictions
+- **Copy Button for Agent Messages**: Added copy functionality to AgentMessage widget for improved user experience
+
+### Security
+- Implemented path confinement for file and shell tools to prevent unauthorized access
+- Added comprehensive test coverage for path validation security boundaries
+
 ## [0.3.2] - 2025-01-25
 
 ### Fixed
