@@ -62,6 +62,34 @@ UserMessage {
 
 AgentMessage {
     color: $text;
+
+    Horizontal.agent-message-header {
+        height: auto;
+        width: 1fr;
+        layers: main button;
+
+        .copy-button {
+            layer: button;
+            dock: right;
+            height: 1;
+            width: 8;
+            min-width: 8;
+            margin: 0;
+            padding: 0;
+            background: $secondary;
+            color: $text;
+            border: none;
+            
+            &:hover {
+                background: $secondary-lighten-1;
+            }
+            
+            &:focus {
+                background: $secondary-lighten-1;
+                text-style: bold;
+            }
+        }
+    }
 }
 
 SystemMessage {

@@ -1,10 +1,11 @@
 from enum import StrEnum
 
 from textual.app import ComposeResult
+from textual.containers import Horizontal
 from textual.content import Content
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Markdown, Static
+from textual.widgets import Button, Markdown, Static
 
 
 class MessageStatus(StrEnum):
@@ -166,6 +167,19 @@ class AgentMessage(BaseMessage):
     def get_header_params(self) -> tuple[str, str, bool]:
         """Get parameters for MessageHeader."""
         return ("⏺", self.text, True)
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the agent message."""
+        prefix, text, use_markdown = self.get_header_params()
+        with Horizontal(classes="agent-message-header"):
+            yield MessageHeader(prefix, text, status=self.status, use_markdown=use_markdown)
+            yield Button("Copy", classes="copy-button", variant="primary")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press events."""
+        if event.button.has_class("copy-button"):
+            # Copy the markdown text to clipboard
+            self.app.copy_to_clipboard(self.text)
 
     def update(self, text: str, status: MessageStatus | None = None) -> None:
         """Update the text of the agent message."""
