@@ -269,7 +269,7 @@ class VibecoreApp(App):
             if self.agent_status == "waiting_user_input":
                 self.message_queue.append(event.text)
                 self.user_input_event.set()
-            if self.agent_status == "running":
+            elif self.agent_status == "running":
                 # If agent is running, queue the message
                 self.message_queue.append(event.text)
                 log(f"Message queued: {event.text}")
