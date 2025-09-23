@@ -163,7 +163,7 @@ uv run pytest -k "test_pattern"
    - **MainScroll**: Scrollable container for messages
    - **tool_message_factory**: Factory module for creating appropriate tool message widgets
    
-   ⚠️ **Note**: When modifying ANY message widget, you MUST update the corresponding tests in `tests/test_message_snapshots.py`. See the "Message Widget Testing" section for details.
+   ⚠️ **Note**: When modifying ANY message widget, you MUST update the corresponding tests in `tests/ui/test_message_snapshots.py`. See the "Message Widget Testing" section for details.
 
 5. **Tool System** (`src/vibecore/tools/`):
    - **File Tools**: read, write, edit, multi_edit operations
@@ -245,7 +245,7 @@ uv run pytest -k "test_pattern"
 
 ⚠️ **MUST READ**: Textual is a relatively new library that is rapidly evolving. When developing features related to Textual:
 
-1. **Always examine the Textual source code** located in `.venv/lib/python3.13/site-packages/textual/`
+1. **Always examine the Textual source code** located in `.venv/lib/python3.11/site-packages/textual/` (adjust the `python3.11` segment to match your interpreter's minor version)
 2. **Don't rely solely on documentation** - the source code is the most accurate reference
 3. **Key areas to examine**:
    - Widget implementations in `textual/widgets/` for examples and patterns
@@ -432,7 +432,7 @@ This applies to ALL event handlers in Textual:
 
 ⚠️ **MUST READ**: The openai-agents library is a relatively new framework that is actively evolving. When developing features related to agents:
 
-1. **Always examine the openai-agents source code** located in `.venv/lib/python3.13/site-packages/agents/`
+1. **Always examine the openai-agents source code** located in `.venv/lib/python3.11/site-packages/agents/` (update the `python3.11` portion if you are using a different Python minor release)
 2. **Don't rely solely on documentation** - the source code is the most accurate reference
 3. **Key areas to examine**:
    - Core agent implementation in `agents/agent.py`
@@ -688,25 +688,25 @@ The project uses snapshot testing to verify that widgets render correctly. This 
 
 ```bash
 # Run all snapshot tests
-uv run pytest tests/test_widget_snapshots.py
+uv run pytest tests/ui/test_widget_snapshots.py
 
 # Update snapshots after intentional UI changes
-uv run pytest tests/test_widget_snapshots.py --snapshot-update
+uv run pytest tests/ui/test_widget_snapshots.py --snapshot-update
 
 # Run a specific snapshot test
-uv run pytest tests/test_widget_snapshots.py::TestWidgetSnapshots::test_basic_conversation
+uv run pytest tests/ui/test_widget_snapshots.py::TestWidgetSnapshots::test_basic_conversation
 ```
 
 #### Test Architecture
 
-- **Test Harness**: `tests/test_harness.py` contains `TestVibecoreApp`, a simplified version of the main app optimized for testing
+- **Test Harness**: `tests/_harness/test_harness.py` contains `TestVibecoreApp`, a simplified version of the main app optimized for testing
 - **Session Fixtures**: JSONL files in `tests/fixtures/sessions/` contain pre-recorded conversations for different scenarios
 - **Snapshots**: SVG files in `tests/__snapshots__/` capture the expected visual output
 
 #### Adding New Snapshot Tests
 
 1. Create a new JSONL fixture file in `tests/fixtures/sessions/` with the conversation to test
-2. Add a test method in `tests/test_widget_snapshots.py` that loads the fixture
+2. Add a test method in `tests/ui/test_widget_snapshots.py` that loads the fixture
 3. Run the test with `--snapshot-update` to generate the initial snapshot
 4. Review the generated SVG to ensure it looks correct
 5. Commit both the fixture and snapshot files
@@ -728,8 +728,8 @@ Always review the snapshot diff before updating to ensure changes are intentiona
 
 The project includes a lightweight message testing framework separate from the full app tests:
 
-- **Test Harness**: `tests/message_test_harness.py` - Simple `MessageTestApp` for testing message widgets in isolation
-- **Test Suite**: `tests/test_message_snapshots.py` - Comprehensive snapshot tests for all message types
+- **Test Harness**: `tests/_harness/message_test_harness.py` - Simple `MessageTestApp` for testing message widgets in isolation
+- **Test Suite**: `tests/ui/test_message_snapshots.py` - Comprehensive snapshot tests for all message types
 - **Documentation**: `tests/README_message_tests.md` - Detailed guide on message widget testing
 
 #### When to Update Message Tests
@@ -744,7 +744,7 @@ The project includes a lightweight message testing framework separate from the f
 
 #### How to Update Message Tests
 
-1. **For new message types**, add a test app in `message_test_harness.py`:
+1. **For new message types**, add a test app in `tests/_harness/message_test_harness.py`:
 ```python
 class MyNewMessageTestApp(MessageTestApp):
     def create_test_messages(self):
@@ -752,7 +752,7 @@ class MyNewMessageTestApp(MessageTestApp):
         yield MyNewMessage("Test content", status=MessageStatus.SUCCESS)
 ```
 
-2. **Add corresponding test** in `test_message_snapshots.py`:
+2. **Add corresponding test** in `tests/ui/test_message_snapshots.py`:
 ```python
 def test_my_new_messages(self, snap_compare):
     """Test rendering of MyNewMessage widgets."""
@@ -765,10 +765,10 @@ def test_my_new_messages(self, snap_compare):
 4. **Run tests and update snapshots**:
 ```bash
 # Run message-specific tests
-uv run pytest tests/test_message_snapshots.py
+uv run pytest tests/ui/test_message_snapshots.py
 
 # Update snapshots after verifying changes
-uv run pytest tests/test_message_snapshots.py --snapshot-update
+uv run pytest tests/ui/test_message_snapshots.py --snapshot-update
 ```
 
 #### Message Test Coverage Requirements
