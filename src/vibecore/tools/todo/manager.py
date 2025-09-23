@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from .models import TodoItem, TodoPriority, TodoStatus
+from .models import TodoItem
 
 
 class TodoManager:
@@ -20,12 +20,4 @@ class TodoManager:
 
     def write(self, todos: list[dict[str, Any]]) -> None:
         """Replace the entire todo list."""
-        self.todos = [
-            TodoItem(
-                id=todo["id"],
-                content=todo["content"],
-                status=TodoStatus(todo["status"]),
-                priority=TodoPriority(todo["priority"]),
-            )
-            for todo in todos
-        ]
+        self.todos = [TodoItem(**todo) for todo in todos]

@@ -7,7 +7,7 @@ from agents import RunContextWrapper
 
 from vibecore.context import VibecoreContext
 from vibecore.tools.todo.manager import TodoManager
-from vibecore.tools.todo.models import TodoItemModel
+from vibecore.tools.todo.models import TodoItem, TodoPriority, TodoStatus
 from vibecore.tools.todo.tools import todo_read as todo_read_tool
 from vibecore.tools.todo.tools import todo_write as todo_write_tool
 
@@ -20,7 +20,7 @@ async def todo_read_helper(ctx):
 
 async def todo_write_helper(ctx, todos):
     """Helper to call todo_write implementation."""
-    todos_dict = [todo.model_dump() for todo in todos] if todos and isinstance(todos[0], TodoItemModel) else todos
+    todos_dict = [todo.model_dump() for todo in todos] if todos and isinstance(todos[0], TodoItem) else todos
     ctx.context.todo_manager.write(todos_dict)
     return "Todo list updated successfully."
 
@@ -101,8 +101,8 @@ class TestTodoTools:
     async def test_todo_write_and_read(self, mock_context):
         """Test writing and reading todos through tools."""
         todos = [
-            TodoItemModel(id="1", content="Task 1", status="pending", priority="high"),
-            TodoItemModel(id="2", content="Task 2", status="completed", priority="low"),
+            TodoItem(id="1", content="Task 1", status=TodoStatus.PENDING, priority=TodoPriority.HIGH),
+            TodoItem(id="2", content="Task 2", status=TodoStatus.COMPLETED, priority=TodoPriority.LOW),
         ]
 
         result = await todo_write_helper(mock_context, todos)
@@ -122,21 +122,21 @@ class TestTodoIntegration:
         """Test a complete workflow with all status values."""
         # Start with pending tasks
         todos = [
-            TodoItemModel(id="1", content="Design feature", status="pending", priority="high"),
-            TodoItemModel(id="2", content="Write code", status="pending", priority="medium"),
-            TodoItemModel(id="3", content="Test feature", status="pending", priority="low"),
+            TodoItem(id="1", content="Design feature", status=TodoStatus.PENDING, priority=TodoPriority.HIGH),
+            TodoItem(id="2", content="Write code", status=TodoStatus.PENDING, priority=TodoPriority.MEDIUM),
+            TodoItem(id="3", content="Test feature", status=TodoStatus.PENDING, priority=TodoPriority.LOW),
         ]
         await todo_write_helper(mock_context, todos)
 
         # Update first task to in_progress
-        todos[0] = TodoItemModel(id="1", content="Design feature", status="in_progress", priority="high")
+        todos[0] = TodoItem(id="1", content="Design feature", status=TodoStatus.IN_PROGRESS, priority=TodoPriority.HIGH)
         await todo_write_helper(mock_context, todos)
         result = await todo_read_helper(mock_context)
         assert result[0]["status"] == "in_progress"
 
         # Complete first task and start second
-        todos[0] = TodoItemModel(id="1", content="Design feature", status="completed", priority="high")
-        todos[1] = TodoItemModel(id="2", content="Write code", status="in_progress", priority="medium")
+        todos[0] = TodoItem(id="1", content="Design feature", status=TodoStatus.COMPLETED, priority=TodoPriority.HIGH)
+        todos[1] = TodoItem(id="2", content="Write code", status=TodoStatus.IN_PROGRESS, priority=TodoPriority.MEDIUM)
         await todo_write_helper(mock_context, todos)
         result = await todo_read_helper(mock_context)
         assert result[0]["status"] == "completed"
@@ -145,9 +145,9 @@ class TestTodoIntegration:
     async def test_todo_workflow_with_all_priorities(self, mock_context):
         """Test todo operations with all priority levels."""
         todos = [
-            TodoItemModel(id="1", content="Critical bug fix", status="pending", priority="high"),
-            TodoItemModel(id="2", content="Feature request", status="pending", priority="medium"),
-            TodoItemModel(id="3", content="Documentation update", status="pending", priority="low"),
+            TodoItem(id="1", content="Critical bug fix", status=TodoStatus.PENDING, priority=TodoPriority.HIGH),
+            TodoItem(id="2", content="Feature request", status=TodoStatus.PENDING, priority=TodoPriority.MEDIUM),
+            TodoItem(id="3", content="Documentation update", status=TodoStatus.PENDING, priority=TodoPriority.LOW),
         ]
 
         result = await todo_write_helper(mock_context, todos)
@@ -162,7 +162,7 @@ class TestTodoIntegration:
     async def test_todo_persistence_across_operations(self, mock_context):
         """Test that todos persist correctly across multiple operations."""
         # First write
-        todos = [TodoItemModel(id="1", content="Initial task", status="pending", priority="high")]
+        todos = [TodoItem(id="1", content="Initial task", status=TodoStatus.PENDING, priority=TodoPriority.HIGH)]
         await todo_write_helper(mock_context, todos)
 
         # Read back
@@ -172,9 +172,9 @@ class TestTodoIntegration:
 
         # Add more tasks
         todos = [
-            TodoItemModel(id="1", content="Initial task", status="pending", priority="high"),
-            TodoItemModel(id="2", content="Second task", status="in_progress", priority="medium"),
-            TodoItemModel(id="3", content="Third task", status="completed", priority="low"),
+            TodoItem(id="1", content="Initial task", status=TodoStatus.PENDING, priority=TodoPriority.HIGH),
+            TodoItem(id="2", content="Second task", status=TodoStatus.IN_PROGRESS, priority=TodoPriority.MEDIUM),
+            TodoItem(id="3", content="Third task", status=TodoStatus.COMPLETED, priority=TodoPriority.LOW),
         ]
         await todo_write_helper(mock_context, todos)
 
@@ -188,8 +188,8 @@ class TestTodoIntegration:
         """Test operations with empty todo lists."""
         # Start with some todos
         initial_todos = [
-            TodoItemModel(id="1", content="Task to remove", status="pending", priority="high"),
-            TodoItemModel(id="2", content="Another task", status="completed", priority="low"),
+            TodoItem(id="1", content="Task to remove", status=TodoStatus.PENDING, priority=TodoPriority.HIGH),
+            TodoItem(id="2", content="Another task", status=TodoStatus.COMPLETED, priority=TodoPriority.LOW),
         ]
         await todo_write_helper(mock_context, initial_todos)
         result = await todo_read_helper(mock_context)
@@ -201,43 +201,45 @@ class TestTodoIntegration:
         assert result == []
 
         # Add new todos after clearing
-        new_todos = [TodoItemModel(id="3", content="New task", status="pending", priority="medium")]
+        new_todos = [TodoItem(id="3", content="New task", status=TodoStatus.PENDING, priority=TodoPriority.MEDIUM)]
         await todo_write_helper(mock_context, new_todos)
         result = await todo_read_helper(mock_context)
         assert len(result) == 1
         assert result[0]["id"] == "3"
 
 
-class TestTodoItemModel:
-    """Test the TodoItemModel Pydantic model."""
+class TestTodoItem:
+    """Test the TodoItem Pydantic model."""
 
-    def test_todo_item_model_creation(self):
-        """Test creating a TodoItemModel."""
-        todo = TodoItemModel(id="test-123", content="Test task", status="pending", priority="high")
+    def test_todo_item_creation(self):
+        """Test creating a TodoItem."""
+        todo = TodoItem(id="test-123", content="Test task", status=TodoStatus.PENDING, priority=TodoPriority.HIGH)
         assert todo.id == "test-123"
         assert todo.content == "Test task"
-        assert todo.status == "pending"
-        assert todo.priority == "high"
+        assert todo.status.value == "pending"
+        assert todo.priority.value == "high"
 
     def test_todo_item_model_dump(self):
-        """Test converting TodoItemModel to dict."""
-        todo = TodoItemModel(id="test-456", content="Another task", status="in_progress", priority="medium")
+        """Test converting TodoItem to dict."""
+        todo = TodoItem(
+            id="test-456", content="Another task", status=TodoStatus.IN_PROGRESS, priority=TodoPriority.MEDIUM
+        )
         todo_dict = todo.model_dump()
         assert todo_dict == {"id": "test-456", "content": "Another task", "status": "in_progress", "priority": "medium"}
 
-    def test_todo_item_model_validation(self):
-        """Test TodoItemModel validation."""
+    def test_todo_item_validation(self):
+        """Test TodoItem validation."""
         # Valid statuses and priorities
-        valid_todo = TodoItemModel(id="1", content="Valid task", status="completed", priority="low")
-        assert valid_todo.status == "completed"
-        assert valid_todo.priority == "low"
+        valid_todo = TodoItem(id="1", content="Valid task", status=TodoStatus.COMPLETED, priority=TodoPriority.LOW)
+        assert valid_todo.status.value == "completed"
+        assert valid_todo.priority.value == "low"
 
         # Test with all valid combinations
-        for status in ["pending", "in_progress", "completed"]:
-            for priority in ["high", "medium", "low"]:
-                todo = TodoItemModel(
+        for status in TodoStatus:
+            for priority in TodoPriority:
+                todo = TodoItem(
                     id=f"{status}-{priority}",
-                    content=f"Task with {status} and {priority}",
+                    content=f"Task with {status.value} and {priority.value}",
                     status=status,
                     priority=priority,
                 )
@@ -293,17 +295,17 @@ class TestTodoToolsDecoration:
         assert todos_schema["type"] == "array"
         assert "items" in todos_schema
 
-        # Check item schema - it should reference TodoItemModel
+        # Check item schema - it should reference TodoItem
         item_schema = todos_schema["items"]
         assert "$ref" in item_schema
-        assert "TodoItemModel" in item_schema["$ref"]
+        assert "TodoItem" in item_schema["$ref"]
 
-        # Check that the schema has definitions for TodoItemModel
+        # Check that the schema has definitions for TodoItem
         assert "$defs" in schema
-        assert "TodoItemModel" in schema["$defs"]
+        assert "TodoItem" in schema["$defs"]
 
-        # Check TodoItemModel definition
-        model_def = schema["$defs"]["TodoItemModel"]
+        # Check TodoItem definition
+        model_def = schema["$defs"]["TodoItem"]
         assert "properties" in model_def
         assert "id" in model_def["properties"]
         assert "content" in model_def["properties"]

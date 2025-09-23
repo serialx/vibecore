@@ -1,10 +1,9 @@
 """Todo data models."""
 
 import uuid
-from dataclasses import dataclass, field
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TodoStatus(str, Enum):
@@ -19,18 +18,10 @@ class TodoPriority(str, Enum):
     LOW = "low"
 
 
-@dataclass
-class TodoItem:
+class TodoItem(BaseModel):
+    """Pydantic model for todo items."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     content: str
     status: TodoStatus
     priority: TodoPriority
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-
-
-class TodoItemModel(BaseModel):
-    """Pydantic model for todo items."""
-
-    id: str
-    content: str
-    status: str
-    priority: str
