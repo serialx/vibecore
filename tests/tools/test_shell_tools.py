@@ -412,8 +412,13 @@ class TestListDirectory:
 
         try:
             entries = await list_directory(context_with_temp_dir, str(no_read))
-            assert len(entries) == 1
-            assert "Permission denied" in entries[0]
+            if getattr(os, "geteuid", lambda: None)() == 0:
+                # When executed as root, the kernel bypasses the permission bits,
+                # so listing succeeds and simply returns an empty directory.
+                assert entries == []
+            else:
+                assert len(entries) == 1
+                assert "Permission denied" in entries[0]
         finally:
             # Restore permissions for cleanup
             no_read.chmod(0o755)
