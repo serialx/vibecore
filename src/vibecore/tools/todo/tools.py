@@ -6,7 +6,7 @@ from agents import RunContextWrapper, function_tool
 
 from vibecore.context import VibecoreContext
 
-from .models import TodoItemModel
+from .models import TodoItem
 
 
 @function_tool
@@ -38,7 +38,7 @@ async def todo_read(ctx: RunContextWrapper[VibecoreContext]) -> list[dict[str, A
 
 
 @function_tool
-async def todo_write(ctx: RunContextWrapper[VibecoreContext], todos: list[TodoItemModel]) -> str:
+async def todo_write(ctx: RunContextWrapper[VibecoreContext], todos: list[TodoItem]) -> str:
     """Use this tool to create and manage a structured task list for your current coding session. This helps you
     track progress, organize complex tasks, and demonstrate thoroughness to the user. It also helps the user
     understand the progress of the task and overall progress of their requests.
@@ -106,6 +106,6 @@ async def todo_write(ctx: RunContextWrapper[VibecoreContext], todos: list[TodoIt
             Success message.
     """
     # Convert Pydantic models to dicts for the implementation
-    todos_dict = [todo.model_dump() for todo in todos]
+    todos_dict = [todo.model_dump() if isinstance(todo, TodoItem) else TodoItem(**todo).model_dump() for todo in todos]
     ctx.context.todo_manager.write(todos_dict)
     return "Todo list updated successfully."
