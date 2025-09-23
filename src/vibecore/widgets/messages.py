@@ -1,3 +1,4 @@
+import os
 from enum import StrEnum
 
 from textual.app import ComposeResult
@@ -84,11 +85,16 @@ class MessageHeader(Widget):
         # self.query_one(".prefix").visible = self._prefix_visible
 
     def _on_mount(self, event) -> None:
+        disable_blink = bool(os.environ.get("TEXTUAL_SNAPSHOT_TEMPDIR"))
         self.blink_timer = self.set_interval(
             0.5,
             self._toggle_cursor_blink_visible,
-            pause=(self.status != MessageStatus.EXECUTING),
+            pause=(self.status != MessageStatus.EXECUTING) or disable_blink,
         )
+        # Ensure the prefix starts visible for executing statuses so snapshot tests
+        # and initial renders see the indicator before the first timer tick hides it.
+        if self.status == MessageStatus.EXECUTING:
+            self._prefix_visible = True
 
 
 class BaseMessage(Widget):
