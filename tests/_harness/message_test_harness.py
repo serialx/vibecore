@@ -7,6 +7,7 @@ from typing import ClassVar
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll
 
+from vibecore.widgets.feedback import FeedbackWidget
 from vibecore.widgets.messages import AgentMessage, MessageStatus, ReasoningMessage, UserMessage
 from vibecore.widgets.tool_messages import (
     MCPToolMessage,
@@ -33,6 +34,7 @@ class MessageTestApp(App):
     CSS_PATH: ClassVar = [
         str(VIBECORE_SRC / "widgets" / "core.tcss"),
         str(VIBECORE_SRC / "widgets" / "messages.tcss"),
+        str(VIBECORE_SRC / "widgets" / "feedback.tcss"),
         str(VIBECORE_SRC / "widgets" / "tool_messages.tcss"),
         str(VIBECORE_SRC / "widgets" / "expandable.tcss"),
         str(VIBECORE_SRC / "widgets" / "info.tcss"),
@@ -364,3 +366,13 @@ class MCPToolMessageTestApp(MessageTestApp):
             ),
             status=MessageStatus.SUCCESS,
         )
+
+
+class FeedbackWidgetTestApp(MessageTestApp):
+    """Test app for FeedbackWidget."""
+
+    def create_test_messages(self) -> ComposeResult:
+        """Create various FeedbackWidget test cases."""
+        # Simple feedback widget with default prompt
+        yield AgentMessage("Here's a helpful response about Python.", status=MessageStatus.SUCCESS)
+        yield FeedbackWidget(prompt="Was this response helpful?")
