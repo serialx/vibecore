@@ -355,9 +355,6 @@ class VibecoreApp(App):
 
             self.current_worker = self.handle_streamed_response(result)
 
-    def on_click(self) -> None:
-        self.query_one("#input-textarea").focus()
-
     def _get_model_context_window(self) -> int:
         from vibecore.settings import settings
 
