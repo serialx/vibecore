@@ -5,6 +5,24 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2025-09-30
+
+### Added
+- **FeedbackWidget**: New widget for collecting user feedback
+
+### Changed
+- Remove input textarea autofocus on click for improved user experience
+
+### Fixed
+- Fix snapshot flakiness for executing message headers in tests
+- Handle list_directory permission test when running as root
+
+### Refactoring
+- Consolidate todo item model for better code organization
+
+### Documentation
+- Add AGENTS.md and update CLAUDE.md
+
 ## [0.4.1] - 2025-09-19
 
 ### Fixed
