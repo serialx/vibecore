@@ -46,7 +46,12 @@ async def logic() -> str:
 
 
 async def main():
-    result = await vibecore.run_textual(shutdown=False)
+    print("Running static flow with predefined inputs...")
+    result = await vibecore.run("hi")
+    print(f"Final output: {result}")
+    print("*" * 40)
+    print("Running interactive CLI flow...")
+    result = await vibecore.run_cli()
     print(f"Final output: {result}")
 
 

@@ -8,8 +8,6 @@ from agents import (
     Agent,
     HandoffOutputItem,
     RunContextWrapper,
-    Runner,
-    TResponseInputItem,
     function_tool,
     handoff,
     trace,
@@ -17,8 +15,7 @@ from agents import (
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from pydantic import BaseModel
 
-from vibecore.flow import UserInputFunc, flow
-from vibecore.main import SystemMessage, VibecoreApp, VibecoreContext
+from vibecore.flow import Vibecore
 
 ### CONTEXT
 
@@ -130,10 +127,12 @@ seat_booking_agent.handoffs.append(triage_agent)
 
 ### RUN
 
+vibecore: Vibecore[None] = Vibecore(triage_agent)
 
-async def logic(app: VibecoreApp, ctx: VibecoreContext, user_input: UserInputFunc):
+
+@vibecore.workflow()
+async def logic() -> None:
     current_agent: Agent[AirlineAgentContext] = triage_agent
-    input_items: list[TResponseInputItem] = []
     context = AirlineAgentContext()
 
     # Normally, each input from the user would be an API request to your app, and you can wrap the request in a trace()
@@ -141,24 +140,24 @@ async def logic(app: VibecoreApp, ctx: VibecoreContext, user_input: UserInputFun
     conversation_id = uuid.uuid4().hex[:16]
 
     while True:
-        user_input_ = await user_input()
+        user_input_ = await vibecore.user_input()
         with trace("Customer service", group_id=conversation_id):
-            input_items.append({"content": user_input_, "role": "user"})
-            result = Runner.run_streamed(current_agent, input_items, context=context)
-
-            app.current_worker = app.handle_streamed_response(result)
-            await app.current_worker.wait()
+            result = await vibecore.run_agent(
+                current_agent,
+                input=user_input_,
+                context=context,
+                session=vibecore.session,
+            )
 
             for new_item in result.new_items:
                 if isinstance(new_item, HandoffOutputItem):
                     message = f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
-                    await app.add_message(SystemMessage(message))
-            input_items = result.to_input_list()
+                    await vibecore.print(message)
             current_agent = result.last_agent
 
 
 async def main():
-    await flow(agent=triage_agent, logic=logic)
+    await vibecore.run_textual(shutdown=False)
 
 
 if __name__ == "__main__":

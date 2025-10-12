@@ -5,6 +5,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from agents import Session
+
 if TYPE_CHECKING:
     from openai.types.responses import ResponseInputItemParam as TResponseInputItem
 
@@ -14,7 +16,7 @@ from .path_utils import get_session_file_path
 logger = logging.getLogger(__name__)
 
 
-class JSONLSession:
+class JSONLSession(Session):
     """JSONL-based implementation of the agents.Session protocol.
 
     Stores conversation history in JSON Lines format, with one JSON object
