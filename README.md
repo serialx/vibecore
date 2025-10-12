@@ -138,37 +138,54 @@ Flow Mode allows you to:
 
 ```python
 import asyncio
-from agents import Agent, Runner
-from vibecore.flow import flow, UserInputFunc
+from agents import Agent
+from vibecore.flow import Vibecore
 from vibecore.context import VibecoreContext
+from vibecore.settings import settings
 
 # Define your agent with tools
 agent = Agent[VibecoreContext](
     name="Assistant",
     instructions="You are a helpful assistant",
     tools=[...],  # Your tools here
+    model=settings.model,
 )
 
-# Define your conversation logic
-async def logic(app, ctx: VibecoreContext, user_input: UserInputFunc):
+# Create Vibecore instance
+vibecore: Vibecore[str] = Vibecore(agent)
+
+# Define your conversation logic with decorator
+@vibecore.workflow()
+async def logic() -> str:
     # Get user input programmatically
-    user_message = await user_input("What would you like to do?")
-    
-    # Process with agent
-    result = Runner.run_streamed(
+    user_message = await vibecore.user_input("What would you like to do?")
+
+    # Print status updates
+    await vibecore.print(f"Processing: {user_message}")
+
+    # Process with agent (handles streaming automatically)
+    result = await vibecore.run_agent(
         agent,
         input=user_message,
-        context=ctx,
-        session=app.session,
+        context=vibecore.context,
+        session=vibecore.session,
     )
-    
-    # Handle the response
-    app.current_worker = app.handle_streamed_response(result)
-    await app.current_worker.wait()
 
-# Run the flow
+    await vibecore.print("Done!")
+    return result.final_output
+
+# Run the flow in different modes
 async def main():
-    await flow(agent, logic)
+    # Option 1: TUI mode (full terminal interface)
+    result = await vibecore.run_textual(shutdown=False)
+
+    # Option 2: CLI mode (simple stdin/stdout)
+    # result = await vibecore.run_cli()
+
+    # Option 3: Static mode (programmatic, for testing)
+    # result = await vibecore.run("Calculate 2+2")
+
+    print(f"Final output: {result}")
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -186,11 +203,50 @@ Flow Mode shines when building complex multi-agent systems. See `examples/custom
 
 ### Key Components
 
-- **`flow()`**: Entry point that sets up the Vibecore app with your custom logic
-- **`logic()`**: Your async function that controls the conversation flow
-- **`UserInputFunc`**: Provides programmatic user input collection
-- **`VibecoreContext`**: Shared state across tools and agents
-- **Agent Handoffs**: Transfer control between specialized agents
+- **`Vibecore` class**: Main entry point that orchestrates your workflow
+- **`@vibecore.workflow()` decorator**: Defines your conversation logic function
+- **`vibecore.user_input()`**: Programmatically collect user input
+- **`vibecore.print()`**: Display status messages to the user
+- **`vibecore.run_agent()`**: Execute agent with automatic streaming handling
+- **`vibecore.context`**: Shared state (VibecoreContext) across tools and agents
+- **`vibecore.session`**: Conversation history and persistence
+- **Multiple execution modes**:
+  - `run_textual()`: Full TUI with streaming (original behavior)
+  - `run_cli()`: Simple CLI with stdin/stdout
+  - `run()`: Static mode with predefined inputs (perfect for testing)
+- **Agent Handoffs**: Transfer control between specialized agents with context preservation
+
+### Multi-Mode Execution
+
+One of vibecore's key strengths is the ability to run the **same workflow code** in different execution modes without modification:
+
+#### TUI Mode (Textual User Interface)
+Full-featured terminal interface with streaming responses, tool visualization, and interactive controls:
+```python
+result = await vibecore.run_textual(shutdown=False)
+```
+
+#### CLI Mode (Command-Line Interface)
+Simple stdin/stdout interaction for scripting and automation:
+```python
+result = await vibecore.run_cli()
+```
+
+#### Static Mode (Programmatic)
+Execute with predefined inputs, perfect for testing and batch processing:
+```python
+# Single input
+result = await vibecore.run("Calculate 2+2")
+
+# Multiple inputs (for multi-turn workflows)
+result = await vibecore.run(["First query", "Follow-up", "Final question"])
+```
+
+This unified interface means you can:
+- **Develop once, deploy anywhere**: Write your workflow logic once and run it in any mode
+- **Test easily**: Use static mode for automated testing with predefined inputs
+- **Choose the right interface**: TUI for development, CLI for scripts, static for tests
+- **Extend to new modes**: Add custom runners (HTTP API, Discord bot, etc.) by implementing the runner interface
 
 ### Use Cases
 
@@ -468,8 +524,13 @@ vibecore is built with a modular, extensible architecture:
 
 ## Recent Updates
 
-- **Path Confinement**: New security feature to restrict file and shell operations to specified directories
-- **Reasoning View**: New ReasoningMessage widget with live reasoning summaries during streaming
+- **Flow Mode Refactor (v0.5.0)**: Complete redesign with multi-mode execution support
+  - New `Vibecore` class with decorator-based workflow definition
+  - Unified interface: `user_input()`, `print()`, `run_agent()`
+  - Three execution modes: TUI, CLI, and static (perfect for testing)
+  - Cleaner API with less boilerplate and better type safety
+- **Path Confinement**: Security feature to restrict file and shell operations to specified directories
+- **Reasoning View**: ReasoningMessage widget with live reasoning summaries during streaming
 - **Context Usage Bar & CWD**: Footer shows token usage progress and current working directory
 - **Keyboard & Commands**: Ctrl+Shift+D toggles theme, Esc cancels, Ctrl+D double-press to exit, `/help` and `/clear` commands
 - **MCP Tool Output**: Improved rendering with Markdown and JSON prettification
