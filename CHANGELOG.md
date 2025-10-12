@@ -5,7 +5,7 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2025-01-12
+## [0.5.0] - 2025-10-12
 
 ### Changed
 - **BREAKING**: Refactored Flow Mode into flexible multi-mode framework
@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Prevent duplicate message processing during agent execution by ensuring mutually exclusive handling of user input vs queued messages
 
-## [0.4.0] - 2025-01-30
+## [0.4.0] - 2025-09-05
 
 ### Added
 - **Path Confinement System**: Enhanced security with comprehensive path validation
@@ -70,17 +70,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented path confinement for file and shell tools to prevent unauthorized access
 - Added comprehensive test coverage for path validation security boundaries
 
-## [0.3.2] - 2025-01-25
+## [0.3.2] - 2025-08-25
 
 ### Fixed
 - Disabled dotenv settings loading since vibecore is a framework library
 
-## [0.3.1] - 2025-01-22
+## [0.3.1] - 2025-08-22
 
 ### Added
 - Copy button for query arguments view to improve user experience
 
-## [0.3.0] - 2025-01-22
+## [0.3.0] - 2025-08-22
 
 ### Added
 - **Flow Mode (Experimental)**: New programmatic conversation control system for building structured agent-based applications
