@@ -5,6 +5,34 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-01-12
+
+### Changed
+- **BREAKING**: Refactored Flow Mode into flexible multi-mode framework
+  - Replaced `flow()` function with `Vibecore` class and `@vibecore.workflow()` decorator
+  - Simplified workflow signature: removed explicit `app`, `ctx`, `user_input` parameters
+  - Workflow functions now return typed results instead of void
+  - Unified interface: `user_input()`, `print()`, `run_agent()` work across all modes
+
+### Added
+- **Multi-Mode Execution Support**: Run the same workflow in different modes
+  - `run_textual()`: Full TUI with streaming (original behavior)
+  - `run_cli()`: Simple stdin/stdout interaction
+  - `run()`: Programmatic execution with predefined inputs (perfect for testing)
+- **Runner Architecture**: Extensible pattern for adding new execution modes
+  - `VibecoreRunnerBase`: Base class for all runners
+  - `VibecoreTextualRunner`: TUI mode implementation
+  - `VibecoreCliRunner`: CLI mode implementation
+  - `VibecoreStaticRunner`: Static/testing mode implementation
+- New example: `basic_cli.py` demonstrating CLI and static modes
+
+### Benefits
+- Cleaner, more Pythonic API with less boilerplate
+- Type-safe workflow return values with generics
+- Easy to test with static mode and predefined inputs
+- Separation of concerns between runners and workflow logic
+- Extensible: add new modes (HTTP, Discord, etc.) by implementing runner interface
+
 ## [0.4.2] - 2025-09-30
 
 ### Added
