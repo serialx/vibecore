@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 from agents import FunctionTool, RunContextWrapper
 
-from vibecore.context import VibecoreContext
+from vibecore.context import DefaultVibecoreContext
 from vibecore.tools.shell.executor import bash_executor, glob_files, grep_files, list_directory
 from vibecore.tools.shell.tools import bash as bash_tool
 from vibecore.tools.shell.tools import glob as glob_tool
@@ -25,7 +25,7 @@ def mock_context():
 
     # Create a real VibecoreContext with current working directory only
     allowed_dirs = [Path.cwd()]
-    mock_ctx.context = VibecoreContext(allowed_directories=allowed_dirs)
+    mock_ctx.context = DefaultVibecoreContext(allowed_directories=allowed_dirs)
     return mock_ctx
 
 
@@ -44,7 +44,7 @@ def context_with_temp_dir(temp_dir):
 
     # Create VibecoreContext with the temp directory as allowed
     allowed_dirs = [Path.cwd(), temp_dir]
-    mock_ctx.context = VibecoreContext(allowed_directories=allowed_dirs)
+    mock_ctx.context = DefaultVibecoreContext(allowed_directories=allowed_dirs)
     return mock_ctx
 
 

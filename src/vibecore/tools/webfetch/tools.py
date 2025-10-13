@@ -2,7 +2,7 @@
 
 from agents import RunContextWrapper, function_tool
 
-from vibecore.context import VibecoreContext
+from vibecore.context import BasicToolContext
 
 from .executor import fetch_url
 from .models import WebFetchParams
@@ -10,7 +10,7 @@ from .models import WebFetchParams
 
 @function_tool
 async def webfetch(
-    ctx: RunContextWrapper[VibecoreContext],
+    ctx: RunContextWrapper[BasicToolContext],
     url: str,
     timeout: int = 30,
     follow_redirects: bool = True,

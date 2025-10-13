@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 from vibecore.tools.python.manager import PythonExecutionManager
 from vibecore.tools.todo.manager import TodoManager
@@ -10,8 +10,53 @@ if TYPE_CHECKING:
     from vibecore.tools.path_validator import PathValidator
 
 
+@runtime_checkable
+class BasicToolContext(Protocol):
+    """Context that does not impose any additional requirements."""
+
+    ...
+
+
+@runtime_checkable
+class TodoToolContext(Protocol):
+    """Context required by todo tools."""
+
+    todo_manager: TodoManager
+
+
+@runtime_checkable
+class PythonToolContext(Protocol):
+    """Context required by Python execution tools."""
+
+    python_manager: PythonExecutionManager
+
+
+@runtime_checkable
+class PathValidatedContext(Protocol):
+    """Context that provides a path validator for file-system tools."""
+
+    path_validator: "PathValidator"
+
+
+@runtime_checkable
+class AppAwareContext(Protocol):
+    """Context that exposes the optional Textual app for streaming updates."""
+
+    app: Optional["VibecoreApp"]
+
+
+@runtime_checkable
+class VibecoreContext(TodoToolContext, PythonToolContext, PathValidatedContext, AppAwareContext, Protocol):
+    """Protocol describing the full context required by Vibecore agents."""
+
+    allowed_directories: list[Path]
+
+    def reset_state(self) -> None:
+        """Reset state between sessions."""
+
+
 @dataclass
-class VibecoreContext:
+class DefaultVibecoreContext:
     todo_manager: TodoManager = field(default_factory=TodoManager)
     python_manager: PythonExecutionManager = field(default_factory=PythonExecutionManager)
     app: Optional["VibecoreApp"] = None
@@ -20,7 +65,7 @@ class VibecoreContext:
     allowed_directories: list[Path] = field(default_factory=list)
     path_validator: "PathValidator" = field(init=False)  # Always initialized, never None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize path validator with allowed directories."""
         from vibecore.tools.path_validator import PathValidator
 
@@ -55,3 +100,8 @@ class VibecoreContext:
         from vibecore.tools.path_validator import PathValidator
 
         self.path_validator = PathValidator(self.allowed_directories)
+
+
+if TYPE_CHECKING:
+    # Ensure DefaultVibecoreContext conforms to the VibecoreContext protocol for static analyzers
+    _default_context: VibecoreContext = DefaultVibecoreContext()

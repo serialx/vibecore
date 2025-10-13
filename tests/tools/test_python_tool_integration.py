@@ -1,9 +1,11 @@
 """Integration tests for Python execution tool with agents."""
 
+from typing import cast
+
 import pytest
 from agents import RunContextWrapper
 
-from vibecore.context import VibecoreContext
+from vibecore.context import DefaultVibecoreContext, PythonToolContext
 from vibecore.tools.python.helpers import execute_python_helper
 
 
@@ -11,8 +13,8 @@ from vibecore.tools.python.helpers import execute_python_helper
 async def test_execute_python_helper_tool_basic():
     """Test the execute_python_helper tool with basic code."""
     # Create a mock context
-    context = VibecoreContext()
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     # Execute simple code
     result = await execute_python_helper(run_context, "print('Hello from tool!')")
@@ -24,8 +26,8 @@ async def test_execute_python_helper_tool_basic():
 @pytest.mark.asyncio
 async def test_execute_python_helper_tool_persistent_state():
     """Test that state persists across tool calls."""
-    context = VibecoreContext()
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     # Define a variable
     result1 = await execute_python_helper(run_context, "test_var = 123")
@@ -39,8 +41,8 @@ async def test_execute_python_helper_tool_persistent_state():
 @pytest.mark.asyncio
 async def test_execute_python_helper_tool_error_handling():
     """Test error handling in the tool."""
-    context = VibecoreContext()  # type: ignore
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     # Syntax error
     result = await execute_python_helper(run_context, "print('unclosed")
@@ -56,8 +58,8 @@ async def test_execute_python_helper_tool_error_handling():
 @pytest.mark.asyncio
 async def test_execute_python_helper_tool_return_values():
     """Test that return values are shown."""
-    context = VibecoreContext()  # type: ignore
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     # Expression that returns a value
     result = await execute_python_helper(run_context, "2 + 2")
@@ -72,8 +74,8 @@ async def test_execute_python_helper_tool_return_values():
 @pytest.mark.asyncio
 async def test_execute_python_helper_tool_complex_code():
     """Test complex code execution."""
-    context = VibecoreContext()  # type: ignore
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     # Define and use a function
     code = """
@@ -93,8 +95,8 @@ print(greet("World"))
 @pytest.mark.asyncio
 async def test_execute_python_helper_tool_imports():
     """Test that imports work correctly."""
-    context = VibecoreContext()  # type: ignore
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     # Import a module
     result = await execute_python_helper(run_context, "import json")
@@ -108,8 +110,8 @@ async def test_execute_python_helper_tool_imports():
 @pytest.mark.asyncio
 async def test_execute_python_helper_tool_multiline_output():
     """Test multiline output formatting."""
-    context = VibecoreContext()  # type: ignore
-    run_context = RunContextWrapper(context=context)
+    context = cast(PythonToolContext, DefaultVibecoreContext())
+    run_context = RunContextWrapper[PythonToolContext](context=context)
 
     code = """
 for i in range(3):

@@ -2,7 +2,7 @@
 
 from agents import RunContextWrapper, function_tool
 
-from vibecore.context import VibecoreContext
+from vibecore.context import BasicToolContext
 
 from .executor import perform_websearch
 from .models import SearchParams
@@ -10,7 +10,7 @@ from .models import SearchParams
 
 @function_tool
 async def websearch(
-    ctx: RunContextWrapper[VibecoreContext],
+    ctx: RunContextWrapper[BasicToolContext],
     query: str,
     max_results: int = 5,
     region: str | None = None,

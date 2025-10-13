@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from agents import RunContextWrapper
 
-from vibecore.context import VibecoreContext
+from vibecore.context import DefaultVibecoreContext
 from vibecore.tools.todo.manager import TodoManager
 from vibecore.tools.todo.models import TodoItem, TodoPriority, TodoStatus
 from vibecore.tools.todo.tools import todo_read as todo_read_tool
@@ -30,7 +30,7 @@ def mock_context():
     """Create a mock RunContextWrapper with VibecoreContext."""
     mock_ctx = MagicMock(spec=RunContextWrapper)
     # Create a real VibecoreContext
-    mock_ctx.context = VibecoreContext()
+    mock_ctx.context = DefaultVibecoreContext()
     return mock_ctx
 
 

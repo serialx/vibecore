@@ -4,13 +4,13 @@ from typing import Any
 
 from agents import RunContextWrapper, function_tool
 
-from vibecore.context import VibecoreContext
+from vibecore.context import TodoToolContext
 
 from .models import TodoItem
 
 
 @function_tool
-async def todo_read(ctx: RunContextWrapper[VibecoreContext]) -> list[dict[str, Any]]:
+async def todo_read(ctx: RunContextWrapper[TodoToolContext]) -> list[dict[str, Any]]:
     """Use this tool to read the current to-do list for the session. This tool should be used proactively and
     frequently to ensure that you are aware of the status of the current task list. You should make use of this
     tool as often as possible, especially in the following situations:
@@ -38,7 +38,7 @@ async def todo_read(ctx: RunContextWrapper[VibecoreContext]) -> list[dict[str, A
 
 
 @function_tool
-async def todo_write(ctx: RunContextWrapper[VibecoreContext], todos: list[TodoItem]) -> str:
+async def todo_write(ctx: RunContextWrapper[TodoToolContext], todos: list[TodoItem]) -> str:
     """Use this tool to create and manage a structured task list for your current coding session. This helps you
     track progress, organize complex tasks, and demonstrate thoroughness to the user. It also helps the user
     understand the progress of the task and overall progress of their requests.

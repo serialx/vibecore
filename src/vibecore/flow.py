@@ -20,7 +20,7 @@ from agents.run import DEFAULT_MAX_TURNS
 from textual.pilot import Pilot
 from typing_extensions import TypeVar
 
-from vibecore.context import VibecoreContext
+from vibecore.context import DefaultVibecoreContext
 from vibecore.main import AppIsExiting, VibecoreApp
 from vibecore.session import JSONLSession
 from vibecore.settings import settings
@@ -265,7 +265,7 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
 
 class Vibecore(Generic[TWorkflowReturn]):
     def __init__(self, disable_user_input: bool = True) -> None:
-        self.context = VibecoreContext()
+        self.context = DefaultVibecoreContext()
         self.workflow_logic: DecoratedCallable[TWorkflowReturn] | None = None
         self.disable_user_input = disable_user_input
         self.runner: VibecoreRunnerBase[TWorkflowReturn] = VibecoreRunnerBase(self)
