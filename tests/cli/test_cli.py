@@ -1,6 +1,6 @@
 """Tests for the Vibecore CLI."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -70,13 +70,23 @@ class TestCLI:
         assert "No existing sessions found" in result.stdout
         mock_app_class.assert_not_called()
 
+    @patch("vibecore.cli.MCPManager")
     @patch("vibecore.cli.VibecoreApp")
     @patch("vibecore.cli.find_latest_session")
-    def test_cli_continue_with_session(self, mock_find_latest, mock_app_class):
+    def test_cli_continue_with_session(self, mock_find_latest, mock_app_class, mock_mcp_manager_class):
         """Test --continue with existing session."""
         mock_find_latest.return_value = "chat-20250124-150000"
+
+        # Mock the app instance with async methods
         mock_app = MagicMock()
+        mock_app.run_async = AsyncMock()
         mock_app_class.return_value = mock_app
+
+        # Mock MCPManager context manager
+        mock_mcp_manager = MagicMock()
+        mock_mcp_manager.servers = []
+        mock_mcp_manager_class.return_value.__aenter__ = AsyncMock(return_value=mock_mcp_manager)
+        mock_mcp_manager_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
         runner = CliRunner()
         result = runner.invoke(app, ["--continue"])
@@ -88,11 +98,20 @@ class TestCLI:
         _, _, kwargs = mock_app_class.mock_calls[0]
         assert kwargs["session_id"] == "chat-20250124-150000"
 
+    @patch("vibecore.cli.MCPManager")
     @patch("vibecore.cli.VibecoreApp")
-    def test_cli_specific_session(self, mock_app_class):
+    def test_cli_specific_session(self, mock_app_class, mock_mcp_manager_class):
         """Test --session with specific session ID."""
+        # Mock the app instance with async methods
         mock_app = MagicMock()
+        mock_app.run_async = AsyncMock()
         mock_app_class.return_value = mock_app
+
+        # Mock MCPManager context manager
+        mock_mcp_manager = MagicMock()
+        mock_mcp_manager.servers = []
+        mock_mcp_manager_class.return_value.__aenter__ = AsyncMock(return_value=mock_mcp_manager)
+        mock_mcp_manager_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
         runner = CliRunner()
         result = runner.invoke(app, ["--session", "chat-custom-123"])
@@ -104,11 +123,20 @@ class TestCLI:
         _, _, kwargs = mock_app_class.mock_calls[0]
         assert kwargs["session_id"] == "chat-custom-123"
 
+    @patch("vibecore.cli.MCPManager")
     @patch("vibecore.cli.VibecoreApp")
-    def test_cli_no_options(self, mock_app_class):
+    def test_cli_no_options(self, mock_app_class, mock_mcp_manager_class):
         """Test running without any options (new session)."""
+        # Mock the app instance with async methods
         mock_app = MagicMock()
+        mock_app.run_async = AsyncMock()
         mock_app_class.return_value = mock_app
+
+        # Mock MCPManager context manager
+        mock_mcp_manager = MagicMock()
+        mock_mcp_manager.servers = []
+        mock_mcp_manager_class.return_value.__aenter__ = AsyncMock(return_value=mock_mcp_manager)
+        mock_mcp_manager_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
         runner = CliRunner()
         result = runner.invoke(app, [])
