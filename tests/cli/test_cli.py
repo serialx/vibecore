@@ -57,9 +57,8 @@ class TestCLI:
         assert result.exit_code == 0
         assert "Run the Vibecore TUI application" in result.stdout
 
-    @patch("vibecore.cli.VibecoreApp")
     @patch("vibecore.cli.find_latest_session")
-    def test_cli_continue_no_sessions(self, mock_find_latest, mock_app_class):
+    def test_cli_continue_no_sessions(self, mock_find_latest):
         """Test --continue when no sessions exist."""
         mock_find_latest.return_value = None
 
@@ -68,19 +67,19 @@ class TestCLI:
 
         assert result.exit_code == 1
         assert "No existing sessions found" in result.stdout
-        mock_app_class.assert_not_called()
 
+    @patch("vibecore.cli.Vibecore")
     @patch("vibecore.cli.MCPManager")
-    @patch("vibecore.cli.VibecoreApp")
     @patch("vibecore.cli.find_latest_session")
-    def test_cli_continue_with_session(self, mock_find_latest, mock_app_class, mock_mcp_manager_class):
+    def test_cli_continue_with_session(self, mock_find_latest, mock_mcp_manager_class, mock_vibecore_class):
         """Test --continue with existing session."""
         mock_find_latest.return_value = "chat-20250124-150000"
 
-        # Mock the app instance with async methods
-        mock_app = MagicMock()
-        mock_app.run_async = AsyncMock()
-        mock_app_class.return_value = mock_app
+        # Mock the vibecore instance with async methods
+        mock_vibecore = MagicMock()
+        mock_vibecore.run_textual = AsyncMock()
+        mock_vibecore.workflow = MagicMock(return_value=lambda f: f)  # Decorator passthrough
+        mock_vibecore_class.return_value = mock_vibecore
 
         # Mock MCPManager context manager
         mock_mcp_manager = MagicMock()
@@ -93,19 +92,17 @@ class TestCLI:
 
         assert result.exit_code == 0
         assert "Continuing session: chat-20250124-150000" in result.stdout
-        mock_app_class.assert_called_once()
-        # Check that session_id was passed
-        _, _, kwargs = mock_app_class.mock_calls[0]
-        assert kwargs["session_id"] == "chat-20250124-150000"
+        mock_vibecore.run_textual.assert_called_once_with(session_id="chat-20250124-150000")
 
+    @patch("vibecore.cli.Vibecore")
     @patch("vibecore.cli.MCPManager")
-    @patch("vibecore.cli.VibecoreApp")
-    def test_cli_specific_session(self, mock_app_class, mock_mcp_manager_class):
+    def test_cli_specific_session(self, mock_mcp_manager_class, mock_vibecore_class):
         """Test --session with specific session ID."""
-        # Mock the app instance with async methods
-        mock_app = MagicMock()
-        mock_app.run_async = AsyncMock()
-        mock_app_class.return_value = mock_app
+        # Mock the vibecore instance with async methods
+        mock_vibecore = MagicMock()
+        mock_vibecore.run_textual = AsyncMock()
+        mock_vibecore.workflow = MagicMock(return_value=lambda f: f)  # Decorator passthrough
+        mock_vibecore_class.return_value = mock_vibecore
 
         # Mock MCPManager context manager
         mock_mcp_manager = MagicMock()
@@ -118,19 +115,17 @@ class TestCLI:
 
         assert result.exit_code == 0
         assert "Loading session: chat-custom-123" in result.stdout
-        mock_app_class.assert_called_once()
-        # Check that session_id was passed
-        _, _, kwargs = mock_app_class.mock_calls[0]
-        assert kwargs["session_id"] == "chat-custom-123"
+        mock_vibecore.run_textual.assert_called_once_with(session_id="chat-custom-123")
 
+    @patch("vibecore.cli.Vibecore")
     @patch("vibecore.cli.MCPManager")
-    @patch("vibecore.cli.VibecoreApp")
-    def test_cli_no_options(self, mock_app_class, mock_mcp_manager_class):
+    def test_cli_no_options(self, mock_mcp_manager_class, mock_vibecore_class):
         """Test running without any options (new session)."""
-        # Mock the app instance with async methods
-        mock_app = MagicMock()
-        mock_app.run_async = AsyncMock()
-        mock_app_class.return_value = mock_app
+        # Mock the vibecore instance with async methods
+        mock_vibecore = MagicMock()
+        mock_vibecore.run_textual = AsyncMock()
+        mock_vibecore.workflow = MagicMock(return_value=lambda f: f)  # Decorator passthrough
+        mock_vibecore_class.return_value = mock_vibecore
 
         # Mock MCPManager context manager
         mock_mcp_manager = MagicMock()
@@ -142,7 +137,5 @@ class TestCLI:
         result = runner.invoke(app, [])
 
         assert result.exit_code == 0
-        mock_app_class.assert_called_once()
         # Check that session_id was None (creates new session)
-        _, _, kwargs = mock_app_class.mock_calls[0]
-        assert kwargs["session_id"] is None
+        mock_vibecore.run_textual.assert_called_once_with(session_id=None)

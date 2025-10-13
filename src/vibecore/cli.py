@@ -2,18 +2,16 @@
 
 import asyncio
 import logging
+import sys
 from importlib.metadata import version
 from pathlib import Path
 
 import typer
-from agents import Agent
 from textual.logging import TextualHandler
 
 from vibecore.agents.default import create_default_agent
-from vibecore.context import VibecoreContext
-from vibecore.main import VibecoreApp
+from vibecore.flow import Vibecore
 from vibecore.mcp import MCPManager
-from vibecore.session import JSONLSession
 from vibecore.settings import settings
 
 app = typer.Typer()
@@ -117,60 +115,31 @@ def main(
     )
 
 
-async def run_print(agent: Agent, context: VibecoreContext, session: "JSONLSession", prompt: str | None = None) -> str:
-    """Run the agent and return the raw output for printing.
-
-    Args:
-        agent: The agent to use
-        context: The VibecoreContext instance
-        session: The session to use
-        prompt: Optional prompt text. If not provided, reads from stdin.
-
-    Returns:
-        The agent's text output as a string
-    """
-    import sys
-
-    from agents import RawResponsesStreamEvent, Runner
-    from openai.types.responses import ResponseTextDeltaEvent
-
-    # Use provided prompt or read from stdin
-    input_text = prompt.strip() if prompt else sys.stdin.read().strip()
-
-    if not input_text:
-        return ""
-
-    # Run the agent
-    result = Runner.run_streamed(
-        agent,
-        input=input_text,
-        context=context,
-        max_turns=settings.max_turns,
-        session=session,
-    )
-
-    # Collect all agent text output
-    agent_output = ""
-
-    async for event in result.stream_events():
-        # Handle text output from agent
-        match event:
-            case RawResponsesStreamEvent(data=data):
-                match data:
-                    case ResponseTextDeltaEvent(delta=delta) if delta:
-                        agent_output += delta
-
-    return agent_output.strip()
-
-
 async def async_main(continue_session: bool, session_id: str | None, prompt: str | None, print_mode: bool):
-    # Create context
-    vibecore_ctx = VibecoreContext()
-
     # Create MCP manager
     async with MCPManager(settings.mcp_servers) as mcp_manager:
         # Create agent with MCP servers
         agent = create_default_agent(mcp_servers=mcp_manager.servers)
+
+        # Create Vibecore instance
+        vibecore: Vibecore[str] = Vibecore(agent, disable_user_input=False)
+
+        # Define workflow logic
+        @vibecore.workflow()
+        async def workflow() -> str:
+            user_message = await vibecore.user_input()
+
+            # Run the agent with the input
+            result = await vibecore.run_agent(
+                agent,
+                input=user_message,
+                context=vibecore.context,
+                max_turns=settings.max_turns,
+                session=vibecore.session,
+            )
+
+            # Return the final output
+            return result.final_output or ""
 
         # Determine session to use
         session_to_load = None
@@ -185,28 +154,15 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
             typer.echo(f"Loading session: {session_to_load}")
 
         if print_mode:
-            # Create session for print mode
-            if session_to_load is None:
-                import datetime
-
-                session_to_load = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-
-            session = JSONLSession(
-                session_id=session_to_load,
-                project_path=None,  # Will use current working directory
-                base_dir=settings.session.base_dir,
-            )
-
-            # Use provided prompt or None to read from stdin
-            result = await run_print(agent, vibecore_ctx, session, prompt)
+            # Use static runner for print mode - pass empty input since we get it in workflow
+            input_text = prompt.strip() if prompt else sys.stdin.read().strip()
+            result = await vibecore.run(input_text)
             # Print raw output to stdout
             if result:
                 print(result)
         else:
-            # Create app
-            app_instance = VibecoreApp(vibecore_ctx, agent, session_id=session_to_load)
-            # Run normal TUI mode
-            await app_instance.run_async()
+            # Run in TUI mode
+            await vibecore.run_textual(session_id=session_to_load)
 
 
 @auth_app.command("login")

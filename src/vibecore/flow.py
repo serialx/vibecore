@@ -221,8 +221,13 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
         except AppIsExiting:
             raise
 
-    async def run(self, shutdown: bool = False) -> TWorkflowReturn:
-        self.app = VibecoreApp(self.vibecore.context, self.vibecore.starting_agent, show_welcome=False)
+    async def run(self, shutdown: bool = False, session_id: str | None = None) -> TWorkflowReturn:
+        self.app = VibecoreApp(
+            self.vibecore.context,
+            self.vibecore.starting_agent,
+            session_id=session_id,
+            show_welcome=False,
+        )
         app_task = asyncio.create_task(self._run_app(), name=f"run_app({self.app})")
         await self.app_ready_event.wait()
         pilot = Pilot(self.app)
@@ -314,12 +319,12 @@ class Vibecore(Generic[TWorkflowReturn]):
             session=session,
         )
 
-    async def run_textual(self, shutdown: bool = False) -> TWorkflowReturn:
+    async def run_textual(self, shutdown: bool = False, session_id: str | None = None) -> TWorkflowReturn:
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
         self.runner = VibecoreTextualRunner(self)
-        return await self.runner.run(shutdown=shutdown)
+        return await self.runner.run(shutdown=shutdown, session_id=session_id)
 
     async def run_cli(self) -> TWorkflowReturn:
         if self.workflow_logic is None:
