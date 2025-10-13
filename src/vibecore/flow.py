@@ -4,7 +4,7 @@ import datetime
 import sys
 import threading
 from collections.abc import Callable, Coroutine
-from typing import Any, Concatenate, Generic, Protocol, TypeAlias, overload
+from typing import Any, Concatenate, Generic, TypeAlias, overload
 
 from agents import (
     Agent,
@@ -32,21 +32,6 @@ class NoUserInputLeft(Exception):
     """Raised when no more user inputs are available in static runner."""
 
     pass
-
-
-class UserInputFunc(Protocol):
-    """Protocol for user input function with optional prompt parameter."""
-
-    async def __call__(self, prompt: str = "") -> str:
-        """Get user input with optional prompt message.
-
-        Args:
-            prompt: Optional prompt to display before getting input.
-
-        Returns:
-            The user's input string.
-        """
-        ...
 
 
 TWorkflowReturn = TypeVar("TWorkflowReturn", default=RunResultBase)
