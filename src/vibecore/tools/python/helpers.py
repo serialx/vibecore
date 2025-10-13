@@ -5,7 +5,7 @@ from io import BytesIO
 
 from agents import RunContextWrapper
 
-from vibecore.context import VibecoreContext
+from vibecore.context import PythonToolContext
 
 try:
     from PIL import Image  # type: ignore[import-not-found]
@@ -16,7 +16,7 @@ except ImportError:
     TERM_IMAGE_AVAILABLE = False
 
 
-async def execute_python_helper(ctx: RunContextWrapper[VibecoreContext], code: str) -> str:
+async def execute_python_helper(ctx: RunContextWrapper[PythonToolContext], code: str) -> str:
     """Helper function to execute Python code.
 
     This is the actual implementation extracted from the tool decorator.

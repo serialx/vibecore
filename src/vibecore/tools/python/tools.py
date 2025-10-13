@@ -2,13 +2,13 @@
 
 from agents import RunContextWrapper, function_tool
 
-from vibecore.context import VibecoreContext
+from vibecore.context import PythonToolContext
 
 from .helpers import execute_python_helper
 
 
 @function_tool
-async def execute_python(ctx: RunContextWrapper[VibecoreContext], code: str) -> str:
+async def execute_python(ctx: RunContextWrapper[PythonToolContext], code: str) -> str:
     """Execute Python code with persistent context across the session.
 
     The execution environment maintains state between calls, allowing you to:

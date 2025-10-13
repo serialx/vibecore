@@ -8,13 +8,13 @@ from pathlib import Path
 
 from agents import RunContextWrapper
 
-from vibecore.context import VibecoreContext
+from vibecore.context import PathValidatedContext
 from vibecore.settings import settings
 from vibecore.tools.file.utils import PathValidationError, validate_file_path
 
 
 async def bash_executor(
-    ctx: RunContextWrapper[VibecoreContext], command: str, timeout: int | None = None
+    ctx: RunContextWrapper[PathValidatedContext], command: str, timeout: int | None = None
 ) -> tuple[str, int]:
     """Execute a bash command asynchronously.
 
@@ -80,7 +80,7 @@ async def bash_executor(
         return f"Error executing command: {e}", 1
 
 
-async def glob_files(ctx: RunContextWrapper[VibecoreContext], pattern: str, path: str | None = None) -> list[str]:
+async def glob_files(ctx: RunContextWrapper[PathValidatedContext], pattern: str, path: str | None = None) -> list[str]:
     """Find files matching a glob pattern.
 
     Args:
@@ -142,7 +142,7 @@ async def glob_files(ctx: RunContextWrapper[VibecoreContext], pattern: str, path
 
 
 async def grep_files(
-    ctx: RunContextWrapper[VibecoreContext], pattern: str, path: str | None = None, include: str | None = None
+    ctx: RunContextWrapper[PathValidatedContext], pattern: str, path: str | None = None, include: str | None = None
 ) -> list[str]:
     """Search file contents using regular expressions.
 
@@ -226,7 +226,7 @@ async def grep_files(
 
 
 async def list_directory(
-    ctx: RunContextWrapper[VibecoreContext], path: str, ignore: list[str] | None = None
+    ctx: RunContextWrapper[PathValidatedContext], path: str, ignore: list[str] | None = None
 ) -> list[str]:
     """List files and directories in a given path.
 
