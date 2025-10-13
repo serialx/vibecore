@@ -136,29 +136,9 @@ class VibecoreApp(App):
 
     async def on_mount(self) -> None:
         """Called when the app is mounted."""
-        # Connect to MCP servers if configured
-        if self.context.mcp_manager:
-            try:
-                await self.context.mcp_manager.connect()
-                log(f"Connected to {len(self.context.mcp_manager.servers)} MCP servers")
-            except Exception as e:
-                log(f"Failed to connect to MCP servers: {e}")
-                # Continue without MCP servers rather than crashing
-
         # Load session history if we're continuing from a previous session
         if self._session_id_provided:
             await self.load_session_history()
-
-    async def on_unmount(self) -> None:
-        """Called when the app is being unmounted (shutdown)."""
-        # Cleanup MCP servers during unmount
-        if self.context.mcp_manager:
-            try:
-                log("Disconnecting from MCP servers...")
-                await self.context.mcp_manager.disconnect()
-                log("Disconnected from MCP servers")
-            except Exception as e:
-                log(f"Error disconnecting from MCP servers during unmount: {e}")
 
     def extract_text_from_content(self, content: list[Content]) -> str:
         """Extract text from various content formats."""
@@ -418,9 +398,6 @@ class VibecoreApp(App):
         from agents import RawResponsesStreamEvent
         from openai.types.responses import ResponseTextDeltaEvent
 
-        if self.context.mcp_manager:
-            await self.context.mcp_manager.connect()
-
         # Run the agent
         result = Runner.run_streamed(
             self.agent,
@@ -440,9 +417,6 @@ class VibecoreApp(App):
                     match data:
                         case ResponseTextDeltaEvent(delta=delta) if delta:
                             agent_output += delta
-
-        if self.context.mcp_manager:
-            await self.context.mcp_manager.disconnect()
 
         return agent_output.strip()
 

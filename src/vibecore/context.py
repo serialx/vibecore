@@ -7,7 +7,6 @@ from vibecore.tools.todo.manager import TodoManager
 
 if TYPE_CHECKING:
     from vibecore.main import VibecoreApp
-    from vibecore.mcp import MCPManager
     from vibecore.tools.path_validator import PathValidator
 
 
@@ -16,7 +15,6 @@ class VibecoreContext:
     todo_manager: TodoManager = field(default_factory=TodoManager)
     python_manager: PythonExecutionManager = field(default_factory=PythonExecutionManager)
     app: Optional["VibecoreApp"] = None
-    mcp_manager: Optional["MCPManager"] = None
 
     # Path confinement configuration
     allowed_directories: list[Path] = field(default_factory=list)

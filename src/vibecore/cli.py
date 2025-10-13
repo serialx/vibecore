@@ -110,49 +110,44 @@ def main(
     logger = logging.getLogger("openai.agents")
     logger.addHandler(TextualHandler())
 
+    asyncio.run(
+        async_main(continue_session=continue_session, session_id=session_id, prompt=prompt, print_mode=print_mode)
+    )
+
+
+async def async_main(continue_session: bool, session_id: str | None, prompt: str | None, print_mode: bool):
     # Create context
     vibecore_ctx = VibecoreContext()
 
-    # Initialize MCP manager if configured
-    mcp_servers = []
-    if settings.mcp_servers:
-        # Create MCP manager
-        mcp_manager = MCPManager(settings.mcp_servers)
-        vibecore_ctx.mcp_manager = mcp_manager
+    # Create MCP manager
+    async with MCPManager(settings.mcp_servers) as mcp_manager:
+        # Create agent with MCP servers
+        agent = create_default_agent(mcp_servers=mcp_manager.servers)
 
-        # Get the MCP servers from the manager
-        mcp_servers = mcp_manager.servers
+        # Determine session to use
+        session_to_load = None
+        if continue_session:
+            session_to_load = find_latest_session()
+            if not session_to_load:
+                typer.echo("No existing sessions found for this project.")
+                raise typer.Exit(1)
+            typer.echo(f"Continuing session: {session_to_load}")
+        elif session_id:
+            session_to_load = session_id
+            typer.echo(f"Loading session: {session_to_load}")
 
-    # Create agent with MCP servers
-    agent = create_default_agent(mcp_servers=mcp_servers)
+        # Create app
+        app_instance = VibecoreApp(vibecore_ctx, agent, session_id=session_to_load, print_mode=print_mode)
 
-    # Determine session to use
-    session_to_load = None
-    if continue_session:
-        session_to_load = find_latest_session()
-        if not session_to_load:
-            typer.echo("No existing sessions found for this project.")
-            raise typer.Exit(1)
-        typer.echo(f"Continuing session: {session_to_load}")
-    elif session_id:
-        session_to_load = session_id
-        typer.echo(f"Loading session: {session_to_load}")
-
-    # Create app
-    app_instance = VibecoreApp(vibecore_ctx, agent, session_id=session_to_load, print_mode=print_mode)
-
-    if print_mode:
-        # Run in print mode
-        import asyncio
-
-        # Use provided prompt or None to read from stdin
-        result = asyncio.run(app_instance.run_print(prompt))
-        # Print raw output to stdout
-        if result:
-            print(result)
-    else:
-        # Run normal TUI mode
-        app_instance.run()
+        if print_mode:
+            # Use provided prompt or None to read from stdin
+            result = await app_instance.run_print(prompt)
+            # Print raw output to stdout
+            if result:
+                print(result)
+        else:
+            # Run normal TUI mode
+            await app_instance.run_async()
 
 
 @auth_app.command("login")
