@@ -16,7 +16,6 @@ class VibecoreContext:
     todo_manager: TodoManager = field(default_factory=TodoManager)
     python_manager: PythonExecutionManager = field(default_factory=PythonExecutionManager)
     app: Optional["VibecoreApp"] = None
-    context_fullness: float = 0.0
     mcp_manager: Optional["MCPManager"] = None
 
     # Path confinement configuration
@@ -53,7 +52,6 @@ class VibecoreContext:
         """Reset all context state for a new session."""
         self.todo_manager = TodoManager()
         self.python_manager = PythonExecutionManager()
-        self.context_fullness = 0.0
         # Preserve allowed_directories across resets
         # Re-initialize validator in case directories changed
         from vibecore.tools.path_validator import PathValidator

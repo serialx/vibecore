@@ -330,9 +330,9 @@ class VibecoreApp(App):
         used = result.context_wrapper.usage.total_tokens
         max_ctx = self._get_model_context_window()
         log(f"Context usage: {used} / {max_ctx} total tokens")
-        self.context.context_fullness = min(1.0, float(used) / float(max_ctx))
+        context_fullness = min(1.0, float(used) / float(max_ctx))
         footer = self.query_one(AppFooter)
-        footer.set_context_progress(self.context.context_fullness)
+        footer.set_context_progress(context_fullness)
 
         self.agent_status = "idle"
         self.current_result = None
