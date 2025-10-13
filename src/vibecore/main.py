@@ -200,12 +200,8 @@ class VibecoreApp(App):
         if event.text:
             # Check for special commands
             text_strip = event.text.strip()
-            if text_strip == "/clear":
-                await self.handle_clear_command()
-                return
-            elif text_strip == "/help":
+            if text_strip == "/help":
                 help_text = "Available commands:\n"
-                help_text += "• /clear - Clear the current session and start a new one\n"
                 help_text += "• /help - Show this help message\n\n"
                 help_text += "Keyboard shortcuts:\n"
                 help_text += "• Esc - Cancel current agent operation\n"
@@ -350,53 +346,3 @@ class VibecoreApp(App):
         Note: The main app receives this event from the agent's task tool handler.
         """
         await self.agent_stream_handler.handle_task_tool_event(tool_name, tool_call_id, event)
-
-    async def handle_clear_command(self) -> None:
-        """Handle the /clear command to create a new session and clear the UI."""
-        log("Clearing session and creating new session")
-
-        # Cancel any running agent
-        if self.agent_status == "running":
-            self.action_cancel_agent()
-
-        # Clear message queue
-        self.message_queue.clear()
-
-        # Generate a new session ID
-        import datetime
-
-        new_session_id = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-
-        # Create new session
-        if settings.session.storage_type == "jsonl":
-            self.session = JSONLSession(
-                session_id=new_session_id,
-                project_path=None,  # Will use current working directory
-                base_dir=settings.session.base_dir,
-            )
-        else:
-            raise NotImplementedError("SQLite session support will be added later")
-
-        # Reset context state
-        self.context.reset_state()
-
-        # Clear the UI - remove all messages and add welcome back
-        main_scroll = self.query_one("#messages", MainScroll)
-
-        # Remove all existing messages
-        for message in main_scroll.query("BaseMessage"):
-            message.remove()
-
-        # Remove welcome if it exists
-        for welcome in main_scroll.query("Welcome"):
-            welcome.remove()
-
-        # Add welcome widget back if show_welcome is True
-        if self.show_welcome:
-            await main_scroll.mount(Welcome())
-
-        # Show system message to confirm the clear operation
-        system_message = SystemMessage(f"✨ Session cleared! Started new session: {new_session_id}")
-        await main_scroll.mount(system_message)
-
-        log(f"New session created: {new_session_id}")

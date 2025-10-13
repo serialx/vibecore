@@ -42,7 +42,6 @@ Tests for session management and persistence:
 ### CLI Tests (`tests/cli/`)
 Tests for command-line interface:
 - **test_cli.py** - CLI commands and arguments
-- **test_clear_command.py** - /clear command functionality
 
 ### Model Tests (`tests/models/`)
 Tests for AI model integrations:
