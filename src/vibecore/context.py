@@ -11,13 +11,6 @@ if TYPE_CHECKING:
 
 
 @runtime_checkable
-class BasicToolContext(Protocol):
-    """Context that does not impose any additional requirements."""
-
-    ...
-
-
-@runtime_checkable
 class TodoToolContext(Protocol):
     """Context required by todo tools."""
 
@@ -49,10 +42,7 @@ class AppAwareContext(Protocol):
 class VibecoreContext(TodoToolContext, PythonToolContext, PathValidatedContext, AppAwareContext, Protocol):
     """Protocol describing the full context required by Vibecore agents."""
 
-    allowed_directories: list[Path]
-
-    def reset_state(self) -> None:
-        """Reset state between sessions."""
+    ...
 
 
 @dataclass
@@ -88,16 +78,6 @@ class DefaultVibecoreContext:
             else:
                 # If path confinement is disabled, allow CWD only (but validator won't be used)
                 self.allowed_directories = [Path.cwd()]
-
-        self.path_validator = PathValidator(self.allowed_directories)
-
-    def reset_state(self) -> None:
-        """Reset all context state for a new session."""
-        self.todo_manager = TodoManager()
-        self.python_manager = PythonExecutionManager()
-        # Preserve allowed_directories across resets
-        # Re-initialize validator in case directories changed
-        from vibecore.tools.path_validator import PathValidator
 
         self.path_validator = PathValidator(self.allowed_directories)
 
