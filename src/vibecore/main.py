@@ -282,7 +282,7 @@ class VibecoreApp(App):
         """Reset exit confirmation after 1 second and remove the message."""
         try:
             # Wait for 1 second
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(2.0)
 
             # Reset confirmation state
             self._exit_confirmation_active = False
