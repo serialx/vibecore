@@ -98,7 +98,6 @@ def main():
         context=vibecore_ctx,
         agent=agent,
         session_id=None,
-        print_mode=False,
         show_welcome=False,  # Hide welcome message for cleaner demo
     )
 

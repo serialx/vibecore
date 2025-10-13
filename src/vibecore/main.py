@@ -84,7 +84,6 @@ class VibecoreApp(App):
         context: VibecoreContext,
         agent: Agent,
         session_id: str | None = None,
-        print_mode: bool = False,
         show_welcome: bool = True,
     ) -> None:
         """Initialize the Vibecore app with context and agent.
@@ -93,7 +92,6 @@ class VibecoreApp(App):
             context: The VibecoreContext instance
             agent: The Agent instance to use
             session_id: Optional session ID to load existing session
-            print_mode: Whether to run in print mode (useful for pipes)
             show_welcome: Whether to show the welcome message (default: True)
         """
         self.context = context
@@ -102,7 +100,6 @@ class VibecoreApp(App):
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
         self._session_id_provided = session_id is not None  # Track if continuing session
-        self.print_mode = print_mode
         self.show_welcome = show_welcome
         self.message_queue: deque[str] = deque()  # Queue for user messages
 
@@ -374,49 +371,6 @@ class VibecoreApp(App):
         except asyncio.CancelledError:
             # Task was cancelled (new Ctrl-D pressed)
             pass
-
-    async def run_print(self, prompt: str | None = None) -> str:
-        """Run the agent and return the raw output for printing.
-
-        Args:
-            prompt: Optional prompt text. If not provided, reads from stdin.
-
-        Returns:
-            The agent's text output as a string
-        """
-        import sys
-
-        # Use provided prompt or read from stdin
-        input_text = prompt.strip() if prompt else sys.stdin.read().strip()
-
-        if not input_text:
-            return ""
-
-        # Import needed event types
-        from agents import RawResponsesStreamEvent
-        from openai.types.responses import ResponseTextDeltaEvent
-
-        # Run the agent
-        result = Runner.run_streamed(
-            self.agent,
-            input=input_text,
-            context=self.context,
-            max_turns=settings.max_turns,
-            session=self.session,
-        )
-
-        # Collect all agent text output
-        agent_output = ""
-
-        async for event in result.stream_events():
-            # Handle text output from agent
-            match event:
-                case RawResponsesStreamEvent(data=data):
-                    match data:
-                        case ResponseTextDeltaEvent(delta=delta) if delta:
-                            agent_output += delta
-
-        return agent_output.strip()
 
     async def handle_task_tool_event(self, tool_name: str, tool_call_id: str, event: StreamEvent) -> None:
         """Handle streaming events from task tool sub-agents.
