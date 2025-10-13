@@ -10,10 +10,11 @@ from pathlib import Path
 
 import typer
 from agents import Session
+from agents.result import RunResultBase
 from textual.logging import TextualHandler
 
 from vibecore.agents.default import create_default_agent
-from vibecore.flow import AppIsExiting, Vibecore
+from vibecore.flow import AppIsExiting, NoUserInputLeft, Vibecore
 from vibecore.mcp import MCPManager
 from vibecore.session import JSONLSession
 from vibecore.settings import settings
@@ -126,7 +127,7 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         agent = create_default_agent(mcp_servers=mcp_manager.servers)
 
         # Create Vibecore instance
-        vibecore: Vibecore[str] = Vibecore(agent, disable_user_input=False)
+        vibecore: Vibecore = Vibecore(agent, disable_user_input=False)
 
         # Determine session to use
         session_to_load = None
@@ -152,32 +153,35 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
 
         # Define workflow logic
         @vibecore.workflow()
-        async def workflow(session: Session) -> str:
-            user_message = await vibecore.user_input()
+        async def workflow(session: Session) -> RunResultBase:
+            result = None
+            while True:
+                try:
+                    user_message = await vibecore.user_input()
+                except NoUserInputLeft:
+                    assert result, "No result available after inputs exhausted."
+                    return result
 
-            # Run the agent with the input
-            result = await vibecore.run_agent(
-                agent,
-                input=user_message,
-                context=vibecore.context,
-                max_turns=settings.max_turns,
-                session=session,
-            )
-
-            # Return the final output
-            return result.final_output or ""
+                # Run the agent with the input
+                result = await vibecore.run_agent(
+                    agent,
+                    input=user_message,
+                    context=vibecore.context,
+                    max_turns=settings.max_turns,
+                    session=session,
+                )
 
         if print_mode:
             # Use static runner for print mode - pass empty input since we get it in workflow
             input_text = prompt.strip() if prompt else sys.stdin.read().strip()
             result = await vibecore.run(input_text)
             # Print raw output to stdout
-            if result:
-                print(result)
+            print(result.final_output_as(str))
         else:
             # Run in TUI mode
             with contextlib.suppress(AppIsExiting):
-                await vibecore.run_textual(session=session)
+                result = await vibecore.run_textual(prompt, session=session)
+                print(result)
 
 
 @auth_app.command("login")

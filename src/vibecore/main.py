@@ -5,7 +5,6 @@ from typing import ClassVar, Literal
 
 from agents import (
     Agent,
-    Runner,
     RunResultStreaming,
     Session,
     StreamEvent,
@@ -21,7 +20,6 @@ from textual.worker import Worker
 from vibecore.context import VibecoreContext
 from vibecore.handlers import AgentStreamHandler
 from vibecore.session.loader import SessionLoader
-from vibecore.settings import settings
 from vibecore.utils.text import TextExtractor
 from vibecore.widgets.core import AppFooter, MainScroll, MyTextArea
 from vibecore.widgets.info import Welcome
@@ -173,10 +171,24 @@ class VibecoreApp(App):
 
     async def wait_for_user_input(self) -> str:
         """Used in flow mode. See examples/basic_agent.py"""
+        if self.message_queue:
+            user_input = self.message_queue.pop()
+
+            user_message = UserMessage(user_input)
+            await self.add_message(user_message)
+            user_message.scroll_visible()
+
+            return user_input
+
         self.agent_status = "waiting_user_input"
         self.user_input_event = asyncio.Event()
         await self.user_input_event.wait()
         user_input = self.message_queue.pop()
+
+        user_message = UserMessage(user_input)
+        await self.add_message(user_message)
+        user_message.scroll_visible()
+
         return user_input
 
     async def on_my_text_area_user_message(self, event: MyTextArea.UserMessage) -> None:
@@ -194,14 +206,7 @@ class VibecoreApp(App):
                 await self.add_message(SystemMessage(help_text))
                 return
 
-            user_message = UserMessage(event.text)
-            await self.add_message(user_message)
-            user_message.scroll_visible()
-
-            if self.agent_status == "waiting_user_input":
-                self.message_queue.append(event.text)
-                self.user_input_event.set()
-            elif self.agent_status == "running":
+            if self.agent_status == "running":
                 # If agent is running, queue the message
                 self.message_queue.append(event.text)
                 log(f"Message queued: {event.text}")
@@ -212,16 +217,8 @@ class VibecoreApp(App):
                     status="Generating…", metadata=f"{queued_count} message{'s' if queued_count > 1 else ''} queued"
                 )
             else:
-                # Process the message immediately
-                result = Runner.run_streamed(
-                    self.agent,
-                    input=event.text,  # Pass string directly when using session
-                    context=self.context,
-                    max_turns=settings.max_turns,
-                    session=self.session,
-                )
-
-                self.current_worker = self.handle_streamed_response(result)
+                self.message_queue.append(event.text)
+                self.user_input_event.set()
 
     @work(exclusive=True)
     async def handle_streamed_response(self, result: RunResultStreaming) -> None:
@@ -244,31 +241,8 @@ class VibecoreApp(App):
         self.current_result = None
         self.current_worker = None
 
-        await self.process_message_queue()
-
-    async def process_message_queue(self) -> None:
-        """Process any messages that were queued while the agent was running."""
-        if self.message_queue:
-            # Get the next message from the queue
-            next_message = self.message_queue.popleft()
-            log(f"Processing queued message: {next_message}")
-
-            # Process the message
-            result = Runner.run_streamed(
-                self.agent,
-                input=next_message,
-                context=self.context,
-                max_turns=settings.max_turns,
-                session=self.session,
-            )
-
-            self.current_worker = self.handle_streamed_response(result)
-
     def _get_model_context_window(self) -> int:
-        from vibecore.settings import settings
-
-        model_name = settings.default_model
-        log(f"Getting context window for model: {model_name}")
+        # TODO(serialx): Implement later
         return 200000
 
     def action_toggle_dark(self) -> None:

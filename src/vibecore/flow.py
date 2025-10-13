@@ -28,6 +28,12 @@ from vibecore.widgets.core import MyTextArea
 from vibecore.widgets.messages import SystemMessage
 
 
+class NoUserInputLeft(Exception):
+    """Raised when no more user inputs are available in static runner."""
+
+    pass
+
+
 class UserInputFunc(Protocol):
     """Protocol for user input function with optional prompt parameter."""
 
@@ -117,7 +123,8 @@ class VibecoreStaticRunner(VibecoreRunnerBase[TWorkflowReturn]):
         self.prints: list[str] = []
 
     async def user_input(self, prompt: str = "") -> str:
-        assert self.inputs, "No more user inputs available."
+        if not self.inputs:
+            raise NoUserInputLeft()
         return self.inputs.pop()
 
     async def print(self, message: str) -> None:
@@ -206,18 +213,17 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
         assert self.vibecore.workflow_logic is not None, (
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
-        try:
-            return await self.vibecore.workflow_logic(self.session)
-        except AppIsExiting:
-            raise
+        return await self.vibecore.workflow_logic(self.session)
 
-    async def run(self, shutdown: bool = False) -> TWorkflowReturn:
+    async def run(self, inputs: list[str] | None = None, shutdown: bool = False) -> TWorkflowReturn:
         self.app = VibecoreApp(
             self.vibecore.context,
             self.vibecore.starting_agent,
             self.session,
             show_welcome=False,
         )
+        if inputs:
+            self.app.message_queue.extend(inputs)
         app_task = asyncio.create_task(self._run_app(), name=f"run_app({self.app})")
         await self.app_ready_event.wait()
         pilot = Pilot(self.app)
@@ -244,13 +250,13 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
                 self.app.exit()
                 await app_task
             else:
+                await self.print("Workflow complete. Press Ctrl-Q to exit.")
                 # Enable text input so users can interact freely
                 self.app.query_one(MyTextArea).disabled = False
                 # Wait until app is exited
                 await app_task
             return result
-
-        raise RuntimeError("Unexpected state: both tasks completed")
+        raise AssertionError(f"Unexpected state: done={done}, pending={pending}")
 
 
 class Vibecore(Generic[TWorkflowReturn]):
@@ -309,12 +315,26 @@ class Vibecore(Generic[TWorkflowReturn]):
             session=session,
         )
 
-    async def run_textual(self, session: Session | None = None, shutdown: bool = False) -> TWorkflowReturn:
+    @overload
+    async def run_textual(
+        self, inputs: str | None = None, session: Session | None = None, shutdown: bool = False
+    ) -> TWorkflowReturn: ...
+    @overload
+    async def run_textual(
+        self, inputs: list[str] | None = None, session: Session | None = None, shutdown: bool = False
+    ) -> TWorkflowReturn: ...
+
+    async def run_textual(
+        self, inputs: str | list[str] | None = None, session: Session | None = None, shutdown: bool = False
+    ) -> TWorkflowReturn:
+        if isinstance(inputs, str):
+            inputs = [inputs]
+
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
         self.runner = VibecoreTextualRunner(self, session=session)
-        return await self.runner.run(shutdown=shutdown)
+        return await self.runner.run(inputs=inputs, shutdown=shutdown)
 
     async def run_cli(self, session: Session | None = None) -> TWorkflowReturn:
         if self.workflow_logic is None:
