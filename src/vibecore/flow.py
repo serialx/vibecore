@@ -20,7 +20,7 @@ from agents.run import DEFAULT_MAX_TURNS
 from textual.pilot import Pilot
 from typing_extensions import TypeVar
 
-from vibecore.context import DefaultVibecoreContext, VibecoreContext
+from vibecore.context import DefaultVibecoreContext
 from vibecore.main import AppIsExiting, VibecoreApp
 from vibecore.session import JSONLSession
 from vibecore.settings import settings
