@@ -325,6 +325,8 @@ class VibecoreApp(App):
         self.agent_stream_handler = AgentStreamHandler(self)
         await self.agent_stream_handler.process_stream(result)
 
+        # XXX(serialx): We should use the final total usage from the result, but usage
+        #               is aggregated total usage, so this is wrong caclculation
         used = result.context_wrapper.usage.total_tokens
         max_ctx = self._get_model_context_window()
         log(f"Context usage: {used} / {max_ctx} total tokens")
