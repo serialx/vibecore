@@ -4,8 +4,6 @@ import json
 from typing import Protocol
 
 from agents import (
-    Agent,
-    AgentUpdatedStreamEvent,
     MessageOutputItem,
     RawResponsesStreamEvent,
     RunItemStreamEvent,
@@ -41,10 +39,6 @@ class MessageHandler(Protocol):
 
     async def handle_agent_message(self, message: BaseMessage) -> None:
         """Add a message to the widget's message list."""
-        ...
-
-    async def handle_agent_update(self, new_agent: Agent) -> None:
-        """Handle agent updates."""
         ...
 
     async def handle_agent_error(self, error: Exception) -> None:
@@ -204,10 +198,6 @@ class AgentStreamHandler:
                             await self.handle_tool_output(output, raw_item["call_id"])
                     case MessageOutputItem():
                         await self.handle_message_complete()
-
-            case AgentUpdatedStreamEvent(new_agent=new_agent):
-                # log(f"AgentUpdatedStreamEvent new_agent: {new_agent.name}")
-                await self.message_handler.handle_agent_update(new_agent)
 
     async def handle_task_tool_event(self, tool_name: str, tool_call_id: str, event: StreamEvent) -> None:
         """Handle streaming events from task tool sub-agents.

@@ -128,7 +128,7 @@ seat_booking_agent.handoffs.append(triage_agent)
 
 ### RUN
 
-vibecore: Vibecore[None] = Vibecore(triage_agent)
+vibecore = Vibecore[None]()
 
 
 @vibecore.workflow()

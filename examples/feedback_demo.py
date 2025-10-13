@@ -7,10 +7,8 @@ The demo shows an agent message followed by a feedback widget.
 from pathlib import Path
 from typing import ClassVar
 
-from agents import Agent
 from textual import log
 
-from vibecore.agents.default import create_default_agent
 from vibecore.context import VibecoreContext
 from vibecore.main import VibecoreApp
 from vibecore.widgets.feedback import FeedbackWidget
@@ -91,12 +89,10 @@ def main():
     """
     # Create context and agent (same pattern as CLI)
     vibecore_ctx = VibecoreContext()
-    agent: Agent = create_default_agent(mcp_servers=[])
 
     # Create the demo app
     app = FeedbackDemoApp(
         context=vibecore_ctx,
-        agent=agent,
         show_welcome=False,  # Hide welcome message for cleaner demo
     )
 

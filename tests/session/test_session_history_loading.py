@@ -19,9 +19,8 @@ async def test_load_session_history_empty():
 
     # Create app instance
     ctx = VibecoreContext()
-    mock_agent = MagicMock()
 
-    app = VibecoreApp(ctx, mock_agent, session=mock_session)
+    app = VibecoreApp(ctx, session=mock_session)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -58,9 +57,8 @@ async def test_load_session_history_with_messages():
 
     # Create app instance
     ctx = VibecoreContext()
-    mock_agent = MagicMock()
 
-    app = VibecoreApp(ctx, mock_agent, session=mock_session)
+    app = VibecoreApp(ctx, session=mock_session)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -108,9 +106,8 @@ async def test_load_session_history_with_complex_content():
 
     # Create app instance
     ctx = VibecoreContext()
-    mock_agent = MagicMock()
 
-    app = VibecoreApp(ctx, mock_agent, session=mock_session)
+    app = VibecoreApp(ctx, session=mock_session)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -148,9 +145,8 @@ async def test_load_session_history_with_orphaned_tool_calls():
 
     # Create app instance
     ctx = VibecoreContext()
-    mock_agent = MagicMock()
 
-    app = VibecoreApp(ctx, mock_agent, session=mock_session)
+    app = VibecoreApp(ctx, session=mock_session)
 
     # Mock the query methods
     app.query_one = MagicMock()

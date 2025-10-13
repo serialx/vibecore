@@ -26,7 +26,7 @@ agent = Agent[VibecoreContext](
 )
 
 
-vibecore: Vibecore[str] = Vibecore(agent)
+vibecore = Vibecore[str]()
 
 
 @vibecore.workflow()

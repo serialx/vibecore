@@ -4,7 +4,6 @@ from collections import deque
 from typing import ClassVar, Literal
 
 from agents import (
-    Agent,
     RunResultStreaming,
     Session,
     StreamEvent,
@@ -57,7 +56,6 @@ class VibecoreApp(App):
     def __init__(
         self,
         context: VibecoreContext,
-        agent: Agent,
         session: Session | None = None,
         show_welcome: bool = True,
     ) -> None:
@@ -71,7 +69,6 @@ class VibecoreApp(App):
         """
         self.context = context
         self.context.app = self  # Set the app reference in context
-        self.agent = agent
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
         self.session = session
@@ -113,11 +110,6 @@ class VibecoreApp(App):
     async def handle_agent_message(self, message: BaseMessage) -> None:
         """Add a message widget to the main scroll area."""
         await self.add_message(message)
-
-    async def handle_agent_update(self, new_agent: Agent) -> None:
-        """Handle agent updates."""
-        log(f"Agent updated: {new_agent.name}")
-        self.agent = new_agent
 
     async def handle_agent_error(self, error: Exception) -> None:
         """Handle errors during streaming."""

@@ -127,7 +127,7 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         agent = create_default_agent(mcp_servers=mcp_manager.servers)
 
         # Create Vibecore instance
-        vibecore: Vibecore = Vibecore(agent, disable_user_input=False)
+        vibecore: Vibecore = Vibecore(disable_user_input=False)
 
         # Determine session to use
         session_to_load = None

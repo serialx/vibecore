@@ -144,7 +144,7 @@ class VibecoreStaticRunner(VibecoreRunnerBase[TWorkflowReturn]):
 class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
     def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
         super().__init__(vibecore, session=session)
-        self.app = VibecoreApp(self.vibecore.context, self.vibecore.starting_agent, self.session, show_welcome=False)
+        self.app = VibecoreApp(self.vibecore.context, self.session, show_welcome=False)
         self.app_ready_event = asyncio.Event()
 
     async def user_input(self, prompt: str = "") -> str:
@@ -218,7 +218,6 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
     async def run(self, inputs: list[str] | None = None, shutdown: bool = False) -> TWorkflowReturn:
         self.app = VibecoreApp(
             self.vibecore.context,
-            self.vibecore.starting_agent,
             self.session,
             show_welcome=False,
         )
@@ -260,10 +259,9 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
 
 
 class Vibecore(Generic[TWorkflowReturn]):
-    def __init__(self, starting_agent: Agent[TContext], disable_user_input: bool = True) -> None:
+    def __init__(self, disable_user_input: bool = True) -> None:
         self.context = VibecoreContext()
         self.workflow_logic: DecoratedCallable[TWorkflowReturn] | None = None
-        self.starting_agent = starting_agent
         self.disable_user_input = disable_user_input
         self.runner: VibecoreRunnerBase[TWorkflowReturn] = VibecoreRunnerBase(self)
 

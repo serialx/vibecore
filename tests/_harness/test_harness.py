@@ -2,9 +2,7 @@
 
 from pathlib import Path
 from typing import Any, ClassVar
-from unittest.mock import MagicMock
 
-from agents import Agent
 from openai.types.responses import ResponseInputItemParam
 from textual.app import ComposeResult
 
@@ -51,10 +49,6 @@ class VibecoreTestApp(VibecoreApp):
             session_fixture_path: Path to JSONL session fixture file
             context: Optional VibecoreContext (creates new one if not provided)
         """
-        # Create a mock agent that won't actually run
-        mock_agent = MagicMock(spec=Agent)
-        mock_agent.name = "TestAgent"
-
         # Use provided context or create a new one
         if context is None:
             context = VibecoreContext()
@@ -62,7 +56,6 @@ class VibecoreTestApp(VibecoreApp):
         # Initialize with a test session ID
         super().__init__(
             context=context,
-            agent=mock_agent,
             session=None,
         )
 
