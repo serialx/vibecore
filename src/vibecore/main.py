@@ -77,6 +77,7 @@ class VibecoreApp(App):
         self.session = session
         self.show_welcome = show_welcome
         self.message_queue: deque[str] = deque()  # Queue for user messages
+        self.user_input_event = asyncio.Event()  # Initialize event for user input coordination
 
         super().__init__()
 
@@ -181,7 +182,7 @@ class VibecoreApp(App):
             return user_input
 
         self.agent_status = "waiting_user_input"
-        self.user_input_event = asyncio.Event()
+        self.user_input_event.clear()  # Reset the event for next wait
         await self.user_input_event.wait()
         user_input = self.message_queue.pop()
 
