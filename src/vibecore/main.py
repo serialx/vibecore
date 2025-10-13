@@ -8,7 +8,6 @@ from agents import (
     Runner,
     RunResultStreaming,
     StreamEvent,
-    TResponseInputItem,
 )
 from openai.types import Reasoning
 from openai.types.responses.response_output_message import Content
@@ -100,7 +99,6 @@ class VibecoreApp(App):
         self.context = context
         self.context.app = self  # Set the app reference in context
         self.agent = agent
-        self.input_items: list[TResponseInputItem] = []
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
         self._session_id_provided = session_id is not None  # Track if continuing session
@@ -460,9 +458,6 @@ class VibecoreApp(App):
 
         # Reset context state
         self.context.reset_state()
-
-        # Clear input items
-        self.input_items.clear()
 
         # Clear the UI - remove all messages and add welcome back
         main_scroll = self.query_one("#messages", MainScroll)

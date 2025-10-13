@@ -113,13 +113,6 @@ class MyTextArea(TextArea):
 
                     log(f"Error loading session history: {e}")
 
-            # Then add current session's messages (in memory, not yet persisted)
-            for item in app.input_items:
-                if isinstance(item, dict) and item.get("role") == "user":
-                    content = item.get("content")
-                    if isinstance(content, str) and content not in history:
-                        history.append(content)
-
             return history
         return []
 
