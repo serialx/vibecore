@@ -5,7 +5,6 @@ from typing import ClassVar, Literal
 
 from agents import (
     Agent,
-    ModelSettings,
     Runner,
     RunResultStreaming,
     StreamEvent,
@@ -283,28 +282,13 @@ class VibecoreApp(App):
             else:
                 # Detect reasoning effort from prompt keywords
                 detected_effort = detect_reasoning_effort(event.text)
-                reasoning_effort = detected_effort or settings.reasoning_effort
-
                 # Create agent with appropriate reasoning effort
                 agent_to_use = self.agent
-                if reasoning_effort is not None:
+                if detected_effort:
                     # Create a copy of the agent with updated model settings
-                    current_settings = self.agent.model_settings or ModelSettings()
-                    new_reasoning = Reasoning(effort=reasoning_effort, summary=settings.reasoning_summary)
-                    updated_settings = ModelSettings(
-                        include_usage=current_settings.include_usage,
-                        reasoning=new_reasoning,
-                    )
-                    agent_to_use = Agent[VibecoreContext](
-                        name=self.agent.name,
-                        handoff_description=self.agent.handoff_description,
-                        instructions=self.agent.instructions,
-                        tools=self.agent.tools,
-                        model=self.agent.model,
-                        model_settings=updated_settings,
-                        handoffs=self.agent.handoffs,
-                        mcp_servers=self.agent.mcp_servers,
-                    )
+                    agent_to_use = agent_to_use.clone()
+                    new_reasoning = Reasoning(effort=detected_effort, summary=settings.reasoning_summary)
+                    agent_to_use.model_settings.reasoning = new_reasoning
 
                 # Process the message immediately
                 result = Runner.run_streamed(
