@@ -16,8 +16,7 @@
       "Bash(tree:*)",
       "Bash(uv:*)",
       "Bash(python:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
+      "Bash(git log:*)",
       "WebFetch(domain:textual.textualize.io)",
       "WebFetch(domain:github.com)"
     ]
