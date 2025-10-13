@@ -63,7 +63,7 @@ class VibecoreTestApp(VibecoreApp):
         super().__init__(
             context=context,
             agent=mock_agent,
-            session_id="test-snapshot",
+            session=None,
         )
 
         # Store the fixture path for loading

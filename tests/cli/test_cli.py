@@ -68,10 +68,13 @@ class TestCLI:
         assert result.exit_code == 1
         assert "No existing sessions found" in result.stdout
 
+    @patch("vibecore.cli.JSONLSession")
     @patch("vibecore.cli.Vibecore")
     @patch("vibecore.cli.MCPManager")
     @patch("vibecore.cli.find_latest_session")
-    def test_cli_continue_with_session(self, mock_find_latest, mock_mcp_manager_class, mock_vibecore_class):
+    def test_cli_continue_with_session(
+        self, mock_find_latest, mock_mcp_manager_class, mock_vibecore_class, mock_jsonl_class
+    ):
         """Test --continue with existing session."""
         mock_find_latest.return_value = "chat-20250124-150000"
 
@@ -87,16 +90,26 @@ class TestCLI:
         mock_mcp_manager_class.return_value.__aenter__ = AsyncMock(return_value=mock_mcp_manager)
         mock_mcp_manager_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
+        # Mock JSONLSession
+        mock_session = MagicMock()
+        mock_jsonl_class.return_value = mock_session
+
         runner = CliRunner()
         result = runner.invoke(app, ["--continue"])
 
         assert result.exit_code == 0
         assert "Continuing session: chat-20250124-150000" in result.stdout
-        mock_vibecore.run_textual.assert_called_once_with(session_id="chat-20250124-150000")
+        # Verify session was created with correct ID
+        mock_jsonl_class.assert_called_once()
+        call_kwargs = mock_jsonl_class.call_args.kwargs
+        assert call_kwargs["session_id"] == "chat-20250124-150000"
+        # Verify run_textual was called with session
+        mock_vibecore.run_textual.assert_called_once_with(session=mock_session)
 
+    @patch("vibecore.cli.JSONLSession")
     @patch("vibecore.cli.Vibecore")
     @patch("vibecore.cli.MCPManager")
-    def test_cli_specific_session(self, mock_mcp_manager_class, mock_vibecore_class):
+    def test_cli_specific_session(self, mock_mcp_manager_class, mock_vibecore_class, mock_jsonl_class):
         """Test --session with specific session ID."""
         # Mock the vibecore instance with async methods
         mock_vibecore = MagicMock()
@@ -110,16 +123,26 @@ class TestCLI:
         mock_mcp_manager_class.return_value.__aenter__ = AsyncMock(return_value=mock_mcp_manager)
         mock_mcp_manager_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
+        # Mock JSONLSession
+        mock_session = MagicMock()
+        mock_jsonl_class.return_value = mock_session
+
         runner = CliRunner()
         result = runner.invoke(app, ["--session", "chat-custom-123"])
 
         assert result.exit_code == 0
         assert "Loading session: chat-custom-123" in result.stdout
-        mock_vibecore.run_textual.assert_called_once_with(session_id="chat-custom-123")
+        # Verify session was created with correct ID
+        mock_jsonl_class.assert_called_once()
+        call_kwargs = mock_jsonl_class.call_args.kwargs
+        assert call_kwargs["session_id"] == "chat-custom-123"
+        # Verify run_textual was called with session
+        mock_vibecore.run_textual.assert_called_once_with(session=mock_session)
 
+    @patch("vibecore.cli.JSONLSession")
     @patch("vibecore.cli.Vibecore")
     @patch("vibecore.cli.MCPManager")
-    def test_cli_no_options(self, mock_mcp_manager_class, mock_vibecore_class):
+    def test_cli_no_options(self, mock_mcp_manager_class, mock_vibecore_class, mock_jsonl_class):
         """Test running without any options (new session)."""
         # Mock the vibecore instance with async methods
         mock_vibecore = MagicMock()
@@ -133,9 +156,18 @@ class TestCLI:
         mock_mcp_manager_class.return_value.__aenter__ = AsyncMock(return_value=mock_mcp_manager)
         mock_mcp_manager_class.return_value.__aexit__ = AsyncMock(return_value=None)
 
+        # Mock JSONLSession
+        mock_session = MagicMock()
+        mock_jsonl_class.return_value = mock_session
+
         runner = CliRunner()
         result = runner.invoke(app, [])
 
         assert result.exit_code == 0
-        # Check that session_id was None (creates new session)
-        mock_vibecore.run_textual.assert_called_once_with(session_id=None)
+        # Check that a new session was created (with auto-generated timestamp-based ID)
+        mock_jsonl_class.assert_called_once()
+        call_kwargs = mock_jsonl_class.call_args.kwargs
+        # Session ID should start with "chat-" for new sessions
+        assert call_kwargs["session_id"].startswith("chat-")
+        # Verify run_textual was called with session
+        mock_vibecore.run_textual.assert_called_once_with(session=mock_session)

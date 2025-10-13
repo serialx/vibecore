@@ -97,7 +97,6 @@ def main():
     app = FeedbackDemoApp(
         context=vibecore_ctx,
         agent=agent,
-        session_id=None,
         show_welcome=False,  # Hide welcome message for cleaner demo
     )
 

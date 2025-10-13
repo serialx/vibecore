@@ -1,17 +1,21 @@
 """Vibecore CLI interface using typer."""
 
 import asyncio
+import contextlib
+import datetime
 import logging
 import sys
 from importlib.metadata import version
 from pathlib import Path
 
 import typer
+from agents import Session
 from textual.logging import TextualHandler
 
 from vibecore.agents.default import create_default_agent
-from vibecore.flow import Vibecore
+from vibecore.flow import AppIsExiting, Vibecore
 from vibecore.mcp import MCPManager
+from vibecore.session import JSONLSession
 from vibecore.settings import settings
 
 app = typer.Typer()
@@ -124,23 +128,6 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         # Create Vibecore instance
         vibecore: Vibecore[str] = Vibecore(agent, disable_user_input=False)
 
-        # Define workflow logic
-        @vibecore.workflow()
-        async def workflow() -> str:
-            user_message = await vibecore.user_input()
-
-            # Run the agent with the input
-            result = await vibecore.run_agent(
-                agent,
-                input=user_message,
-                context=vibecore.context,
-                max_turns=settings.max_turns,
-                session=vibecore.session,
-            )
-
-            # Return the final output
-            return result.final_output or ""
-
         # Determine session to use
         session_to_load = None
         if continue_session:
@@ -153,6 +140,33 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
             session_to_load = session_id
             typer.echo(f"Loading session: {session_to_load}")
 
+        if session_to_load is None:
+            # Generate a new session ID based on current date/time
+            session_to_load = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+        session = JSONLSession(
+            session_id=session_to_load,
+            project_path=None,  # Will use current working directory
+            base_dir=settings.session.base_dir,
+        )
+
+        # Define workflow logic
+        @vibecore.workflow()
+        async def workflow(session: Session) -> str:
+            user_message = await vibecore.user_input()
+
+            # Run the agent with the input
+            result = await vibecore.run_agent(
+                agent,
+                input=user_message,
+                context=vibecore.context,
+                max_turns=settings.max_turns,
+                session=session,
+            )
+
+            # Return the final output
+            return result.final_output or ""
+
         if print_mode:
             # Use static runner for print mode - pass empty input since we get it in workflow
             input_text = prompt.strip() if prompt else sys.stdin.read().strip()
@@ -162,7 +176,8 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
                 print(result)
         else:
             # Run in TUI mode
-            await vibecore.run_textual(session_id=session_to_load)
+            with contextlib.suppress(AppIsExiting):
+                await vibecore.run_textual(session=session)
 
 
 @auth_app.command("login")

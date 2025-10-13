@@ -4,7 +4,7 @@ import datetime
 import sys
 import threading
 from collections.abc import Callable, Coroutine
-from typing import Any, Generic, Protocol, TypeAlias, overload
+from typing import Any, Concatenate, Generic, Protocol, TypeAlias, overload
 
 from agents import (
     Agent,
@@ -44,16 +44,26 @@ class UserInputFunc(Protocol):
 
 
 TWorkflowReturn = TypeVar("TWorkflowReturn", default=RunResultBase)
-DecoratedCallable: TypeAlias = Callable[..., Coroutine[Any, Any, TWorkflowReturn]]
+DecoratedCallable: TypeAlias = Callable[Concatenate[Session, ...], Coroutine[Any, Any, TWorkflowReturn]]
 
 
 class VibecoreRunnerBase(Generic[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]") -> None:
+    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
         self.vibecore = vibecore
+
+        if session is None:
+            session_id = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            self._session = JSONLSession(
+                session_id=session_id,
+                project_path=None,  # Will use current working directory
+                base_dir=settings.session.base_dir,
+            )
+        else:
+            self._session = session
 
     @property
     def session(self) -> Session:
-        raise NotImplementedError("session property implemented.")
+        return self._session
 
     async def user_input(self, prompt: str = "") -> str:
         raise NotImplementedError("user_input method not implemented.")
@@ -86,25 +96,9 @@ class VibecoreRunnerBase(Generic[TWorkflowReturn]):
         return result
 
 
-class VibecoreSimpleRunner(VibecoreRunnerBase[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]") -> None:
-        super().__init__(vibecore)
-
-        session_id = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        self._session = JSONLSession(
-            session_id=session_id,
-            project_path=None,  # Will use current working directory
-            base_dir=settings.session.base_dir,
-        )
-
-    @property
-    def session(self) -> Session:
-        return self._session
-
-
-class VibecoreCliRunner(VibecoreSimpleRunner[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]") -> None:
-        super().__init__(vibecore)
+class VibecoreCliRunner(VibecoreRunnerBase[TWorkflowReturn]):
+    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
+        super().__init__(vibecore, session=session)
 
     async def user_input(self, prompt: str = "") -> str:
         return input(prompt)
@@ -113,12 +107,12 @@ class VibecoreCliRunner(VibecoreSimpleRunner[TWorkflowReturn]):
         assert self.vibecore.workflow_logic is not None, (
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
-        return await self.vibecore.workflow_logic()
+        return await self.vibecore.workflow_logic(self.session)
 
 
-class VibecoreStaticRunner(VibecoreSimpleRunner[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]") -> None:
-        super().__init__(vibecore)
+class VibecoreStaticRunner(VibecoreRunnerBase[TWorkflowReturn]):
+    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
+        super().__init__(vibecore, session=session)
         self.inputs: list[str] = []
         self.prints: list[str] = []
 
@@ -137,18 +131,14 @@ class VibecoreStaticRunner(VibecoreSimpleRunner[TWorkflowReturn]):
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
         self.inputs.extend(inputs)
-        return await self.vibecore.workflow_logic()
+        return await self.vibecore.workflow_logic(self.session)
 
 
 class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]") -> None:
-        super().__init__(vibecore)
-        self.app = VibecoreApp(self.vibecore.context, self.vibecore.starting_agent, show_welcome=False)
+    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
+        super().__init__(vibecore, session=session)
+        self.app = VibecoreApp(self.vibecore.context, self.vibecore.starting_agent, self.session, show_welcome=False)
         self.app_ready_event = asyncio.Event()
-
-    @property
-    def session(self) -> Session:
-        return self.app.session
 
     async def user_input(self, prompt: str = "") -> str:
         if prompt:
@@ -217,15 +207,15 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
         try:
-            return await self.vibecore.workflow_logic()
+            return await self.vibecore.workflow_logic(self.session)
         except AppIsExiting:
             raise
 
-    async def run(self, shutdown: bool = False, session_id: str | None = None) -> TWorkflowReturn:
+    async def run(self, shutdown: bool = False) -> TWorkflowReturn:
         self.app = VibecoreApp(
             self.vibecore.context,
             self.vibecore.starting_agent,
-            session_id=session_id,
+            self.session,
             show_welcome=False,
         )
         app_task = asyncio.create_task(self._run_app(), name=f"run_app({self.app})")
@@ -266,7 +256,7 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
 class Vibecore(Generic[TWorkflowReturn]):
     def __init__(self, starting_agent: Agent[TContext], disable_user_input: bool = True) -> None:
         self.context = VibecoreContext()
-        self.workflow_logic: Callable[..., Coroutine[Any, Any, TWorkflowReturn]] | None = None
+        self.workflow_logic: DecoratedCallable[TWorkflowReturn] | None = None
         self.starting_agent = starting_agent
         self.disable_user_input = disable_user_input
         self.runner: VibecoreRunnerBase[TWorkflowReturn] = VibecoreRunnerBase(self)
@@ -319,32 +309,32 @@ class Vibecore(Generic[TWorkflowReturn]):
             session=session,
         )
 
-    async def run_textual(self, shutdown: bool = False, session_id: str | None = None) -> TWorkflowReturn:
+    async def run_textual(self, session: Session | None = None, shutdown: bool = False) -> TWorkflowReturn:
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
-        self.runner = VibecoreTextualRunner(self)
-        return await self.runner.run(shutdown=shutdown, session_id=session_id)
+        self.runner = VibecoreTextualRunner(self, session=session)
+        return await self.runner.run(shutdown=shutdown)
 
-    async def run_cli(self) -> TWorkflowReturn:
+    async def run_cli(self, session: Session | None = None) -> TWorkflowReturn:
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
-        self.runner = VibecoreCliRunner(self)
+        self.runner = VibecoreCliRunner(self, session=session)
         return await self.runner.run()
 
     @overload
-    async def run(self, inputs: str) -> TWorkflowReturn: ...
+    async def run(self, inputs: str, session: Session | None = None) -> TWorkflowReturn: ...
 
     @overload
-    async def run(self, inputs: list[str]) -> TWorkflowReturn: ...
+    async def run(self, inputs: list[str], session: Session | None = None) -> TWorkflowReturn: ...
 
-    async def run(self, inputs: str | list[str]) -> TWorkflowReturn:
+    async def run(self, inputs: str | list[str], session: Session | None = None) -> TWorkflowReturn:
         if isinstance(inputs, str):
             inputs = [inputs]
 
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
-        self.runner = VibecoreStaticRunner(self)
+        self.runner = VibecoreStaticRunner(self, session=session)
         return await self.runner.run(inputs=inputs)

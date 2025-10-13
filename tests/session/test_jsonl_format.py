@@ -2,7 +2,7 @@
 
 # ruff: noqa: E501
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -136,63 +136,60 @@ async def test_load_jsonl_format():
     ctx = VibecoreContext()
     mock_agent = MagicMock()
 
-    with patch("vibecore.main.JSONLSession") as mock_jsonl_class:
-        mock_jsonl_class.return_value = mock_session
-        app = VibecoreApp(ctx, mock_agent, session_id="test-session")
-        app._session_id_provided = True
+    app = VibecoreApp(ctx, mock_agent, session=mock_session)
 
-        # Mock the query methods
-        app.query_one = MagicMock()
-        mock_messages = MagicMock()
-        mock_messages.query.return_value = []  # No Welcome widget
-        app.query_one.return_value = mock_messages
+    # Mock the query methods
+    app.query_one = MagicMock()
+    mock_messages = MagicMock()
+    mock_messages.query.return_value = []  # No Welcome widget
+    app.query_one.return_value = mock_messages
 
-        # Track added messages
-        added_messages = []
-        app.add_message = AsyncMock(side_effect=lambda msg: added_messages.append(msg))
+    # Track added messages
+    added_messages = []
+    app.add_message = AsyncMock(side_effect=lambda msg: added_messages.append(msg))
 
-        # Load history
-        await app.load_session_history()
+    # Load history
+    await app.load_session_history(mock_session)
 
-        # Verify correct number of messages
-        # Expected: 4 user, 3 non-empty assistant, 2 tool messages, 1 final assistant = 10 total
-        assert len(added_messages) == 10
+    # Verify correct number of messages
+    # Expected: 4 user, 3 non-empty assistant, 2 tool messages, 1 final assistant = 10 total
+    assert len(added_messages) == 10
 
-        # Check message order and types
-        assert isinstance(added_messages[0], UserMessage)
-        assert added_messages[0].text == "hi"
+    # Check message order and types
+    assert isinstance(added_messages[0], UserMessage)
+    assert added_messages[0].text == "hi"
 
-        assert isinstance(added_messages[1], AgentMessage)
-        assert "I'm here to help you with data engineering" in added_messages[1].text
+    assert isinstance(added_messages[1], AgentMessage)
+    assert "I'm here to help you with data engineering" in added_messages[1].text
 
-        assert isinstance(added_messages[2], UserMessage)
-        assert added_messages[2].text == "good"
+    assert isinstance(added_messages[2], UserMessage)
+    assert added_messages[2].text == "good"
 
-        assert isinstance(added_messages[3], AgentMessage)
-        assert "Great! Let me know what data task" in added_messages[3].text
+    assert isinstance(added_messages[3], AgentMessage)
+    assert "Great! Let me know what data task" in added_messages[3].text
 
-        assert isinstance(added_messages[4], UserMessage)
-        assert added_messages[4].text == "great!"
+    assert isinstance(added_messages[4], UserMessage)
+    assert added_messages[4].text == "great!"
 
-        assert isinstance(added_messages[5], AgentMessage)
-        assert "Ready when you are!" in added_messages[5].text
+    assert isinstance(added_messages[5], AgentMessage)
+    assert "Ready when you are!" in added_messages[5].text
 
-        assert isinstance(added_messages[6], UserMessage)
-        assert added_messages[6].text == "Show me python demo"
+    assert isinstance(added_messages[6], UserMessage)
+    assert added_messages[6].text == "Show me python demo"
 
-        # Check tool messages
-        assert isinstance(added_messages[7], PythonToolMessage)
-        assert "ModuleNotFoundError" in added_messages[7].output
-        assert added_messages[7].status == MessageStatus.SUCCESS
+    # Check tool messages
+    assert isinstance(added_messages[7], PythonToolMessage)
+    assert "ModuleNotFoundError" in added_messages[7].output
+    assert added_messages[7].status == MessageStatus.SUCCESS
 
-        # This might be ToolMessage if JSON parsing fails, or PythonToolMessage if it succeeds
-        assert isinstance(added_messages[8], ToolMessage | PythonToolMessage)
-        assert "Employee Data:" in added_messages[8].output
-        assert added_messages[8].status == MessageStatus.SUCCESS
+    # This might be ToolMessage if JSON parsing fails, or PythonToolMessage if it succeeds
+    assert isinstance(added_messages[8], ToolMessage | PythonToolMessage)
+    assert "Employee Data:" in added_messages[8].output
+    assert added_messages[8].status == MessageStatus.SUCCESS
 
-        # The last assistant message
-        assert isinstance(added_messages[9], AgentMessage)
-        assert "Python demo complete!" in added_messages[9].text
+    # The last assistant message
+    assert isinstance(added_messages[9], AgentMessage)
+    assert "Python demo complete!" in added_messages[9].text
 
 
 @pytest.mark.asyncio
@@ -241,37 +238,34 @@ async def test_load_session_with_function_calls():
     ctx = VibecoreContext()
     mock_agent = MagicMock()
 
-    with patch("vibecore.main.JSONLSession") as mock_jsonl_class:
-        mock_jsonl_class.return_value = mock_session
-        app = VibecoreApp(ctx, mock_agent, session_id="test-session")
-        app._session_id_provided = True
+    app = VibecoreApp(ctx, mock_agent, session=mock_session)
 
-        # Mock the query methods
-        app.query_one = MagicMock()
-        mock_messages = MagicMock()
-        mock_messages.query.return_value = []  # No Welcome widget
-        app.query_one.return_value = mock_messages
+    # Mock the query methods
+    app.query_one = MagicMock()
+    mock_messages = MagicMock()
+    mock_messages.query.return_value = []  # No Welcome widget
+    app.query_one.return_value = mock_messages
 
-        # Track added messages
-        added_messages = []
-        app.add_message = AsyncMock(side_effect=lambda msg: added_messages.append(msg))
+    # Track added messages
+    added_messages = []
+    app.add_message = AsyncMock(side_effect=lambda msg: added_messages.append(msg))
 
-        # Load history
-        await app.load_session_history()
+    # Load history
+    await app.load_session_history(mock_session)
 
-        # Verify correct messages were added (should skip empty assistant messages)
-        assert len(added_messages) == 3  # 1 user + 2 tool messages
+    # Verify correct messages were added (should skip empty assistant messages)
+    assert len(added_messages) == 3  # 1 user + 2 tool messages
 
-        # Check first tool message (with error)
-        assert isinstance(added_messages[0], PythonToolMessage)
-        assert "ModuleNotFoundError" in added_messages[0].output
-        assert added_messages[0].status == MessageStatus.SUCCESS
+    # Check first tool message (with error)
+    assert isinstance(added_messages[0], PythonToolMessage)
+    assert "ModuleNotFoundError" in added_messages[0].output
+    assert added_messages[0].status == MessageStatus.SUCCESS
 
-        # Check user message
-        assert isinstance(added_messages[1], UserMessage)
-        assert added_messages[1].text == "Try again with built-in libraries"
+    # Check user message
+    assert isinstance(added_messages[1], UserMessage)
+    assert added_messages[1].text == "Try again with built-in libraries"
 
-        # Check second tool message (successful)
-        assert isinstance(added_messages[2], PythonToolMessage)
-        assert "Success!" in added_messages[2].output
-        assert added_messages[2].status == MessageStatus.SUCCESS
+    # Check second tool message (successful)
+    assert isinstance(added_messages[2], PythonToolMessage)
+    assert "Success!" in added_messages[2].output
+    assert added_messages[2].status == MessageStatus.SUCCESS

@@ -8,6 +8,7 @@ from agents import (
     Agent,
     HandoffOutputItem,
     RunContextWrapper,
+    Session,
     function_tool,
     handoff,
     trace,
@@ -131,7 +132,7 @@ vibecore: Vibecore[None] = Vibecore(triage_agent)
 
 
 @vibecore.workflow()
-async def logic() -> None:
+async def logic(session: Session) -> None:
     current_agent: Agent[AirlineAgentContext] = triage_agent
     context = AirlineAgentContext()
 
@@ -146,7 +147,7 @@ async def logic() -> None:
                 current_agent,
                 input=user_input_,
                 context=context,
-                session=vibecore.session,
+                session=session,
             )
 
             for new_item in result.new_items:

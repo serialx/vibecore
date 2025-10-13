@@ -7,6 +7,7 @@ from agents import (
     Agent,
     Runner,
     RunResultStreaming,
+    Session,
     StreamEvent,
 )
 from openai.types.responses.response_output_message import Content
@@ -19,7 +20,6 @@ from textual.worker import Worker
 
 from vibecore.context import VibecoreContext
 from vibecore.handlers import AgentStreamHandler
-from vibecore.session import JSONLSession
 from vibecore.session.loader import SessionLoader
 from vibecore.settings import settings
 from vibecore.utils.text import TextExtractor
@@ -60,7 +60,7 @@ class VibecoreApp(App):
         self,
         context: VibecoreContext,
         agent: Agent,
-        session_id: str | None = None,
+        session: Session | None = None,
         show_welcome: bool = True,
     ) -> None:
         """Initialize the Vibecore app with context and agent.
@@ -76,25 +76,9 @@ class VibecoreApp(App):
         self.agent = agent
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
-        self._session_id_provided = session_id is not None  # Track if continuing session
+        self.session = session
         self.show_welcome = show_welcome
         self.message_queue: deque[str] = deque()  # Queue for user messages
-
-        # Initialize session based on settings
-        if settings.session.storage_type == "jsonl":
-            if session_id is None:
-                # Generate a new session ID based on current date/time
-                import datetime
-
-                session_id = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-
-            self.session = JSONLSession(
-                session_id=session_id,
-                project_path=None,  # Will use current working directory
-                base_dir=settings.session.base_dir,
-            )
-        else:
-            raise NotImplementedError("SQLite session support will be added later")
 
         super().__init__()
 
@@ -109,8 +93,8 @@ class VibecoreApp(App):
     async def on_mount(self) -> None:
         """Called when the app is mounted."""
         # Load session history if we're continuing from a previous session
-        if self._session_id_provided:
-            await self.load_session_history()
+        if self.session:
+            await self.load_session_history(self.session)
 
     def extract_text_from_content(self, content: list[Content]) -> str:
         """Extract text from various content formats."""
@@ -164,9 +148,9 @@ class VibecoreApp(App):
             # No messages to clean up
             pass
 
-    async def load_session_history(self) -> None:
+    async def load_session_history(self, session: Session) -> None:
         """Load and display messages from session history."""
-        loader = SessionLoader(self.session)
+        loader = SessionLoader(session)
         messages = await loader.load_history()
 
         # Remove Welcome widget if we have messages

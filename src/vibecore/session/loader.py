@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from agents import Session
 from openai.types.responses import (
     ResponseFunctionToolCall,
     ResponseInputItemParam,
@@ -12,7 +13,6 @@ from openai.types.responses import (
 from pydantic import TypeAdapter
 from textual import log
 
-from vibecore.session.jsonl_session import JSONLSession
 from vibecore.utils.text import TextExtractor
 from vibecore.widgets.messages import (
     AgentMessage,
@@ -28,7 +28,7 @@ from vibecore.widgets.tool_messages import BaseToolMessage
 class SessionLoader:
     """Loads and parses session history into message widgets."""
 
-    def __init__(self, session: JSONLSession):
+    def __init__(self, session: Session):
         """Initialize SessionLoader with a session.
 
         Args:
