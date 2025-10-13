@@ -9,7 +9,6 @@ from agents import (
     RunResultStreaming,
     StreamEvent,
 )
-from openai.types import Reasoning
 from openai.types.responses.response_output_message import Content
 from textual import log, work
 from textual.app import App, ComposeResult
@@ -33,28 +32,6 @@ AgentStatus = Literal["idle", "running", "waiting_user_input"]
 
 class AppIsExiting(Exception):
     pass
-
-
-def detect_reasoning_effort(prompt: str) -> Literal["low", "medium", "high"] | None:
-    """Detect reasoning effort level from user prompt keywords.
-
-    Args:
-        prompt: User input text
-
-    Returns:
-        Reasoning effort level or None if no keywords detected
-    """
-    prompt_lower = prompt.lower()
-
-    # Check for highest priority keywords first
-    if "ultrathink" in prompt_lower:
-        return "high"
-    elif "think hard" in prompt_lower:
-        return "medium"
-    elif "think" in prompt_lower:
-        return "low"
-
-    return None
 
 
 class VibecoreApp(App):
@@ -255,19 +232,9 @@ class VibecoreApp(App):
                     status="Generating…", metadata=f"{queued_count} message{'s' if queued_count > 1 else ''} queued"
                 )
             else:
-                # Detect reasoning effort from prompt keywords
-                detected_effort = detect_reasoning_effort(event.text)
-                # Create agent with appropriate reasoning effort
-                agent_to_use = self.agent
-                if detected_effort:
-                    # Create a copy of the agent with updated model settings
-                    agent_to_use = agent_to_use.clone()
-                    new_reasoning = Reasoning(effort=detected_effort, summary=settings.reasoning_summary)
-                    agent_to_use.model_settings.reasoning = new_reasoning
-
                 # Process the message immediately
                 result = Runner.run_streamed(
-                    agent_to_use,
+                    self.agent,
                     input=event.text,  # Pass string directly when using session
                     context=self.context,
                     max_turns=settings.max_turns,

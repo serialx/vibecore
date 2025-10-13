@@ -463,11 +463,6 @@ When enabled, the path confinement system:
 - Resolves symlinks to prevent escapes
 - Blocks access to files outside allowed directories
 
-### Reasoning Effort
-
-- Set default via env var: `VIBECORE_REASONING_EFFORT` (minimal | low | medium | high)
-- Keyword triggers: `think` → low, `think hard` → medium, `ultrathink` → high
-
 ### Environment Variables
 
 ```bash
