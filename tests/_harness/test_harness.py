@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 from openai.types.responses import ResponseInputItemParam
 from textual.app import ComposeResult
 
-from vibecore.context import VibecoreContext
+from vibecore.flow import Vibecore
 from vibecore.main import VibecoreApp
 from vibecore.session import JSONLSession
 from vibecore.widgets.core import AppFooter
@@ -38,11 +38,7 @@ class VibecoreTestApp(VibecoreApp):
         str(VIBECORE_SRC / "main.tcss"),
     ]
 
-    def __init__(
-        self,
-        session_fixture_path: Path | None = None,
-        context: VibecoreContext | None = None,
-    ) -> None:
+    def __init__(self, session_fixture_path: Path | None = None) -> None:
         """Initialize test app with optional session fixture.
 
         Args:
@@ -50,16 +46,13 @@ class VibecoreTestApp(VibecoreApp):
             context: Optional VibecoreContext (creates new one if not provided)
         """
         # Use provided context or create a new one
-        if context is None:
-            context = VibecoreContext()
+        vibecore = Vibecore()
 
         # Initialize with a test session ID
-        super().__init__(
-            context=context,
-            session=None,
-        )
+        super().__init__(vibecore)
 
         # Store the fixture path for loading
+        self.fixture_session: JSONLSession | None = None
         self.session_fixture_path = session_fixture_path
 
         # Override to prevent actual session file creation
@@ -102,15 +95,12 @@ class VibecoreTestApp(VibecoreApp):
                 pass
 
         # Replace the session with our test version
-        self.session = TestJSONLSession(
+        self.fixture_session = TestJSONLSession(
             fixture_path=self.session_fixture_path,
             session_id="test-snapshot",
             project_path=None,
             base_dir=None,
         )
-
-        # Mark that we should load history
-        self._session_id_provided = True
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app with patched AppFooter."""
@@ -132,6 +122,9 @@ class VibecoreTestApp(VibecoreApp):
 
     async def on_mount(self) -> None:
         """Override on_mount to disable cursor blinking in MyTextArea for deterministic snapshots."""
+        if self.fixture_session:
+            await self.load_session_history(self.fixture_session)  # Load history synchronously
+
         # Find MyTextArea and disable cursor blinking
         from vibecore.widgets.core import MyTextArea
 

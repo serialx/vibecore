@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from vibecore.context import VibecoreContext
+from vibecore.flow import Vibecore
 from vibecore.main import VibecoreApp
 from vibecore.widgets.messages import MessageStatus, UserMessage
 from vibecore.widgets.tool_messages import ToolMessage
@@ -18,9 +18,9 @@ async def test_load_session_history_empty():
     mock_session.get_items.return_value = []
 
     # Create app instance
-    ctx = VibecoreContext()
+    vibecore = Vibecore()
 
-    app = VibecoreApp(ctx, session=mock_session)
+    app = VibecoreApp(vibecore)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -56,9 +56,9 @@ async def test_load_session_history_with_messages():
     mock_session.get_items.return_value = session_items
 
     # Create app instance
-    ctx = VibecoreContext()
+    vibecore = Vibecore()
 
-    app = VibecoreApp(ctx, session=mock_session)
+    app = VibecoreApp(vibecore)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -105,9 +105,9 @@ async def test_load_session_history_with_complex_content():
     mock_session.get_items.return_value = session_items
 
     # Create app instance
-    ctx = VibecoreContext()
+    vibecore = Vibecore()
 
-    app = VibecoreApp(ctx, session=mock_session)
+    app = VibecoreApp(vibecore)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -144,9 +144,9 @@ async def test_load_session_history_with_orphaned_tool_calls():
     mock_session.get_items.return_value = session_items
 
     # Create app instance
-    ctx = VibecoreContext()
+    vibecore = Vibecore()
 
-    app = VibecoreApp(ctx, session=mock_session)
+    app = VibecoreApp(vibecore)
 
     # Mock the query methods
     app.query_one = MagicMock()

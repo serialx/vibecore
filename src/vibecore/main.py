@@ -1,7 +1,7 @@
 import asyncio
 import traceback
 from collections import deque
-from typing import ClassVar, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 from agents import (
     RunResultStreaming,
@@ -16,7 +16,8 @@ from textual.reactive import reactive
 from textual.widgets import Header
 from textual.worker import Worker
 
-from vibecore.context import VibecoreContext
+if TYPE_CHECKING:
+    from vibecore.flow import TWorkflowReturn, Vibecore
 from vibecore.handlers import AgentStreamHandler
 from vibecore.session.loader import SessionLoader
 from vibecore.utils.text import TextExtractor
@@ -55,8 +56,7 @@ class VibecoreApp(App):
 
     def __init__(
         self,
-        context: VibecoreContext,
-        session: Session | None = None,
+        vibecore: "Vibecore[TWorkflowReturn]",
         show_welcome: bool = True,
     ) -> None:
         """Initialize the Vibecore app with context and agent.
@@ -67,11 +67,10 @@ class VibecoreApp(App):
             session_id: Optional session ID to load existing session
             show_welcome: Whether to show the welcome message (default: True)
         """
-        self.context = context
-        self.context.app = self  # Set the app reference in context
+        self.vibecore = vibecore
+        vibecore.context.app = self  # Set the app reference in context
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
-        self.session = session
         self.show_welcome = show_welcome
         self.message_queue: deque[str] = deque()  # Queue for user messages
         self.user_input_event = asyncio.Event()  # Initialize event for user input coordination
@@ -85,12 +84,6 @@ class VibecoreApp(App):
         with MainScroll(id="messages"):
             if self.show_welcome:
                 yield Welcome()
-
-    async def on_mount(self) -> None:
-        """Called when the app is mounted."""
-        # Load session history if we're continuing from a previous session
-        if self.session:
-            await self.load_session_history(self.session)
 
     def extract_text_from_content(self, content: list[Content]) -> str:
         """Extract text from various content formats."""

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from vibecore.context import VibecoreContext
+from vibecore.flow import Vibecore
 from vibecore.main import VibecoreApp
 from vibecore.widgets.messages import AgentMessage, MessageStatus, UserMessage
 from vibecore.widgets.tool_messages import PythonToolMessage, ToolMessage
@@ -133,9 +133,9 @@ async def test_load_jsonl_format():
     mock_session.get_items.return_value = session_items
 
     # Create app instance
-    ctx = VibecoreContext()
+    vibecore = Vibecore()
 
-    app = VibecoreApp(ctx, session=mock_session)
+    app = VibecoreApp(vibecore)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -234,9 +234,9 @@ async def test_load_session_with_function_calls():
     mock_session.get_items.return_value = session_items
 
     # Create app instance
-    ctx = VibecoreContext()
+    vibecore = Vibecore()
 
-    app = VibecoreApp(ctx, session=mock_session)
+    app = VibecoreApp(vibecore)
 
     # Mock the query methods
     app.query_one = MagicMock()

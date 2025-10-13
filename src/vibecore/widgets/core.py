@@ -94,10 +94,10 @@ class MyTextArea(TextArea):
             history = []
 
             # First, load history from the session
-            if app.session:
+            if app.vibecore.session:
                 try:
                     # Get all items from the session
-                    session_items = await app.session.get_items()
+                    session_items = await app.vibecore.session.get_items()
                     for item in session_items:
                         # Filter for user messages
                         if isinstance(item, dict):

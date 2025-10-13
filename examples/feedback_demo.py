@@ -9,7 +9,7 @@ from typing import ClassVar
 
 from textual import log
 
-from vibecore.context import VibecoreContext
+from vibecore.flow import Vibecore
 from vibecore.main import VibecoreApp
 from vibecore.widgets.feedback import FeedbackWidget
 from vibecore.widgets.messages import AgentMessage, MessageStatus, SystemMessage
@@ -31,9 +31,6 @@ class FeedbackDemoApp(VibecoreApp):
 
     async def on_mount(self) -> None:
         """Mount the app and inject demo content."""
-        # Call parent's on_mount first
-        await super().on_mount()
-
         # Add demo content
         await self.add_demo_content()
 
@@ -88,11 +85,11 @@ def main():
     This creates a minimal VibecoreApp instance with demo content.
     """
     # Create context and agent (same pattern as CLI)
-    vibecore_ctx = VibecoreContext()
+    vibecore = Vibecore()
 
     # Create the demo app
     app = FeedbackDemoApp(
-        context=vibecore_ctx,
+        vibecore,
         show_welcome=False,  # Hide welcome message for cleaner demo
     )
 
