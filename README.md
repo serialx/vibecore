@@ -119,7 +119,6 @@ Once vibecore is running, you can:
 ### Commands
 
 - `/help` - Show help and keyboard shortcuts
-- `/clear` - Clear the current session and start a new one
 
 ## Flow Mode (Experimental)
 
@@ -138,7 +137,7 @@ Flow Mode allows you to:
 
 ```python
 import asyncio
-from agents import Agent
+from agents import Agent, Session
 from vibecore.flow import Vibecore
 from vibecore.context import VibecoreContext
 from vibecore.settings import settings
@@ -152,11 +151,11 @@ agent = Agent[VibecoreContext](
 )
 
 # Create Vibecore instance
-vibecore: Vibecore[str] = Vibecore(agent)
+vibecore = Vibecore[str]()
 
 # Define your conversation logic with decorator
 @vibecore.workflow()
-async def logic() -> str:
+async def logic(session: Session) -> str:
     # Get user input programmatically
     user_message = await vibecore.user_input("What would you like to do?")
 
@@ -168,7 +167,7 @@ async def logic() -> str:
         agent,
         input=user_message,
         context=vibecore.context,
-        session=vibecore.session,
+        session=session,
     )
 
     await vibecore.print("Done!")
@@ -527,7 +526,7 @@ vibecore is built with a modular, extensible architecture:
 - **Path Confinement**: Security feature to restrict file and shell operations to specified directories
 - **Reasoning View**: ReasoningMessage widget with live reasoning summaries during streaming
 - **Context Usage Bar & CWD**: Footer shows token usage progress and current working directory
-- **Keyboard & Commands**: Ctrl+Shift+D toggles theme, Esc cancels, Ctrl+D double-press to exit, `/help` and `/clear` commands
+- **Keyboard & Commands**: Ctrl+Shift+D toggles theme, Esc cancels, Ctrl+D double-press to exit, `/help` command
 - **MCP Tool Output**: Improved rendering with Markdown and JSON prettification
 - **MCP Support**: Full integration with Model Context Protocol for external tool connections
 - **Print Mode**: `-p` flag to print response and exit for pipes/automation
