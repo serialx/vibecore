@@ -371,6 +371,14 @@ class MCPToolMessageTestApp(MessageTestApp):
 class FeedbackWidgetTestApp(MessageTestApp):
     """Test app for FeedbackWidget."""
 
+    # Override pseudo-class states to prevent flaky snapshots due to inconsistent state timing
+    CSS = """
+    Button:hover, Button:focus {
+        background-tint: initial !important;
+        border-top: initial !important;
+    }
+    """
+
     def create_test_messages(self) -> ComposeResult:
         """Create various FeedbackWidget test cases."""
         # Simple feedback widget with default prompt
