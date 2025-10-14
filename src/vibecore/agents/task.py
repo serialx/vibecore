@@ -3,7 +3,7 @@
 from agents import Agent
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 
-from vibecore.context import VibecoreContext
+from vibecore.context import FullVibecoreContext
 from vibecore.settings import settings
 from vibecore.tools.file.tools import edit, multi_edit, read, write
 from vibecore.tools.python.tools import execute_python
@@ -13,7 +13,7 @@ from vibecore.tools.todo.tools import todo_read, todo_write
 from .prompts import COMMON_PROMPT
 
 
-def create_task_agent(prompt: str) -> Agent[VibecoreContext]:
+def create_task_agent(prompt: str) -> Agent[FullVibecoreContext]:
     """Create a task agent with all tools except the Task tool.
 
     This agent is used by the Task tool to execute specific tasks.
@@ -51,7 +51,7 @@ def create_task_agent(prompt: str) -> Agent[VibecoreContext]:
 
     instructions = prompt_with_handoff_instructions(instructions)
 
-    return Agent[VibecoreContext](
+    return Agent[FullVibecoreContext](
         name="Task Agent",
         handoff_description="A task-specific agent",
         instructions=instructions,

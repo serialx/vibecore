@@ -2,14 +2,14 @@
 
 from agents import RunContextWrapper, function_tool
 
-from vibecore.context import PathValidatedContext
+from vibecore.context import PathValidatorContext
 
 from .executor import bash_executor, glob_files, grep_files, list_directory
 
 
 @function_tool
 async def bash(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     command: str,
     timeout: int | None = None,
     description: str | None = None,
@@ -66,7 +66,7 @@ async def bash(
 
 @function_tool
 async def glob(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     pattern: str,
     path: str | None = None,
 ) -> str:
@@ -98,7 +98,7 @@ async def glob(
 
 @function_tool
 async def grep(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     pattern: str,
     path: str | None = None,
     include: str | None = None,
@@ -132,7 +132,7 @@ async def grep(
 
 @function_tool
 async def ls(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     path: str,
     ignore: list[str] | None = None,
 ) -> str:

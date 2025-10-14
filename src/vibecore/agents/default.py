@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from agents import Agent
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 
-from vibecore.context import VibecoreContext
+from vibecore.context import FullVibecoreContext
 from vibecore.settings import settings
 from vibecore.tools.file.tools import edit, multi_edit, read, write
 from vibecore.tools.python.tools import execute_python
@@ -29,7 +29,7 @@ INSTRUCTIONS = (
 )
 
 
-def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[VibecoreContext]:
+def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[FullVibecoreContext]:
     """Create the general-purpose agent with appropriate tools.
 
     Args:
@@ -58,7 +58,7 @@ def create_default_agent(mcp_servers: list["MCPServer"] | None = None) -> Agent[
 
     instructions = prompt_with_handoff_instructions(instructions)
 
-    return Agent[VibecoreContext](
+    return Agent[FullVibecoreContext](
         name="Vibecore Agent",
         handoff_description="A versatile general-purpose assistant",
         instructions=instructions,

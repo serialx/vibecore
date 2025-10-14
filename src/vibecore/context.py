@@ -25,7 +25,7 @@ class PythonToolContext(Protocol):
 
 
 @runtime_checkable
-class PathValidatedContext(Protocol):
+class PathValidatorContext(Protocol):
     """Context that provides a path validator for file-system tools."""
 
     path_validator: "PathValidator"
@@ -39,7 +39,7 @@ class AppAwareContext(Protocol):
 
 
 @runtime_checkable
-class VibecoreContext(TodoToolContext, PythonToolContext, PathValidatedContext, AppAwareContext, Protocol):
+class FullVibecoreContext(TodoToolContext, PythonToolContext, PathValidatorContext, AppAwareContext, Protocol):
     """Protocol describing the full context required by Vibecore agents."""
 
     ...
@@ -84,4 +84,4 @@ class DefaultVibecoreContext:
 
 if TYPE_CHECKING:
     # Ensure DefaultVibecoreContext conforms to the VibecoreContext protocol for static analyzers
-    _default_context: VibecoreContext = DefaultVibecoreContext()
+    _default_context: FullVibecoreContext = DefaultVibecoreContext()

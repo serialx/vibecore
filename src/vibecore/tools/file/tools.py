@@ -3,7 +3,7 @@
 from agents import RunContextWrapper, function_tool
 from pydantic import BaseModel
 
-from vibecore.context import PathValidatedContext
+from vibecore.context import PathValidatorContext
 
 from .executor import edit_file, multi_edit_file, read_file, write_file
 
@@ -18,7 +18,7 @@ class EditOperation(BaseModel):
 
 @function_tool
 async def read(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     file_path: str,
     offset: int | None = None,
     limit: int | None = None,
@@ -54,7 +54,7 @@ async def read(
 
 @function_tool
 async def edit(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     file_path: str,
     old_string: str,
     new_string: str,
@@ -91,7 +91,7 @@ async def edit(
 
 @function_tool
 async def multi_edit(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     file_path: str,
     edits: list[EditOperation],
 ) -> str:
@@ -158,7 +158,7 @@ async def multi_edit(
 
 @function_tool
 async def write(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     file_path: str,
     content: str,
 ) -> str:

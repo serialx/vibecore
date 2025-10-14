@@ -4,7 +4,7 @@ from typing import Any
 
 from agents import RunContextWrapper
 
-from vibecore.context import PathValidatedContext
+from vibecore.context import PathValidatorContext
 from vibecore.settings import settings
 from vibecore.tools.file.utils import PathValidationError
 
@@ -12,7 +12,7 @@ from .utils import format_line_with_number
 
 
 async def read_file(
-    ctx: RunContextWrapper[PathValidatedContext], file_path: str, offset: int | None = None, limit: int | None = None
+    ctx: RunContextWrapper[PathValidatorContext], file_path: str, offset: int | None = None, limit: int | None = None
 ) -> str:
     """Read a file and return its contents in cat -n format.
 
@@ -100,7 +100,7 @@ async def read_file(
 
 
 async def edit_file(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     file_path: str,
     old_string: str,
     new_string: str,
@@ -187,7 +187,7 @@ async def edit_file(
 
 
 async def multi_edit_file(
-    ctx: RunContextWrapper[PathValidatedContext],
+    ctx: RunContextWrapper[PathValidatorContext],
     file_path: str,
     edits: list[dict[str, Any]],
 ) -> str:
@@ -278,7 +278,7 @@ async def multi_edit_file(
         return f"Error: Unexpected error editing file: {e}"
 
 
-async def write_file(ctx: RunContextWrapper[PathValidatedContext], file_path: str, content: str) -> str:
+async def write_file(ctx: RunContextWrapper[PathValidatorContext], file_path: str, content: str) -> str:
     """Write content to a file.
 
     Args:

@@ -2,14 +2,14 @@ import asyncio
 
 from agents import Agent, Session
 
-from vibecore.context import VibecoreContext
+from vibecore.context import FullVibecoreContext
 from vibecore.flow import Vibecore
 from vibecore.settings import settings
 from vibecore.tools.file.tools import read
 from vibecore.tools.shell.tools import glob, grep, ls
 from vibecore.tools.todo.tools import todo_read, todo_write
 
-agent = Agent[VibecoreContext](
+agent = Agent[FullVibecoreContext](
     name="Poetic Agent",
     instructions="You are a poetic calculator",
     tools=[

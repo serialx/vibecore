@@ -3,14 +3,14 @@
 from agents import function_tool
 from agents.tool_context import ToolContext
 
-from vibecore.context import VibecoreContext
+from vibecore.context import FullVibecoreContext
 
 from .executor import execute_task
 
 
 @function_tool
 async def task(
-    ctx: ToolContext[VibecoreContext],
+    ctx: ToolContext[FullVibecoreContext],
     description: str,
     prompt: str,
 ) -> str:
