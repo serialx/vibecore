@@ -216,12 +216,18 @@ class VibecoreApp(App):
         self.agent_stream_handler = AgentStreamHandler(self)
         await self.agent_stream_handler.process_stream(result)
 
-        # XXX(serialx): We should use the final total usage from the result, but usage
-        #               is aggregated total usage, so this is wrong caclculation
-        used = result.context_wrapper.usage.total_tokens
+        # Determine usage based on the last model response rather than the aggregated usage
+        # from the entire session so that context fullness reflects the most recent request.
+        used_tokens: float = 0.0
+        if result.raw_responses:
+            last_response = result.raw_responses[-1]
+            last_usage = getattr(last_response, "usage", None)
+            if last_usage:
+                used_tokens = float(last_usage.total_tokens)
+
         max_ctx = self._get_model_context_window()
-        log(f"Context usage: {used} / {max_ctx} total tokens")
-        context_fullness = min(1.0, float(used) / float(max_ctx))
+        log(f"Context usage: {used_tokens} / {max_ctx} total tokens")
+        context_fullness = min(1.0, used_tokens / float(max_ctx))
         footer = self.query_one(AppFooter)
         footer.set_context_progress(context_fullness)
 
