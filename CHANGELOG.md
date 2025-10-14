@@ -5,6 +5,38 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-10-14
+
+### Changed
+- **BREAKING**: Simplified workflow API with direct user_message parameter
+  - Removed `context` and `session` parameters from workflow functions
+  - Workflows now receive only `runner` parameter with `user_message` available directly
+  - Made built-in tools accept protocol contexts for better flexibility
+- **Architecture Improvements**:
+  - Introduced runner pattern for better type safety and separation of concerns
+  - Consolidated VibecoreApp initialization and session loading
+  - Migrated CLI to flow mode architecture for consistency
+  - Improved MCP manager lifecycle with async context management
+  - Removed agent parameter from VibecoreApp and Vibecore for cleaner API
+  - Cleanup of unused context properties and code
+- **Removed Features**:
+  - Removed `/clear` command
+  - Removed `detect_reasoning_effort` feature
+
+### Added
+- Increased ctrl+d prompt time for better user experience
+
+### Fixed
+- Context usage now correctly derived from last response
+- User inputs now processed in FIFO order
+- Fixed flaky feedback widget test
+- Fixed context usage calculation
+- Added .git to ignore for pyright
+
+### Documentation
+- Updated Flow Mode documentation for v0.5.0+ API changes
+- Updated README to reflect API improvements
+
 ## [0.5.0] - 2025-10-12
 
 ### Changed
