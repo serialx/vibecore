@@ -125,7 +125,7 @@ class VibecoreStaticRunner(VibecoreRunnerBase[TContext, TWorkflowReturn]):
     async def user_input(self, prompt: str = "") -> str:
         if not self.inputs:
             raise NoUserInputLeft()
-        return self.inputs.pop()
+        return self.inputs.pop(0)
 
     async def print(self, message: str) -> None:
         # Capture printed messages instead of displaying them

@@ -160,7 +160,7 @@ class VibecoreApp(App):
     async def wait_for_user_input(self) -> str:
         """Used in flow mode. See examples/basic_agent.py"""
         if self.message_queue:
-            user_input = self.message_queue.pop()
+            user_input = self.message_queue.popleft()
 
             user_message = UserMessage(user_input)
             await self.add_message(user_message)
@@ -171,7 +171,7 @@ class VibecoreApp(App):
         self.agent_status = "waiting_user_input"
         self.user_input_event.clear()  # Reset the event for next wait
         await self.user_input_event.wait()
-        user_input = self.message_queue.pop()
+        user_input = self.message_queue.popleft()
 
         user_message = UserMessage(user_input)
         await self.add_message(user_message)
