@@ -152,11 +152,13 @@ class VibecoreTextualRunner(VibecoreRunnerBase[AppAwareContext, TWorkflowReturn]
         session: Session | None = None,
     ) -> None:
         super().__init__(vibecore, context=context, session=session)
-        self.app = None
+        self.app = VibecoreApp(
+            self,
+            show_welcome=False,
+        )
         self.app_ready_event = asyncio.Event()
 
     async def user_input(self, prompt: str = "") -> str:
-        assert self.app is not None, "App not initialized."
         if prompt:
             await self.print(prompt)
         self.app.query_one(MyTextArea).disabled = False
@@ -167,7 +169,6 @@ class VibecoreTextualRunner(VibecoreRunnerBase[AppAwareContext, TWorkflowReturn]
         return user_input
 
     async def print(self, message: str) -> None:
-        assert self.app is not None, "App not initialized."
         await self.app.add_message(SystemMessage(message))
 
     async def run_agent(
@@ -182,7 +183,6 @@ class VibecoreTextualRunner(VibecoreRunnerBase[AppAwareContext, TWorkflowReturn]
         previous_response_id: str | None = None,
         session: Session | None = None,
     ) -> RunResultBase:
-        assert self.app is not None, "App not initialized."
         result = Runner.run_streamed(
             starting_agent=starting_agent,
             input=input,  # Pass string directly when using session
@@ -208,8 +208,6 @@ class VibecoreTextualRunner(VibecoreRunnerBase[AppAwareContext, TWorkflowReturn]
         Args:
             app: App to run.
         """
-        assert self.app is not None, "App not initialized."
-
         with self.app._context():
             try:
                 self.app._loop = asyncio.get_running_loop()
@@ -228,10 +226,6 @@ class VibecoreTextualRunner(VibecoreRunnerBase[AppAwareContext, TWorkflowReturn]
         return await self.vibecore.workflow_logic(self.context, self.session)
 
     async def run(self, inputs: list[str] | None = None, shutdown: bool = False) -> TWorkflowReturn:
-        self.app = VibecoreApp(
-            self,
-            show_welcome=False,
-        )
         if inputs:
             self.app.message_queue.extend(inputs)
         app_task = asyncio.create_task(self._run_app(), name=f"run_app({self.app})")
