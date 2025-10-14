@@ -17,7 +17,8 @@ from textual.widgets import Header
 from textual.worker import Worker
 
 if TYPE_CHECKING:
-    from vibecore.flow import TWorkflowReturn, Vibecore
+    from vibecore.flow import TWorkflowReturn, VibecoreTextualRunner
+
 from vibecore.handlers import AgentStreamHandler
 from vibecore.session.loader import SessionLoader
 from vibecore.utils.text import TextExtractor
@@ -56,7 +57,7 @@ class VibecoreApp(App):
 
     def __init__(
         self,
-        vibecore: "Vibecore[TWorkflowReturn]",
+        runner: "VibecoreTextualRunner[TWorkflowReturn]",
         show_welcome: bool = True,
     ) -> None:
         """Initialize the Vibecore app with context and agent.
@@ -67,8 +68,9 @@ class VibecoreApp(App):
             session_id: Optional session ID to load existing session
             show_welcome: Whether to show the welcome message (default: True)
         """
-        self.vibecore = vibecore
-        vibecore.context.app = self  # Set the app reference in context
+        self.runner = runner
+        if runner.context:
+            runner.context.app = self  # Set the app reference in context
         self.current_result: RunResultStreaming | None = None
         self.current_worker: Worker[None] | None = None
         self.show_welcome = show_welcome

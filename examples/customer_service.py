@@ -128,11 +128,11 @@ seat_booking_agent.handoffs.append(triage_agent)
 
 ### RUN
 
-vibecore = Vibecore[None]()
+vibecore = Vibecore[AirlineAgentContext, None]()
 
 
 @vibecore.workflow()
-async def logic(session: Session) -> None:
+async def logic(context: AirlineAgentContext | None, session: Session) -> None:
     current_agent: Agent[AirlineAgentContext] = triage_agent
     context = AirlineAgentContext()
 

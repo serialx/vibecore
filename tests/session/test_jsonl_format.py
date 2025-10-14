@@ -2,11 +2,14 @@
 
 # ruff: noqa: E501
 
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from agents.result import RunResultBase
 
-from vibecore.flow import Vibecore
+from vibecore.context import AppAwareContext
+from vibecore.flow import Vibecore, VibecoreTextualRunner
 from vibecore.main import VibecoreApp
 from vibecore.widgets.messages import AgentMessage, MessageStatus, UserMessage
 from vibecore.widgets.tool_messages import PythonToolMessage, ToolMessage
@@ -134,8 +137,13 @@ async def test_load_jsonl_format():
 
     # Create app instance
     vibecore = Vibecore()
+    runner = VibecoreTextualRunner(
+        cast("Vibecore[AppAwareContext, RunResultBase]", vibecore),
+        context=None,
+        session=None,
+    )
 
-    app = VibecoreApp(vibecore)
+    app = VibecoreApp(runner)
 
     # Mock the query methods
     app.query_one = MagicMock()
@@ -235,8 +243,13 @@ async def test_load_session_with_function_calls():
 
     # Create app instance
     vibecore = Vibecore()
+    runner = VibecoreTextualRunner(
+        cast("Vibecore[AppAwareContext, RunResultBase]", vibecore),
+        context=None,
+        session=None,
+    )
 
-    app = VibecoreApp(vibecore)
+    app = VibecoreApp(runner)
 
     # Mock the query methods
     app.query_one = MagicMock()

@@ -26,17 +26,17 @@ agent = Agent[FullVibecoreContext](
 )
 
 
-vibecore = Vibecore[str]()
+vibecore = Vibecore[FullVibecoreContext, str]()
 
 
 @vibecore.workflow()
-async def logic(session: Session) -> str:
+async def logic(context: FullVibecoreContext | None, session: Session) -> str:
     user_message = await vibecore.user_input("Input your message:")
     await vibecore.print(f"Starting generation of '{user_message}'...")
     result = await vibecore.run_agent(
         agent,
         input=user_message,  # Pass string directly when using session
-        context=vibecore.context,
+        context=context,
         max_turns=settings.max_turns,
         session=session,
     )

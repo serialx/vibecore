@@ -82,7 +82,11 @@ class TestCLI:
         mock_vibecore = MagicMock()
         mock_vibecore.run_textual = AsyncMock()
         mock_vibecore.workflow = MagicMock(return_value=lambda f: f)  # Decorator passthrough
+        mock_vibecore.user_input = AsyncMock(side_effect=Exception("Should not be called in mocked run_textual"))
+        mock_vibecore.run_agent = AsyncMock(side_effect=Exception("Should not be called in mocked run_textual"))
         mock_vibecore_class.return_value = mock_vibecore
+        # Handle generic type syntax Vibecore[Type1, Type2](...)
+        mock_vibecore_class.__getitem__.return_value = mock_vibecore_class
 
         # Mock MCPManager context manager
         mock_mcp_manager = MagicMock()
@@ -115,7 +119,11 @@ class TestCLI:
         mock_vibecore = MagicMock()
         mock_vibecore.run_textual = AsyncMock()
         mock_vibecore.workflow = MagicMock(return_value=lambda f: f)  # Decorator passthrough
+        mock_vibecore.user_input = AsyncMock(side_effect=Exception("Should not be called in mocked run_textual"))
+        mock_vibecore.run_agent = AsyncMock(side_effect=Exception("Should not be called in mocked run_textual"))
         mock_vibecore_class.return_value = mock_vibecore
+        # Handle generic type syntax Vibecore[Type1, Type2](...)
+        mock_vibecore_class.__getitem__.return_value = mock_vibecore_class
 
         # Mock MCPManager context manager
         mock_mcp_manager = MagicMock()
@@ -148,7 +156,11 @@ class TestCLI:
         mock_vibecore = MagicMock()
         mock_vibecore.run_textual = AsyncMock()
         mock_vibecore.workflow = MagicMock(return_value=lambda f: f)  # Decorator passthrough
+        mock_vibecore.user_input = AsyncMock(side_effect=Exception("Should not be called in mocked run_textual"))
+        mock_vibecore.run_agent = AsyncMock(side_effect=Exception("Should not be called in mocked run_textual"))
         mock_vibecore_class.return_value = mock_vibecore
+        # Handle generic type syntax Vibecore[Type1, Type2](...)
+        mock_vibecore_class.__getitem__.return_value = mock_vibecore_class
 
         # Mock MCPManager context manager
         mock_mcp_manager = MagicMock()

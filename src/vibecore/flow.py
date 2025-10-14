@@ -4,7 +4,7 @@ import datetime
 import sys
 import threading
 from collections.abc import Callable, Coroutine
-from typing import Any, Concatenate, Generic, TypeAlias, overload
+from typing import Any, Concatenate, Generic, TypeAlias, cast, overload
 
 from agents import (
     Agent,
@@ -12,7 +12,6 @@ from agents import (
     RunHooks,
     Runner,
     Session,
-    TContext,
     TResponseInputItem,
 )
 from agents.result import RunResultBase
@@ -20,7 +19,7 @@ from agents.run import DEFAULT_MAX_TURNS
 from textual.pilot import Pilot
 from typing_extensions import TypeVar
 
-from vibecore.context import DefaultVibecoreContext
+from vibecore.context import AppAwareContext
 from vibecore.main import AppIsExiting, VibecoreApp
 from vibecore.session import JSONLSession
 from vibecore.settings import settings
@@ -34,13 +33,22 @@ class NoUserInputLeft(Exception):
     pass
 
 
+TContext = TypeVar("TContext", default=None)
 TWorkflowReturn = TypeVar("TWorkflowReturn", default=RunResultBase)
-DecoratedCallable: TypeAlias = Callable[Concatenate[Session, ...], Coroutine[Any, Any, TWorkflowReturn]]
+DecoratedCallable: TypeAlias = Callable[
+    Concatenate[TContext | None, Session, ...], Coroutine[Any, Any, TWorkflowReturn]
+]
 
 
-class VibecoreRunnerBase(Generic[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
+class VibecoreRunnerBase(Generic[TContext, TWorkflowReturn]):
+    def __init__(
+        self,
+        vibecore: "Vibecore[TContext, TWorkflowReturn]",
+        context: TContext | None = None,
+        session: Session | None = None,
+    ) -> None:
         self.vibecore = vibecore
+        self.context = context
 
         if session is None:
             session_id = f"chat-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -87,9 +95,14 @@ class VibecoreRunnerBase(Generic[TWorkflowReturn]):
         return result
 
 
-class VibecoreCliRunner(VibecoreRunnerBase[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
-        super().__init__(vibecore, session=session)
+class VibecoreCliRunner(VibecoreRunnerBase[TContext, TWorkflowReturn]):
+    def __init__(
+        self,
+        vibecore: "Vibecore[TContext, TWorkflowReturn]",
+        context: TContext | None = None,
+        session: Session | None = None,
+    ) -> None:
+        super().__init__(vibecore, context=context, session=session)
 
     async def user_input(self, prompt: str = "") -> str:
         return input(prompt)
@@ -98,12 +111,17 @@ class VibecoreCliRunner(VibecoreRunnerBase[TWorkflowReturn]):
         assert self.vibecore.workflow_logic is not None, (
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
-        return await self.vibecore.workflow_logic(self.session)
+        return await self.vibecore.workflow_logic(self.context, self.session)
 
 
-class VibecoreStaticRunner(VibecoreRunnerBase[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
-        super().__init__(vibecore, session=session)
+class VibecoreStaticRunner(VibecoreRunnerBase[TContext, TWorkflowReturn]):
+    def __init__(
+        self,
+        vibecore: "Vibecore[TContext, TWorkflowReturn]",
+        context: TContext | None = None,
+        session: Session | None = None,
+    ) -> None:
+        super().__init__(vibecore, context=context, session=session)
         self.inputs: list[str] = []
         self.prints: list[str] = []
 
@@ -123,12 +141,17 @@ class VibecoreStaticRunner(VibecoreRunnerBase[TWorkflowReturn]):
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
         self.inputs.extend(inputs)
-        return await self.vibecore.workflow_logic(self.session)
+        return await self.vibecore.workflow_logic(self.context, self.session)
 
 
-class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
-    def __init__(self, vibecore: "Vibecore[TWorkflowReturn]", session: Session | None = None) -> None:
-        super().__init__(vibecore, session=session)
+class VibecoreTextualRunner(VibecoreRunnerBase[AppAwareContext, TWorkflowReturn]):
+    def __init__(
+        self,
+        vibecore: "Vibecore[AppAwareContext, TWorkflowReturn]",
+        context: AppAwareContext | None = None,
+        session: Session | None = None,
+    ) -> None:
+        super().__init__(vibecore, context=context, session=session)
         self.app = None
         self.app_ready_event = asyncio.Event()
 
@@ -149,12 +172,12 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
 
     async def run_agent(
         self,
-        starting_agent: Agent[TContext],
+        starting_agent: Agent[AppAwareContext],
         input: str | list[TResponseInputItem],
         *,
-        context: TContext | None = None,
+        context: AppAwareContext | None = None,
         max_turns: int = DEFAULT_MAX_TURNS,
-        hooks: RunHooks[TContext] | None = None,
+        hooks: RunHooks[AppAwareContext] | None = None,
         run_config: RunConfig | None = None,
         previous_response_id: str | None = None,
         session: Session | None = None,
@@ -202,11 +225,11 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
         assert self.vibecore.workflow_logic is not None, (
             "Workflow logic not defined. Please use the @vibecore.workflow() decorator."
         )
-        return await self.vibecore.workflow_logic(self.session)
+        return await self.vibecore.workflow_logic(self.context, self.session)
 
     async def run(self, inputs: list[str] | None = None, shutdown: bool = False) -> TWorkflowReturn:
         self.app = VibecoreApp(
-            self.vibecore,
+            self,
             show_welcome=False,
         )
         if inputs:
@@ -248,12 +271,12 @@ class VibecoreTextualRunner(VibecoreRunnerBase[TWorkflowReturn]):
         raise AssertionError(f"Unexpected state: done={done}, pending={pending}")
 
 
-class Vibecore(Generic[TWorkflowReturn]):
+class Vibecore(Generic[TContext, TWorkflowReturn]):
+    runner: VibecoreRunnerBase[TContext, TWorkflowReturn]
+
     def __init__(self, disable_user_input: bool = True) -> None:
-        self.context = DefaultVibecoreContext()
-        self.workflow_logic: DecoratedCallable[TWorkflowReturn] | None = None
+        self.workflow_logic: DecoratedCallable[TContext, TWorkflowReturn] | None = None
         self.disable_user_input = disable_user_input
-        self.runner: VibecoreRunnerBase[TWorkflowReturn] = VibecoreRunnerBase(self)
 
     @property
     def session(self) -> Session:
@@ -265,7 +288,9 @@ class Vibecore(Generic[TWorkflowReturn]):
     async def print(self, message: str) -> None:
         return await self.runner.print(message)
 
-    def workflow(self) -> Callable[[DecoratedCallable[TWorkflowReturn]], DecoratedCallable[TWorkflowReturn]]:
+    def workflow(
+        self,
+    ) -> Callable[[DecoratedCallable[TContext, TWorkflowReturn]], DecoratedCallable[TContext, TWorkflowReturn]]:
         """Decorator to define the workflow logic for the app.
 
         Returns:
@@ -273,8 +298,8 @@ class Vibecore(Generic[TWorkflowReturn]):
         """
 
         def decorator(
-            func: DecoratedCallable[TWorkflowReturn],
-        ) -> DecoratedCallable[TWorkflowReturn]:
+            func: DecoratedCallable[TContext, TWorkflowReturn],
+        ) -> DecoratedCallable[TContext, TWorkflowReturn]:
             self.workflow_logic = func
             return func
 
@@ -305,15 +330,27 @@ class Vibecore(Generic[TWorkflowReturn]):
 
     @overload
     async def run_textual(
-        self, inputs: str | None = None, session: Session | None = None, shutdown: bool = False
+        self,
+        inputs: str | None = None,
+        context: AppAwareContext | None = None,
+        session: Session | None = None,
+        shutdown: bool = False,
     ) -> TWorkflowReturn: ...
     @overload
     async def run_textual(
-        self, inputs: list[str] | None = None, session: Session | None = None, shutdown: bool = False
+        self,
+        inputs: list[str] | None = None,
+        context: AppAwareContext | None = None,
+        session: Session | None = None,
+        shutdown: bool = False,
     ) -> TWorkflowReturn: ...
 
     async def run_textual(
-        self, inputs: str | list[str] | None = None, session: Session | None = None, shutdown: bool = False
+        self,
+        inputs: str | list[str] | None = None,
+        context: AppAwareContext | None = None,
+        session: Session | None = None,
+        shutdown: bool = False,
     ) -> TWorkflowReturn:
         if isinstance(inputs, str):
             inputs = [inputs]
@@ -321,28 +358,44 @@ class Vibecore(Generic[TWorkflowReturn]):
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
-        self.runner = VibecoreTextualRunner(self, session=session)
-        return await self.runner.run(inputs=inputs, shutdown=shutdown)
+        assert isinstance(context, AppAwareContext) or context is None, (
+            "Textual runner requires AppAwareContext or None."
+        )
+        # Type checker needs help: after the assertion, we know context is AppAwareContext | None
+        # and this Vibecore instance can be treated as Vibecore[AppAwareContext, TWorkflowReturn]
+        runner = VibecoreTextualRunner(
+            cast("Vibecore[AppAwareContext, TWorkflowReturn]", self),
+            context=context,
+            session=session,
+        )
+        self.runner = cast("VibecoreRunnerBase[TContext, TWorkflowReturn]", runner)
+        return await runner.run(inputs=inputs, shutdown=shutdown)
 
-    async def run_cli(self, session: Session | None = None) -> TWorkflowReturn:
+    async def run_cli(self, context: TContext | None = None, session: Session | None = None) -> TWorkflowReturn:
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
-        self.runner = VibecoreCliRunner(self, session=session)
+        self.runner = VibecoreCliRunner(self, context=context, session=session)
         return await self.runner.run()
 
     @overload
-    async def run(self, inputs: str, session: Session | None = None) -> TWorkflowReturn: ...
+    async def run(
+        self, inputs: str, context: TContext | None = None, session: Session | None = None
+    ) -> TWorkflowReturn: ...
 
     @overload
-    async def run(self, inputs: list[str], session: Session | None = None) -> TWorkflowReturn: ...
+    async def run(
+        self, inputs: list[str], context: TContext | None = None, session: Session | None = None
+    ) -> TWorkflowReturn: ...
 
-    async def run(self, inputs: str | list[str], session: Session | None = None) -> TWorkflowReturn:
+    async def run(
+        self, inputs: str | list[str], context: TContext | None = None, session: Session | None = None
+    ) -> TWorkflowReturn:
         if isinstance(inputs, str):
             inputs = [inputs]
 
         if self.workflow_logic is None:
             raise ValueError("Workflow logic not defined. Please use the @vibecore.workflow() decorator.")
 
-        self.runner = VibecoreStaticRunner(self, session=session)
+        self.runner = VibecoreStaticRunner(self, context=context, session=session)
         return await self.runner.run(inputs=inputs)

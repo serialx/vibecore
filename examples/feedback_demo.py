@@ -9,7 +9,8 @@ from typing import ClassVar
 
 from textual import log
 
-from vibecore.flow import Vibecore
+from vibecore.context import AppAwareContext
+from vibecore.flow import Vibecore, VibecoreTextualRunner
 from vibecore.main import VibecoreApp
 from vibecore.widgets.feedback import FeedbackWidget
 from vibecore.widgets.messages import AgentMessage, MessageStatus, SystemMessage
@@ -85,11 +86,12 @@ def main():
     This creates a minimal VibecoreApp instance with demo content.
     """
     # Create context and agent (same pattern as CLI)
-    vibecore = Vibecore()
+    vibecore = Vibecore[AppAwareContext]()
+    vibecore_runner = VibecoreTextualRunner(vibecore)
 
     # Create the demo app
     app = FeedbackDemoApp(
-        vibecore,
+        vibecore_runner,
         show_welcome=False,  # Hide welcome message for cleaner demo
     )
 

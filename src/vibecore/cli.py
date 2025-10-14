@@ -127,7 +127,9 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         agent = create_default_agent(mcp_servers=mcp_manager.servers)
 
         # Create Vibecore instance
-        vibecore: Vibecore = Vibecore(disable_user_input=False)
+        from vibecore.context import FullVibecoreContext
+
+        vibecore = Vibecore[FullVibecoreContext, RunResultBase](disable_user_input=False)
 
         # Determine session to use
         session_to_load = None
@@ -153,7 +155,7 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
 
         # Define workflow logic
         @vibecore.workflow()
-        async def workflow(session: Session) -> RunResultBase:
+        async def workflow(context: FullVibecoreContext | None, session: Session) -> RunResultBase:
             result = None
             while True:
                 try:
@@ -166,7 +168,7 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
                 result = await vibecore.run_agent(
                     agent,
                     input=user_message,
-                    context=vibecore.context,
+                    context=context,
                     max_turns=settings.max_turns,
                     session=session,
                 )

@@ -1,12 +1,14 @@
 """Test harness for snapshot testing vibecore widgets."""
 
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
+from agents.result import RunResultBase
 from openai.types.responses import ResponseInputItemParam
 from textual.app import ComposeResult
 
-from vibecore.flow import Vibecore
+from vibecore.context import AppAwareContext
+from vibecore.flow import Vibecore, VibecoreTextualRunner
 from vibecore.main import VibecoreApp
 from vibecore.session import JSONLSession
 from vibecore.widgets.core import AppFooter
@@ -48,8 +50,16 @@ class VibecoreTestApp(VibecoreApp):
         # Use provided context or create a new one
         vibecore = Vibecore()
 
+        # Create a runner for the test app
+        # Cast needed: test apps don't use real contexts, but runner expects AppAwareContext
+        runner = VibecoreTextualRunner(
+            cast("Vibecore[AppAwareContext, RunResultBase]", vibecore),
+            context=None,
+            session=None,
+        )
+
         # Initialize with a test session ID
-        super().__init__(vibecore)
+        super().__init__(runner)
 
         # Store the fixture path for loading
         self.fixture_session: JSONLSession | None = None
