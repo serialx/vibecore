@@ -120,7 +120,7 @@ indent-style = "space"
 
 [tool.pyright]
 include = ["**/*.py"]
-exclude = ["**/__pycache__", ".venv", "venv", "build", "dist"]
+exclude = ["**/__pycache__", ".venv", "venv", "build", "dist", ".git"]
 pythonVersion = "3.11"
 venvPath = "."
 venv = ".venv"
