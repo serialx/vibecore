@@ -1,10 +1,8 @@
 import asyncio
-from typing import cast
 
 import pytest
-from agents import Agent
 
-from vibecore.flow import Vibecore, VibecoreRunnerBase
+from vibecore.flow import Vibecore, VibecoreRunner
 
 
 @pytest.mark.asyncio
@@ -13,10 +11,10 @@ async def test_concurrent_runs_isolated_inputs():
 
     @vibecore.workflow()
     async def logic(
-        runner: VibecoreRunnerBase[None, str],
+        runner: VibecoreRunner[None, str],
+        user_message: str,
     ) -> str:
-        message = await runner.user_input()
-        return f"Response: {message}"
+        return f"Response: {user_message}"
 
     results = await asyncio.gather(
         vibecore.run("input1"),
@@ -29,11 +27,3 @@ async def test_concurrent_runs_isolated_inputs():
         "Response: input2",
         "Response: input3",
     ]
-
-
-@pytest.mark.asyncio
-async def test_run_agent_method_removed():
-    vibecore = Vibecore[None, None]()
-
-    with pytest.raises(RuntimeError):
-        await vibecore.run_agent(cast(Agent[None], object()), input="message")

@@ -13,7 +13,7 @@ from agents.result import RunResultBase
 from textual.logging import TextualHandler
 
 from vibecore.agents.default import create_default_agent
-from vibecore.flow import AppIsExiting, NoUserInputLeft, Vibecore, VibecoreRunnerBase
+from vibecore.flow import AppIsExiting, Vibecore, VibecoreRunner
 from vibecore.mcp import MCPManager
 from vibecore.session import JSONLSession
 from vibecore.settings import settings
@@ -155,24 +155,17 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         # Define workflow logic
         @vibecore.workflow()
         async def workflow(
-            runner: VibecoreRunnerBase[FullVibecoreContext, RunResultBase],
+            runner: VibecoreRunner[FullVibecoreContext, RunResultBase],
+            user_message: str,
         ) -> RunResultBase:
-            result = None
-            while True:
-                try:
-                    user_message = await runner.user_input()
-                except NoUserInputLeft:
-                    assert result, "No result available after inputs exhausted."
-                    return result
-
-                # Run the agent with the input
-                result = await runner.run_agent(
-                    agent,
-                    input=user_message,
-                    context=runner.context,
-                    max_turns=settings.max_turns,
-                    session=runner.session,
-                )
+            # Run the agent with the input
+            return await runner.run_agent(
+                agent,
+                input=user_message,
+                context=runner.context,
+                max_turns=settings.max_turns,
+                session=runner.session,
+            )
 
         if print_mode:
             # Use static runner for print mode - pass empty input since we get it in workflow
