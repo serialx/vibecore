@@ -179,9 +179,9 @@ uv run pytest -k "test_pattern"
    - **State Management**: Maintain conversation state across interactions
    - **Application Framework**: Transform from chat interface to agent-based applications
    - Key components:
-     - `flow()`: Entry point that initializes VibecoreApp with custom logic
-     - `UserInputFunc`: Type for programmatic user input collection
-     - Custom `logic()` functions: User-defined async functions controlling conversation flow
+     - `Vibecore.workflow()`: Decorator that registers workflow logic
+     - Runner argument: Every workflow receives a runner instance for user input, printing, and agent execution
+     - Custom `logic()` functions: User-defined async functions controlling conversation flow with `runner.user_input()` / `runner.run_agent()`
    - Examples in `examples/` directory (adapted from OpenAI Agents SDK):
      - `basic.py`: Simple flow with single agent
      - `customer_service.py`: Complex multi-agent system with handoffs
