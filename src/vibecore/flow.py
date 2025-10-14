@@ -272,10 +272,6 @@ class Vibecore(Generic[TContext, TWorkflowReturn]):
         self.workflow_logic: DecoratedCallable[TContext, TWorkflowReturn] | None = None
         self.disable_user_input = disable_user_input
 
-    @property
-    def session(self) -> Session:
-        return self.runner.session
-
     async def user_input(self, prompt: str = "") -> str:
         return await self.runner.user_input(prompt)
 
