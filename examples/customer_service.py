@@ -8,7 +8,6 @@ from agents import (
     Agent,
     HandoffOutputItem,
     RunContextWrapper,
-    Session,
     function_tool,
     handoff,
     trace,
@@ -16,7 +15,7 @@ from agents import (
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 from pydantic import BaseModel
 
-from vibecore.flow import Vibecore
+from vibecore.flow import Vibecore, VibecoreRunnerBase
 
 ### CONTEXT
 
@@ -132,7 +131,9 @@ vibecore = Vibecore[AirlineAgentContext, None]()
 
 
 @vibecore.workflow()
-async def logic(context: AirlineAgentContext | None, session: Session) -> None:
+async def logic(
+    runner: VibecoreRunnerBase[AirlineAgentContext, None],
+) -> None:
     current_agent: Agent[AirlineAgentContext] = triage_agent
     context = AirlineAgentContext()
 
@@ -141,19 +142,19 @@ async def logic(context: AirlineAgentContext | None, session: Session) -> None:
     conversation_id = uuid.uuid4().hex[:16]
 
     while True:
-        user_input_ = await vibecore.user_input()
+        user_input_ = await runner.user_input()
         with trace("Customer service", group_id=conversation_id):
-            result = await vibecore.run_agent(
+            result = await runner.run_agent(
                 current_agent,
                 input=user_input_,
                 context=context,
-                session=session,
+                session=runner.session,
             )
 
             for new_item in result.new_items:
                 if isinstance(new_item, HandoffOutputItem):
                     message = f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
-                    await vibecore.print(message)
+                    await runner.print(message)
             current_agent = result.last_agent
 
 

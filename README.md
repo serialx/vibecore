@@ -137,8 +137,8 @@ Flow Mode allows you to:
 
 ```python
 import asyncio
-from agents import Agent, Session
-from vibecore.flow import Vibecore
+from agents import Agent
+from vibecore.flow import Vibecore, VibecoreRunnerBase
 from vibecore.context import VibecoreContext
 from vibecore.settings import settings
 
@@ -151,26 +151,28 @@ agent = Agent[VibecoreContext](
 )
 
 # Create Vibecore instance
-vibecore = Vibecore[str]()
+vibecore = Vibecore[VibecoreContext, str]()
 
 # Define your conversation logic with decorator
 @vibecore.workflow()
-async def logic(session: Session) -> str:
+async def logic(
+    runner: VibecoreRunnerBase[VibecoreContext, str],
+) -> str:
     # Get user input programmatically
-    user_message = await vibecore.user_input("What would you like to do?")
+    user_message = await runner.user_input("What would you like to do?")
 
     # Print status updates
-    await vibecore.print(f"Processing: {user_message}")
+    await runner.print(f"Processing: {user_message}")
 
     # Process with agent (handles streaming automatically)
-    result = await vibecore.run_agent(
+    result = await runner.run_agent(
         agent,
         input=user_message,
-        context=vibecore.context,
-        session=session,
+        context=runner.context,
+        session=runner.session,
     )
 
-    await vibecore.print("Done!")
+    await runner.print("Done!")
     return result.final_output
 
 # Run the flow in different modes
@@ -204,16 +206,19 @@ Flow Mode shines when building complex multi-agent systems. See `examples/custom
 
 - **`Vibecore` class**: Main entry point that orchestrates your workflow
 - **`@vibecore.workflow()` decorator**: Defines your conversation logic function
-- **`vibecore.user_input()`**: Programmatically collect user input
-- **`vibecore.print()`**: Display status messages to the user
-- **`vibecore.run_agent()`**: Execute agent with automatic streaming handling
-- **`vibecore.context`**: Shared state (VibecoreContext) across tools and agents
-- **`vibecore.session`**: Conversation history and persistence
+- **Runner argument**: Every workflow receives a runner instance for user input, printing, and agent execution
+- **`runner.user_input()`**: Programmatically collect user input
+- **`runner.print()`**: Display status messages to the user
+- **`runner.run_agent()`**: Execute agent with automatic streaming handling
+- **`runner.context`**: Shared state (VibecoreContext) across tools and agents
+- **`runner.session`**: Conversation history and persistence
 - **Multiple execution modes**:
   - `run_textual()`: Full TUI with streaming (original behavior)
   - `run_cli()`: Simple CLI with stdin/stdout
   - `run()`: Static mode with predefined inputs (perfect for testing)
 - **Agent Handoffs**: Transfer control between specialized agents with context preservation
+
+> 🛠️ Upgrading from an older release? Read the [Runner Migration Guide](docs/runner_migration.md) for step-by-step instructions.
 
 ### Multi-Mode Execution
 
