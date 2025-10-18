@@ -13,6 +13,8 @@ from textual import log, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.reactive import reactive
+from textual.selection import Selection
+from textual.widget import Widget
 from textual.widgets import Header
 from textual.worker import Worker
 
@@ -78,6 +80,23 @@ class VibecoreApp(App):
         self.user_input_event = asyncio.Event()  # Initialize event for user input coordination
 
         super().__init__()
+
+    def on_mouse_up(self) -> None:
+        if not self.screen.selections:
+            return None
+
+        widget_text: list[str] = []
+        for widget, selection in self.screen.selections.items():
+            assert isinstance(widget, Widget) and isinstance(selection, Selection)
+            if "copy-button" in widget.classes:  # Skip copy buttons
+                continue
+            selected_text_in_widget = widget.get_selection(selection)
+            if selected_text_in_widget is not None:
+                widget_text.extend(selected_text_in_widget)
+
+        selected_text = "".join(widget_text)
+        self.copy_to_clipboard(selected_text)
+        self.notify("Copied to clipboard")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
