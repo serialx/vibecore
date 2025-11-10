@@ -13,6 +13,7 @@ from agents.result import RunResultBase
 from textual.logging import TextualHandler
 
 from vibecore.agents.default import create_default_agent
+from vibecore.context import DefaultVibecoreContext, FullVibecoreContext
 from vibecore.flow import AppIsExiting, Vibecore, VibecoreRunner
 from vibecore.mcp import MCPManager
 from vibecore.session import JSONLSession
@@ -125,10 +126,8 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         # Create agent with MCP servers
         agent = create_default_agent(mcp_servers=mcp_manager.servers)
 
-        # Create Vibecore instance
-        from vibecore.context import FullVibecoreContext
-
         vibecore = Vibecore[FullVibecoreContext, RunResultBase](disable_user_input=False)
+        context = DefaultVibecoreContext()
 
         # Determine session to use
         session_to_load = None
@@ -170,13 +169,13 @@ async def async_main(continue_session: bool, session_id: str | None, prompt: str
         if print_mode:
             # Use static runner for print mode - pass empty input since we get it in workflow
             input_text = prompt.strip() if prompt else sys.stdin.read().strip()
-            result = await vibecore.run(input_text)
+            result = await vibecore.run(input_text, context=context)
             # Print raw output to stdout
             print(result.final_output_as(str))
         else:
             # Run in TUI mode
             with contextlib.suppress(AppIsExiting):
-                result = await vibecore.run_textual(prompt, session=session)
+                result = await vibecore.run_textual(prompt, context=context, session=session)
                 print(result)
 
 
