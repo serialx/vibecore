@@ -1,6 +1,6 @@
 """Tests for the Vibecore CLI."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -107,8 +107,8 @@ class TestCLI:
         mock_jsonl_class.assert_called_once()
         call_kwargs = mock_jsonl_class.call_args.kwargs
         assert call_kwargs["session_id"] == "chat-20250124-150000"
-        # Verify run_textual was called with prompt (None) and session
-        mock_vibecore.run_textual.assert_called_once_with(None, session=mock_session)
+        # Verify run_textual was called with prompt (None), context, and session
+        mock_vibecore.run_textual.assert_called_once_with(None, context=ANY, session=mock_session)
 
     @patch("vibecore.cli.JSONLSession")
     @patch("vibecore.cli.Vibecore")
@@ -144,8 +144,8 @@ class TestCLI:
         mock_jsonl_class.assert_called_once()
         call_kwargs = mock_jsonl_class.call_args.kwargs
         assert call_kwargs["session_id"] == "chat-custom-123"
-        # Verify run_textual was called with prompt (None) and session
-        mock_vibecore.run_textual.assert_called_once_with(None, session=mock_session)
+        # Verify run_textual was called with prompt (None), context, and session
+        mock_vibecore.run_textual.assert_called_once_with(None, context=ANY, session=mock_session)
 
     @patch("vibecore.cli.JSONLSession")
     @patch("vibecore.cli.Vibecore")
@@ -181,5 +181,5 @@ class TestCLI:
         call_kwargs = mock_jsonl_class.call_args.kwargs
         # Session ID should start with "chat-" for new sessions
         assert call_kwargs["session_id"].startswith("chat-")
-        # Verify run_textual was called with prompt (None) and session
-        mock_vibecore.run_textual.assert_called_once_with(None, session=mock_session)
+        # Verify run_textual was called with prompt (None), context, and session
+        mock_vibecore.run_textual.assert_called_once_with(None, context=ANY, session=mock_session)
