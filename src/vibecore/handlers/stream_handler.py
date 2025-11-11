@@ -13,15 +13,12 @@ from agents import (
     ToolCallOutputItem,
 )
 from openai.types.responses import (
-    ResponseCompletedEvent,
     ResponseFunctionToolCall,
     ResponseOutputItemAddedEvent,
     ResponseOutputItemDoneEvent,
     ResponseReasoningItem,
-    ResponseReasoningSummaryPartAddedEvent,
-    ResponseReasoningSummaryTextDeltaEvent,
-    ResponseReasoningSummaryTextDoneEvent,
     ResponseTextDeltaEvent,
+    ResponseTextDoneEvent,
 )
 
 from vibecore.widgets.messages import (
@@ -39,6 +36,10 @@ class MessageHandler(Protocol):
 
     async def handle_agent_message(self, message: BaseMessage) -> None:
         """Add a message to the widget's message list."""
+        ...
+
+    async def handle_agent_message_update(self, message: BaseMessage) -> None:
+        """Message in the widget's message list is updated with new delta or status"""
         ...
 
     async def handle_agent_error(self, error: Exception) -> None:
@@ -76,7 +77,15 @@ class AgentStreamHandler:
             self.agent_message = AgentMessage(self.message_content, status=MessageStatus.EXECUTING)
             await self.message_handler.handle_agent_message(self.agent_message)
         else:
-            self.agent_message.update(self.message_content)
+            # When content is short, we update more frequently for better UX
+            content_is_short_and_semantically_should_update = len(self.message_content) < 1000 and (
+                self.message_content.endswith(".") or "\n" in delta
+            )
+            # Else when content is long, we update less frequently to avoid UI lag
+            should_update_bulk_delta = len(self.message_content) - len(self.agent_message.text) > 200
+            if content_is_short_and_semantically_should_update or should_update_bulk_delta:
+                self.agent_message.update(self.message_content)
+                await self.message_handler.handle_agent_message_update(self.agent_message)
 
     async def handle_tool_call(self, tool_name: str, arguments: str, call_id: str) -> None:
         """Create and display tool message when tool is invoked.
@@ -102,11 +111,19 @@ class AgentStreamHandler:
         if call_id in self.tool_messages:
             tool_message = self.tool_messages[call_id]
             tool_message.update(MessageStatus.SUCCESS, str(output))
+            await self.message_handler.handle_agent_message_update(tool_message)
 
     async def handle_message_complete(self) -> None:
         """Finalize agent message when complete."""
+        if self.tool_messages:
+            # Some tool messages such as transfer_to_* may still be in executing status
+            # since it never gets a tool output event. We mark them as success here.
+            for tool_message in self.tool_messages.values():
+                if tool_message.status == MessageStatus.EXECUTING:
+                    tool_message.status = MessageStatus.SUCCESS
         if self.agent_message:
             self.agent_message.update(self.message_content, status=MessageStatus.IDLE)
+            await self.message_handler.handle_agent_message_update(self.agent_message)
             self.agent_message = None
             self.message_content = ""
 
@@ -126,42 +143,25 @@ class AgentStreamHandler:
                         self.reasoning_messages[reasoning_id] = reasoning_message
                         await self.message_handler.handle_agent_message(reasoning_message)
 
-                    case ResponseReasoningSummaryPartAddedEvent() as e:
-                        reasoning_id = e.item_id
-                        reasoning_message = self.reasoning_messages[reasoning_id]
-                        assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
-                        updated = reasoning_message.text + "\n\n" if reasoning_message.text != "Thinking..." else ""
-                        reasoning_message.update(updated, status=MessageStatus.EXECUTING)
-
-                    case ResponseReasoningSummaryTextDeltaEvent(item_id=reasoning_id, delta=delta):
-                        reasoning_message = self.reasoning_messages[reasoning_id]
-                        assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
-                        updated = reasoning_message.text + delta
-                        reasoning_message.update(updated, status=MessageStatus.EXECUTING)
-
-                    case ResponseReasoningSummaryTextDoneEvent(item_id=reasoning_id) as e:
-                        pass
-
                     case ResponseOutputItemDoneEvent(item=ResponseReasoningItem() as item):
                         reasoning_id = item.id
                         reasoning_message = self.reasoning_messages[reasoning_id]
                         assert reasoning_message, f"Reasoning message with ID {reasoning_id} not found"
-                        reasoning_message.update(reasoning_message.text, status=MessageStatus.IDLE)
-
-                    case ResponseOutputItemAddedEvent(item=ResponseFunctionToolCall(name=tool_name, call_id=call_id)):
-                        # TODO(serialx): We should move all tool call lifecycle start to here
-                        #                ResponseOutputItemDoneEvent can have race conditions in case of task tool calls
-                        #                Because we stream sub-agent events to our method: handle_task_tool_event()
-                        # XXX(serialx): Just handle task tool call lifecycle here for now
-                        #               I'm deferring this because `arguments` is not available here... need to refactor
-                        if tool_name == "task":
-                            await self.handle_tool_call(tool_name, "{}", call_id)
+                        text = "\n\n".join(summary.text for summary in item.summary)
+                        reasoning_message.update(text, status=MessageStatus.IDLE)
+                        await self.message_handler.handle_agent_message_update(reasoning_message)
 
                     case ResponseTextDeltaEvent(delta=delta) if delta:
                         await self.handle_text_delta(delta)
 
-                    case ResponseOutputItemDoneEvent(
-                        item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
+                    case ResponseTextDoneEvent() as e:
+                        self.agent_message = AgentMessage(e.text, status=MessageStatus.IDLE)
+                        await self.message_handler.handle_agent_message(self.agent_message)
+
+                    case (
+                        ResponseOutputItemDoneEvent(
+                            item=ResponseFunctionToolCall(name=tool_name, arguments=arguments, call_id=call_id)
+                        ) as e
                     ):
                         # XXX(serialx): See above comments
                         if tool_name == "task":
@@ -176,25 +176,14 @@ class AgentStreamHandler:
                         else:
                             await self.handle_tool_call(tool_name, arguments, call_id)
 
-                    case ResponseCompletedEvent():
-                        # When in agent handoff or stop at tool situations, the tools should be in executing status.
-                        # We find all the executing status tool messages and mark them as success.
-                        for tool_message in self.tool_messages.values():
-                            if tool_message.status == MessageStatus.EXECUTING:
-                                tool_message.status = MessageStatus.SUCCESS
-
             case RunItemStreamEvent(item=item):
                 # log(f"RunItemStreamEvent item: {item.type}")
                 match item:
-                    case ToolCallItem():
-                        pass
-                    case ToolCallOutputItem(output=output, raw_item=raw_item):
+                    case ToolCallItem(call_output=ResponseFunctionToolCall() as call):
+                        await self.handle_tool_call(call.name, call.arguments, call.call_id)
+                    case ToolCallOutputItem(raw_item=raw_item, output=output):
                         # Find the corresponding tool message by call_id
-                        if (
-                            isinstance(raw_item, dict)
-                            and "call_id" in raw_item
-                            and raw_item["call_id"] in self.tool_messages
-                        ):
+                        if raw_item["type"] == "function_call_output" and raw_item["call_id"] in self.tool_messages:
                             await self.handle_tool_output(output, raw_item["call_id"])
                     case MessageOutputItem():
                         await self.handle_message_complete()

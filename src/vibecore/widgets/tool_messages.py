@@ -260,6 +260,11 @@ class TaskToolMessage(BaseToolMessage):
         """Add a message widget to the main scroll area."""
         await self.add_message(message)
 
+    async def handle_agent_message_update(self, message: BaseMessage) -> None:
+        """Message in the widget's message list is updated with new delta or status"""
+        # TODO(serialx): implement later
+        pass
+
     async def handle_agent_update(self, new_agent: Agent) -> None:
         """Handle agent updates."""
         pass

@@ -31,7 +31,7 @@ class DDGSBackend(WebSearchBackend):
 
             # Perform search (synchronous call)
             # ddgs.text() expects 'query' as first positional argument
-            raw_results = ddgs.text(
+            raw_results = ddgs.text(  # type: ignore
                 query=params.query,
                 region=params.region,
                 safesearch=params.safesearch,

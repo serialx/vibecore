@@ -102,7 +102,8 @@ class VibecoreApp(App):
         """Create child widgets for the app."""
         yield Header()
         yield AppFooter()
-        with MainScroll(id="messages"):
+        with MainScroll(id="messages") as main_scroll:
+            main_scroll.anchor()
             if self.show_welcome:
                 yield Welcome()
 
@@ -124,6 +125,10 @@ class VibecoreApp(App):
     async def handle_agent_message(self, message: BaseMessage) -> None:
         """Add a message widget to the main scroll area."""
         await self.add_message(message)
+
+    async def handle_agent_message_update(self, message: BaseMessage) -> None:
+        """Message in the widget's message list is updated with new delta or status"""
+        pass
 
     async def handle_agent_error(self, error: Exception) -> None:
         """Handle errors during streaming."""
@@ -148,6 +153,8 @@ class VibecoreApp(App):
         try:
             last_message = main_scroll.query_one("BaseMessage:last-child", BaseMessage)
             if last_message.status == MessageStatus.EXECUTING:
+                # XXX(serialx): Consider marking it as cancelled instead
+                # last_message.status = MessageStatus.ERROR
                 last_message.remove()
         except Exception:
             # No messages to clean up
@@ -183,7 +190,7 @@ class VibecoreApp(App):
 
             user_message = UserMessage(user_input)
             await self.add_message(user_message)
-            user_message.scroll_visible()
+            self.get_child_by_id("messages").scroll_end()
 
             return user_input
 
@@ -194,7 +201,7 @@ class VibecoreApp(App):
 
         user_message = UserMessage(user_input)
         await self.add_message(user_message)
-        user_message.scroll_visible()
+        self.get_child_by_id("messages").scroll_end()
 
         return user_input
 
