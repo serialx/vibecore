@@ -5,6 +5,14 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2025-11-17
+
+### Added
+- BashToolMessage widget for improved bash command execution display
+  - Shows command in header line (truncated at 160 characters)
+  - Cleaner, more compact presentation compared to generic ToolMessage
+  - Consistent with other specialized tool message widgets
+
 ## [0.6.2] - 2025-11-11
 
 ### Changed
