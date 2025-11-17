@@ -13,6 +13,7 @@ from vibecore.settings import settings
 from vibecore.widgets.messages import MessageStatus
 from vibecore.widgets.tool_messages import (
     BaseToolMessage,
+    BashToolMessage,
     MCPToolMessage,
     PythonToolMessage,
     ReadToolMessage,
@@ -86,6 +87,13 @@ def create_tool_message(
             return PythonToolMessage(code=code, output=output, status=status)
         else:
             return PythonToolMessage(code=code, status=status)
+
+    elif tool_name == "bash":
+        command = args_dict.get("command", "") if args_dict else ""
+        if output is not None:
+            return BashToolMessage(command=command, output=output, status=status)
+        else:
+            return BashToolMessage(command=command, status=status)
 
     elif tool_name == "todo_write":
         todos = args_dict.get("todos", []) if args_dict else []

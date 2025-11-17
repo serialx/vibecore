@@ -137,7 +137,12 @@ class TestMessageSnapshots:
         class ErrorTestApp(MessageTestApp):
             def create_test_messages(self):
                 from vibecore.widgets.messages import AgentMessage, MessageStatus
-                from vibecore.widgets.tool_messages import PythonToolMessage, ReadToolMessage, ToolMessage
+                from vibecore.widgets.tool_messages import (
+                    BashToolMessage,
+                    PythonToolMessage,
+                    ReadToolMessage,
+                    ToolMessage,
+                )
 
                 # Python execution error
                 yield PythonToolMessage(
@@ -148,11 +153,18 @@ class TestMessageSnapshots:
                     status=MessageStatus.ERROR,
                 )
 
+                # Bash execution error
+                yield BashToolMessage(
+                    command="ls /nonexistent/directory",
+                    output="ls: cannot access '/nonexistent/directory': No such file or directory\nExit code: 2",
+                    status=MessageStatus.ERROR,
+                )
+
                 # Generic tool error
                 yield ToolMessage(
-                    tool_name="bash",
-                    command="ls /nonexistent/directory",
-                    output="ls: cannot access '/nonexistent/directory': No such file or directory",
+                    tool_name="custom_tool",
+                    command="custom_command",
+                    output="Error: Command failed",
                     status=MessageStatus.ERROR,
                 )
 

@@ -102,11 +102,33 @@ class TestToolMessageFactory:
         assert message_with_output.output == output
         assert message_with_output.status == MessageStatus.SUCCESS
 
-    def test_create_generic_tool_message(self):
-        """Test creating generic ToolMessage for unknown tools."""
+    def test_create_bash_tool_message(self):
+        """Test creating BashToolMessage for bash tool."""
+        from vibecore.widgets.tool_messages import BashToolMessage
+
         tool_name = "bash"
         command = "ls -la"
         arguments = json.dumps({"command": command})
+
+        # Test without output
+        message = create_tool_message(tool_name, arguments)
+        assert isinstance(message, BashToolMessage)
+        assert message.command == command
+        assert message.output == ""
+        assert message.status == MessageStatus.EXECUTING
+
+        # Test with output
+        output = "file1.txt\nfile2.txt"
+        message_with_output = create_tool_message(tool_name, arguments, output=output, status=MessageStatus.SUCCESS)
+        assert isinstance(message_with_output, BashToolMessage)
+        assert message_with_output.command == command
+        assert message_with_output.output == output
+        assert message_with_output.status == MessageStatus.SUCCESS
+
+    def test_create_generic_tool_message(self):
+        """Test creating generic ToolMessage for unknown tools."""
+        tool_name = "custom_tool"
+        arguments = json.dumps({"param": "value"})
 
         # Test without output
         message = create_tool_message(tool_name, arguments)
@@ -117,7 +139,7 @@ class TestToolMessageFactory:
         assert message.status == MessageStatus.EXECUTING
 
         # Test with output
-        output = "file1.txt\nfile2.txt"
+        output = "custom output"
         message_with_output = create_tool_message(tool_name, arguments, output=output, status=MessageStatus.SUCCESS)
         assert isinstance(message_with_output, ToolMessage)
         assert message_with_output.tool_name == tool_name
@@ -148,8 +170,15 @@ class TestToolMessageFactory:
         assert message.file_path == ""  # Falls back to empty path
         assert message.content == ""  # Falls back to empty content
 
-        # Test with invalid JSON for generic tool
+        # Test with invalid JSON for bash
+        from vibecore.widgets.tool_messages import BashToolMessage
+
         message = create_tool_message("bash", "invalid json")
+        assert isinstance(message, BashToolMessage)
+        assert message.command == ""  # Falls back to empty command
+
+        # Test with invalid JSON for generic tool
+        message = create_tool_message("custom_tool", "invalid json")
         assert isinstance(message, ToolMessage)
         assert message.command == "invalid json"  # Uses raw string
 

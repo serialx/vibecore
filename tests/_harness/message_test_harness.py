@@ -10,6 +10,7 @@ from textual.containers import VerticalScroll
 from vibecore.widgets.feedback import FeedbackWidget
 from vibecore.widgets.messages import AgentMessage, MessageStatus, ReasoningMessage, UserMessage
 from vibecore.widgets.tool_messages import (
+    BashToolMessage,
     MCPToolMessage,
     PythonToolMessage,
     ReadToolMessage,
@@ -118,6 +119,26 @@ class ToolMessageTestApp(MessageTestApp):
 
         # Python tool message - with error
         yield PythonToolMessage(code="1 / 0", output="ZeroDivisionError: division by zero", status=MessageStatus.ERROR)
+
+        # Bash tool message - executing
+        yield BashToolMessage(command="ls -la /tmp", output="", status=MessageStatus.EXECUTING)
+
+        # Bash tool message - with output
+        yield BashToolMessage(command="echo 'Hello from Bash'", output="Hello from Bash", status=MessageStatus.SUCCESS)
+
+        # Bash tool message - with error
+        yield BashToolMessage(
+            command="cat /nonexistent/file.txt",
+            output="cat: /nonexistent/file.txt: No such file or directory\nExit code: 1",
+            status=MessageStatus.ERROR,
+        )
+
+        # Bash tool message - long command
+        yield BashToolMessage(
+            command="find . -type f -name '*.py' | xargs grep -l 'def main' | sort | uniq",
+            output="./main.py\n./src/app.py\n./tests/test_main.py",
+            status=MessageStatus.SUCCESS,
+        )
 
         # Read tool message
         yield ReadToolMessage(

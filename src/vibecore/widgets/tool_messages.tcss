@@ -46,11 +46,11 @@ PythonToolMessage {
             background: $secondary;
             color: $text;
             border: none;
-            
+
             &:hover {
                 background: $secondary-lighten-1;
             }
-            
+
             &:focus {
                 background: $secondary-lighten-1;
                 text-style: bold;
@@ -62,7 +62,24 @@ PythonToolMessage {
             width: 1fr;
         }
     }
-    
+
+    Horizontal.tool-output {
+        height: auto;
+
+        &> .tool-output-prefix {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+        }
+
+        &> Vertical.tool-output-content {
+            height: auto;
+        }
+    }
+}
+
+BashToolMessage {
     Horizontal.tool-output {
         height: auto;
 

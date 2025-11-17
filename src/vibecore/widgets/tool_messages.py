@@ -136,6 +136,43 @@ class PythonToolMessage(BaseToolMessage):
         yield from self._render_output(self.output, truncated_lines=5)
 
 
+class BashToolMessage(BaseToolMessage):
+    """A widget to display Bash command execution messages."""
+
+    command: reactive[str] = reactive("")
+
+    def __init__(
+        self, command: str, output: str = "", status: MessageStatus = MessageStatus.EXECUTING, **kwargs
+    ) -> None:
+        """
+        Construct a BashToolMessage.
+
+        Args:
+            command: The Bash command being executed.
+            output: The output from the execution (optional, can be set later).
+            status: The status of execution.
+            **kwargs: Additional keyword arguments for Widget.
+        """
+        super().__init__(status=status, **kwargs)
+        self.command = command
+        self.output = output
+
+    def compose(self) -> ComposeResult:
+        """Create child widgets for the Bash execution message."""
+        # Truncate command if too long
+        max_command_length = 160
+        display_command = (
+            self.command[:max_command_length] + "…" if len(self.command) > max_command_length else self.command
+        )
+
+        # Header line with command
+        header = f"Bash({display_command})"
+        yield MessageHeader("⏺", header, status=self.status)
+
+        # Output
+        yield from self._render_output(self.output, truncated_lines=5)
+
+
 class ReadToolMessage(BaseToolMessage):
     """A widget to display file read operations with collapsible content."""
 
