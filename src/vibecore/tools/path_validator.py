@@ -73,7 +73,8 @@ class PathValidator:
         try:
             # First, replace shell operators with spaces around them to ensure proper splitting
             # This handles cases like "cd /path;ls" which shlex doesn't split properly
-            for op in [";", "&&", "||", "|", "&"]:
+            # Process longer operators first to avoid issues (e.g., "<<<" before "<<")
+            for op in ["<<<", "<<", "&&", "||", ">>", ";", "|", "&"]:
                 command = command.replace(op, f" {op} ")
 
             # Use shlex to properly parse the command
@@ -120,13 +121,22 @@ class PathValidator:
         # Check each token that might be a path
         current_command = None
         piped_command = False  # Track if command comes after a pipe
+        skip_next = False  # Track if we should skip the next token (e.g., heredoc delimiter)
         for i, token in enumerate(tokens):
-            # Skip shell operators
-            if token in ["&&", "||", ";", "|", "&", ">", ">>", "<", "2>", "&>"]:
+            # Skip token if marked by previous iteration (e.g., heredoc delimiter)
+            if skip_next:
+                skip_next = False
+                continue
+
+            # Skip shell operators (including heredoc operators)
+            if token in ["&&", "||", ";", "|", "&", ">", ">>", "<", "<<", "<<<", "2>", "&>"]:
                 if token == "|":
                     piped_command = True
                 elif token in ["&&", "||", ";"]:
                     piped_command = False
+                elif token in ["<<", "<<<"]:
+                    # Heredoc operator - next token is the delimiter, not a path
+                    skip_next = True
                 continue
 
             # Skip flags and options
@@ -143,9 +153,10 @@ class PathValidator:
                     piped_command = False
                 continue
 
-            # Check for redirections
+            # Check for redirections (but not heredoc delimiters)
             if i > 0 and tokens[i - 1] in [">", ">>", "<", "2>", "&>"]:
                 # This is a file path for redirection
+                # Note: heredoc delimiters (after << or <<<) are handled above via skip_next
                 self._validate_path_token(token, f"redirect to/from '{token}'")
                 continue
 

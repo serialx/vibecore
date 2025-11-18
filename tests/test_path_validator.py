@@ -218,3 +218,19 @@ class TestPathValidator:
         # Should handle gracefully
         with pytest.raises(PathValidationError):
             validator.validate_path(complex_path)
+
+    def test_validate_command_paths_with_heredoc(self, tmp_path):
+        """Test command validation with heredoc syntax."""
+        validator = PathValidator([tmp_path])
+
+        output_file = tmp_path / "output.txt"
+
+        # Should pass - heredoc with allowed path
+        validator.validate_command_paths(f"cat > {output_file} << 'EOF'")
+        validator.validate_command_paths(f"cat > {output_file} <<EOF")
+        validator.validate_command_paths(f"cat > {output_file} << EOF")
+        validator.validate_command_paths(f"cat >> {output_file} <<'DELIMITER'")
+
+        # Should fail - heredoc with disallowed path
+        with pytest.raises(PathValidationError):
+            validator.validate_command_paths("cat > /etc/output.txt << 'EOF'")
