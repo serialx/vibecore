@@ -2678,7 +2678,7 @@ wheels = [
 
 [[package]]
 name = "vibecore"
-version = "0.6.3"
+version = "0.6.4"
 source = { editable = "." }
 dependencies = [
     { name = "ddgs" },

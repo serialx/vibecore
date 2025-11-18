@@ -5,6 +5,14 @@ All notable changes to vibecore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2025-11-18
+
+### Fixed
+- Path validator now correctly handles heredoc operators (`<<` and `<<<`)
+  - Fixed PathValidationError for valid commands like `cat > /path/file << EOF`
+  - Heredoc delimiters are now properly skipped during path validation
+  - Supports both quoted and unquoted heredoc delimiters
+
 ## [0.6.3] - 2025-11-17
 
 ### Added
