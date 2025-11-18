@@ -1,423 +1,138 @@
-ToolMessage {
-    Horizontal.tool-output {
-        height: auto;
+/* Common styles for all tool messages */
+BaseToolMessage {
+    /* Common prefix styling for all sections */
+    .tool-output-prefix,
+    .python-code-prefix,
+    .bash-code-prefix,
+    .todo-list-prefix,
+    .task-prompt-prefix,
+    .write-content-prefix,
+    .mcp-arguments-prefix,
+    .rich-arguments-prefix,
+    .message-content-prefix {
+        height: 1;
+        width: 5;
+        padding-left: 2;
+        padding-right: 1;
+        color: $text-muted;
+    }
 
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
+    /* Common content area styling */
+    Vertical.tool-output-content,
+    Vertical.python-code-content,
+    Vertical.todo-list-content,
+    Vertical.task-prompt-content,
+    Vertical.write-content-body,
+    Vertical.mcp-arguments-content,
+    Vertical.rich-arguments-content,
+    Vertical.message-content-body {
+        height: auto;
+        width: 1fr;
+    }
+
+    /* Common horizontal container styling */
+    Horizontal.tool-output,
+    Horizontal.python-code,
+    Horizontal.bash-code,
+    Horizontal.todo-list,
+    Horizontal.task-prompt,
+    Horizontal.write-content,
+    Horizontal.mcp-arguments,
+    Horizontal.rich-arguments,
+    Horizontal.message-content {
+        height: auto;
+    }
+
+    /* Common copy button styling */
+    .copy-button {
+        layer: button;
+        dock: right;
+        height: 1;
+        width: 8;
+        min-width: 8;
+        margin: 0;
+        padding: 0;
+        background: $secondary;
+        color: $text;
+        border: none;
+
+        &:hover {
+            background: $secondary-lighten-1;
         }
 
-        &> Vertical.tool-output-content {
-            height: auto;
-
-            &> .tool-output-content {
-                # color: $text-muted;
-            }
-
-            &> .tool-output-content-more {
-            }
-            }
+        &:focus {
+            background: $secondary-lighten-1;
+            text-style: bold;
+        }
     }
 }
 
+/* Tool-specific overrides only when needed */
 PythonToolMessage {
     Horizontal.python-code {
-        height: auto;
         layers: main button;
-
-        &> .python-code-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        .copy-button {
-            layer: button;
-            dock: right;
-            height: 1;
-            width: 8;
-            min-width: 8;
-            margin: 0;
-            padding: 0;
-            background: $secondary;
-            color: $text;
-            border: none;
-
-            &:hover {
-                background: $secondary-lighten-1;
-            }
-
-            &:focus {
-                background: $secondary-lighten-1;
-                text-style: bold;
-            }
-        }
-
-        &> Vertical.python-code-content {
-            height: auto;
-            width: 1fr;
-        }
-    }
-
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-        }
-    }
-}
-
-BashToolMessage {
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-        }
-    }
-}
-
-TodoWriteToolMessage {
-    Horizontal.todo-list {
-        height: auto;
-
-        &> .todo-list-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.todo-list-content {
-            height: auto;
-            width: 1fr;
-            
-            .todo-item {
-                height: auto;
-                margin-left: 0;
-                padding: 0;
-                
-                &.in_progress {
-                    color: $success;
-                }
-                
-                &.pending {
-                    color: $text;
-                }
-                
-                &.completed {
-                    color: $text-muted;
-                    text-style: dim;
-                }
-            }
-        }
-    }
-}
-
-ReadToolMessage {
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-            width: 1fr;
-        }
-    }
-}
-
-TaskToolMessage {
-    Horizontal.task-prompt {
-        height: auto;
-
-        &> .task-prompt-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.task-prompt-content {
-            height: auto;
-            width: 1fr;
-        }
-    }
-
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-            width: 1fr;
-        }
-    }
-
-    .message-content {
-        height: auto;
-
-        &> .message-content-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.message-content-body {
-            height: auto;
-            width: 1fr;
-
-            &> MainScroll#messages {
-                height: auto;
-                max-height: 10;
-                width: 1fr;
-                overflow-y: auto;
-            }
-        }
-
-    }
-}
-
-WriteToolMessage {
-    Horizontal.write-content {
-        height: auto;
-
-        &> .write-content-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.write-content-body {
-            height: auto;
-            width: 1fr;
-            
-            .write-content-expandable {
-                height: auto;
-                width: 1fr;
-            }
-        }
-    }
-    
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-            width: 1fr;
-            
-            .write-output-message {
-                color: $text-muted;
-            }
-        }
-    }
-}
-
-MCPToolMessage {
-    Horizontal.mcp-arguments {
-        height: auto;
-
-        &> .mcp-arguments-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.mcp-arguments-content {
-            height: auto;
-            width: 1fr;
-            
-            .mcp-arguments-label {
-                color: $text-muted;
-                # margin-bottom: 1;
-            }
-            
-            .mcp-arguments-text {
-                color: $text-muted;
-                text-overflow: ellipsis;
-            }
-        }
-    }
-    
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-            width: 1fr;
-        }
     }
 }
 
 RichToolMessage {
     Horizontal.rich-arguments {
-        height: auto;
         layers: main button;
+    }
+}
 
-        .copy-button {
-            layer: button;
-            dock: right;
-            height: 1;
-            width: 8;
-            min-width: 8;
-            margin: 0;
-            padding: 0;
-            background: $secondary;
+TodoWriteToolMessage {
+    .todo-item {
+        height: auto;
+        margin-left: 0;
+        padding: 0;
+
+        &.in_progress {
+            color: $success;
+        }
+
+        &.pending {
             color: $text;
-            border: none;
-            
-            &:hover {
-                background: $secondary-lighten-1;
-            }
-            
-            &:focus {
-                background: $secondary-lighten-1;
-                text-style: bold;
-            }
         }
 
-        &> .rich-arguments-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
+        &.completed {
             color: $text-muted;
-        }
-
-        &> Vertical.rich-arguments-content {
-            height: auto;
-            width: 1fr;
-
-            .rich-arguments-label {
-                color: $text-muted;
-                # margin-bottom: 1;
-            }
-
-            .rich-arguments-text {
-                color: $text-muted;
-                text-overflow: ellipsis;
-            }
-        }
-    }
-    
-    Horizontal.tool-output {
-        height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-            color: $text-muted;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-            width: 1fr;
+            text-style: dim;
         }
     }
 }
 
-WebSearchToolMessage {
-    Horizontal.tool-output {
+TaskToolMessage {
+    MainScroll#messages {
         height: auto;
-
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-        }
-
-        &> Vertical.tool-output-content {
-            height: auto;
-
-            &> .tool-output-content {
-                # color: $text-muted;
-            }
-
-            &> .tool-output-content-more {
-            }
-            }
+        max-height: 10;
+        width: 1fr;
+        overflow-y: auto;
     }
 }
 
-WebFetchToolMessage {
-    Horizontal.tool-output {
+WriteToolMessage {
+    .write-content-expandable {
         height: auto;
+        width: 1fr;
+    }
 
-        &> .tool-output-prefix {
-            height: 1;
-            width: 5;
-            padding-left: 2;
-            padding-right: 1;
-        }
+    .write-output-message {
+        color: $text-muted;
+    }
+}
 
-        &> Vertical.tool-output-content {
-            height: auto;
+MCPToolMessage {
+    .mcp-arguments-label,
+    .mcp-arguments-text {
+        color: $text-muted;
+        text-overflow: ellipsis;
+    }
+}
 
-            &> .tool-output-content {
-                # color: $text-muted;
-            }
-
-            &> .tool-output-content-more {
-            }
-            }
+RichToolMessage {
+    .rich-arguments-label,
+    .rich-arguments-text {
+        color: $text-muted;
+        text-overflow: ellipsis;
     }
 }

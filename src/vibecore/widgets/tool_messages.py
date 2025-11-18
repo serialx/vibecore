@@ -36,6 +36,40 @@ class BaseToolMessage(BaseMessage):
         if output is not None:
             self.output = output
 
+    def _truncate_text(self, text: str, max_length: int) -> str:
+        """Truncate text to max_length with ellipsis if needed.
+
+        Args:
+            text: The text to truncate.
+            max_length: Maximum length before truncation.
+
+        Returns:
+            Truncated text with ellipsis if needed.
+        """
+        return text[:max_length] + "…" if len(text) > max_length else text
+
+    def _prettify_json_output(self, output: str) -> tuple[bool, str]:
+        """Try to prettify JSON output.
+
+        Args:
+            output: The raw output string.
+
+        Returns:
+            A tuple of (is_json, formatted_output).
+        """
+        if not output or not output.strip():
+            return False, output
+
+        try:
+            # Try to parse as JSON
+            json_obj = json.loads(output)
+            # Pretty print with 2-space indentation
+            formatted = json.dumps(json_obj, indent=2, ensure_ascii=False)
+            return True, formatted
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Not valid JSON, return as-is
+            return False, output
+
     def _render_output(
         self, output, truncated_lines: int = 3, collapsed_text: str | Content | None = None
     ) -> ComposeResult:
@@ -50,6 +84,21 @@ class BaseToolMessage(BaseMessage):
                         classes="tool-output-expandable",
                         collapsed_text=collapsed_text,
                     )
+
+    def _render_section(
+        self, prefix: str, content_classes: str, children: ComposeResult
+    ) -> ComposeResult:
+        """Render a common section pattern with prefix and content area.
+
+        Args:
+            prefix: The prefix text (e.g., "└─").
+            content_classes: CSS classes for the content container.
+            children: Child widgets to render in the content area.
+        """
+        with Horizontal(classes=content_classes.split()[0] if content_classes else ""):
+            yield Static(prefix, classes=f"{content_classes.split()[0]}-prefix")
+            with Vertical(classes=f"{content_classes.split()[0]}-content"):
+                yield from children
 
 
 class ToolMessage(BaseToolMessage):
@@ -79,10 +128,7 @@ class ToolMessage(BaseToolMessage):
     def compose(self) -> ComposeResult:
         """Create child widgets for the tool message."""
         # Truncate command if too long
-        max_command_length = 60
-        display_command = (
-            self.command[:max_command_length] + "…" if len(self.command) > max_command_length else self.command
-        )
+        display_command = self._truncate_text(self.command, max_length=60)
 
         # Header line
         header = f"{self.tool_name}({display_command})"
@@ -160,10 +206,7 @@ class BashToolMessage(BaseToolMessage):
     def compose(self) -> ComposeResult:
         """Create child widgets for the Bash execution message."""
         # Truncate command if too long
-        max_command_length = 160
-        display_command = (
-            self.command[:max_command_length] + "…" if len(self.command) > max_command_length else self.command
-        )
+        display_command = self._truncate_text(self.command, max_length=160)
 
         # Header line with command
         header = f"Bash({display_command})"
@@ -200,10 +243,7 @@ class ReadToolMessage(BaseToolMessage):
     def compose(self) -> ComposeResult:
         """Create child widgets for the read message."""
         # Truncate file path if too long
-        max_path_length = 60
-        display_path = (
-            self.file_path[:max_path_length] + "…" if len(self.file_path) > max_path_length else self.file_path
-        )
+        display_path = self._truncate_text(self.file_path, max_length=60)
 
         # Header line
         header = f"Read({display_path})"
@@ -398,10 +438,7 @@ class WriteToolMessage(BaseToolMessage):
     def compose(self) -> ComposeResult:
         """Create child widgets for the write message."""
         # Truncate file path if too long
-        max_path_length = 60
-        display_path = (
-            self.file_path[:max_path_length] + "…" if len(self.file_path) > max_path_length else self.file_path
-        )
+        display_path = self._truncate_text(self.file_path, max_length=60)
 
         # Header line
         header = f"Write({display_path})"
@@ -457,28 +494,6 @@ class MCPToolMessage(BaseToolMessage):
         self.arguments = arguments
         self.output = output
 
-    def _prettify_json_output(self, output: str) -> tuple[bool, str]:
-        """Try to prettify JSON output.
-
-        Args:
-            output: The raw output string.
-
-        Returns:
-            A tuple of (is_json, formatted_output).
-        """
-        if not output or not output.strip():
-            return False, output
-
-        try:
-            # Try to parse as JSON
-            json_obj = json.loads(output)
-            # Pretty print with 2-space indentation
-            formatted = json.dumps(json_obj, indent=2, ensure_ascii=False)
-            return True, formatted
-        except (json.JSONDecodeError, TypeError, ValueError):
-            # Not valid JSON, return as-is
-            return False, output
-
     def compose(self) -> ComposeResult:
         """Create child widgets for the MCP tool message."""
         # Header line showing MCP server and tool
@@ -494,12 +509,7 @@ class MCPToolMessage(BaseToolMessage):
                 yield Static("└─", classes="mcp-arguments-prefix")
                 with Vertical(classes="mcp-arguments-content"):
                     # Truncate arguments if too long
-                    max_args_length = 100
-                    display_args = (
-                        self.arguments[:max_args_length] + "…"
-                        if len(self.arguments) > max_args_length
-                        else self.arguments
-                    )
+                    display_args = self._truncate_text(self.arguments, max_length=100)
                     yield Static(f"Args: {display_args}", classes="mcp-arguments-text")
 
         # Output - check if it's JSON and prettify if so
@@ -555,28 +565,6 @@ class RichToolMessage(BaseToolMessage):
         self.arguments = arguments
         self.output = output
 
-    def _prettify_json_output(self, output: str) -> tuple[bool, str]:
-        """Try to prettify JSON output.
-
-        Args:
-            output: The raw output string.
-
-        Returns:
-            A tuple of (is_json, formatted_output).
-        """
-        if not output or not output.strip():
-            return False, output
-
-        try:
-            # Try to parse as JSON
-            json_obj = json.loads(output)
-            # Pretty print with 2-space indentation
-            formatted = json.dumps(json_obj, indent=2, ensure_ascii=False)
-            return True, formatted
-        except (json.JSONDecodeError, TypeError, ValueError):
-            # Not valid JSON, return as-is
-            return False, output
-
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
         if event.button.has_class("copy-button"):
@@ -597,8 +585,6 @@ class RichToolMessage(BaseToolMessage):
             with Horizontal(classes="rich-arguments"):
                 yield Static("└─", classes="rich-arguments-prefix")
                 with Vertical(classes="rich-arguments-content"):
-                    # Truncate arguments if too long
-                    max_args_length = 100
                     arg_dict = json.loads(self.arguments)
                     if self.SQL_QUERY_KEY in arg_dict:
                         # XXX(serialx): Special case for SQL queries
@@ -607,7 +593,9 @@ class RichToolMessage(BaseToolMessage):
                         yield ExpandableMarkdown(query, language="sql", truncated_lines=8, classes="rich-output-sql")
                         del arg_dict[self.SQL_QUERY_KEY]
 
-                    display_args = arg_dict[:max_args_length] + "…" if len(arg_dict) > max_args_length else arg_dict
+                    # Truncate the string representation of remaining args if too long
+                    args_str = str(arg_dict)
+                    display_args = self._truncate_text(args_str, max_length=100)
                     yield Static(f"Args: {display_args}", classes="rich-arguments-text")
 
         # Output - check if it's JSON and prettify if so
