@@ -28,6 +28,43 @@ if TYPE_CHECKING:
 class BaseToolMessage(BaseMessage):
     """Base class for all tool execution messages."""
 
+    # Common styles for all tool messages - reduces duplication across tool_messages.tcss
+    DEFAULT_CSS = """
+    BaseToolMessage {
+        /* Common tool-output styling shared by all tool messages */
+        Horizontal.tool-output {
+            height: auto;
+
+            &> .tool-output-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+            }
+
+            &> Vertical.tool-output-content {
+                height: auto;
+                width: 1fr;
+            }
+        }
+
+        /* Common prefix styling with muted color */
+        .tool-prefix-muted {
+            height: 1;
+            width: 5;
+            padding-left: 2;
+            padding-right: 1;
+            color: $text-muted;
+        }
+
+        /* Common content container styling */
+        .tool-content-container {
+            height: auto;
+            width: 1fr;
+        }
+    }
+    """
+
     output: reactive[str] = reactive("", recompose=True)
 
     def update(self, status: MessageStatus, output: str | None = None) -> None:
@@ -94,6 +131,50 @@ class ToolMessage(BaseToolMessage):
 
 class PythonToolMessage(BaseToolMessage):
     """A widget to display Python code execution messages."""
+
+    DEFAULT_CSS = """
+    PythonToolMessage {
+        Horizontal.python-code {
+            height: auto;
+            layers: main button;
+
+            &> .python-code-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            .copy-button {
+                layer: button;
+                dock: right;
+                height: 1;
+                width: 8;
+                min-width: 8;
+                margin: 0;
+                padding: 0;
+                background: $secondary;
+                color: $text;
+                border: none;
+
+                &:hover {
+                    background: $secondary-lighten-1;
+                }
+
+                &:focus {
+                    background: $secondary-lighten-1;
+                    text-style: bold;
+                }
+            }
+
+            &> Vertical.python-code-content {
+                height: auto;
+                width: 1fr;
+            }
+        }
+    }
+    """
 
     code: reactive[str] = reactive("")
 
@@ -219,6 +300,51 @@ class ReadToolMessage(BaseToolMessage):
 class TaskToolMessage(BaseToolMessage):
     """A widget to display task execution messages."""
 
+    DEFAULT_CSS = """
+    TaskToolMessage {
+        Horizontal.task-prompt {
+            height: auto;
+
+            &> .task-prompt-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            &> Vertical.task-prompt-content {
+                height: auto;
+                width: 1fr;
+            }
+        }
+
+        .message-content {
+            height: auto;
+
+            &> .message-content-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            &> Vertical.message-content-body {
+                height: auto;
+                width: 1fr;
+
+                &> MainScroll#messages {
+                    height: auto;
+                    max-height: 10;
+                    width: 1fr;
+                    overflow-y: auto;
+                }
+            }
+        }
+    }
+    """
+
     description: reactive[str] = reactive("", recompose=True)
     prompt: reactive[str] = reactive("", recompose=True)
 
@@ -336,6 +462,46 @@ class TaskToolMessage(BaseToolMessage):
 class TodoWriteToolMessage(BaseToolMessage):
     """A widget to display todo list updates."""
 
+    DEFAULT_CSS = """
+    TodoWriteToolMessage {
+        Horizontal.todo-list {
+            height: auto;
+
+            &> .todo-list-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            &> Vertical.todo-list-content {
+                height: auto;
+                width: 1fr;
+
+                .todo-item {
+                    height: auto;
+                    margin-left: 0;
+                    padding: 0;
+
+                    &.in_progress {
+                        color: $success;
+                    }
+
+                    &.pending {
+                        color: $text;
+                    }
+
+                    &.completed {
+                        color: $text-muted;
+                        text-style: dim;
+                    }
+                }
+            }
+        }
+    }
+    """
+
     todos: reactive[list[dict[str, str]]] = reactive([], recompose=True)
 
     def __init__(
@@ -373,6 +539,40 @@ class TodoWriteToolMessage(BaseToolMessage):
 
 class WriteToolMessage(BaseToolMessage):
     """A widget to display file write operations with markdown content viewer."""
+
+    DEFAULT_CSS = """
+    WriteToolMessage {
+        Horizontal.write-content {
+            height: auto;
+
+            &> .write-content-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            &> Vertical.write-content-body {
+                height: auto;
+                width: 1fr;
+
+                .write-content-expandable {
+                    height: auto;
+                    width: 1fr;
+                }
+            }
+        }
+
+        Horizontal.tool-output {
+            &> Vertical.tool-output-content {
+                .write-output-message {
+                    color: $text-muted;
+                }
+            }
+        }
+    }
+    """
 
     file_path: reactive[str] = reactive("")
     content: reactive[str] = reactive("", recompose=True)
@@ -426,6 +626,36 @@ class WriteToolMessage(BaseToolMessage):
 
 class MCPToolMessage(BaseToolMessage):
     """A widget to display MCP tool execution messages."""
+
+    DEFAULT_CSS = """
+    MCPToolMessage {
+        Horizontal.mcp-arguments {
+            height: auto;
+
+            &> .mcp-arguments-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            &> Vertical.mcp-arguments-content {
+                height: auto;
+                width: 1fr;
+
+                .mcp-arguments-label {
+                    color: $text-muted;
+                }
+
+                .mcp-arguments-text {
+                    color: $text-muted;
+                    text-overflow: ellipsis;
+                }
+            }
+        }
+    }
+    """
 
     server_name: reactive[str] = reactive("")
     tool_name: reactive[str] = reactive("")
@@ -527,6 +757,59 @@ class MCPToolMessage(BaseToolMessage):
 
 class RichToolMessage(BaseToolMessage):
     """A widget to display rich (json/markdown) custom tool execution messages."""
+
+    DEFAULT_CSS = """
+    RichToolMessage {
+        Horizontal.rich-arguments {
+            height: auto;
+            layers: main button;
+
+            .copy-button {
+                layer: button;
+                dock: right;
+                height: 1;
+                width: 8;
+                min-width: 8;
+                margin: 0;
+                padding: 0;
+                background: $secondary;
+                color: $text;
+                border: none;
+
+                &:hover {
+                    background: $secondary-lighten-1;
+                }
+
+                &:focus {
+                    background: $secondary-lighten-1;
+                    text-style: bold;
+                }
+            }
+
+            &> .rich-arguments-prefix {
+                height: 1;
+                width: 5;
+                padding-left: 2;
+                padding-right: 1;
+                color: $text-muted;
+            }
+
+            &> Vertical.rich-arguments-content {
+                height: auto;
+                width: 1fr;
+
+                .rich-arguments-label {
+                    color: $text-muted;
+                }
+
+                .rich-arguments-text {
+                    color: $text-muted;
+                    text-overflow: ellipsis;
+                }
+            }
+        }
+    }
+    """
 
     SQL_QUERY_KEY = "query"
     tool_name: reactive[str] = reactive("")
