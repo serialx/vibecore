@@ -1,3 +1,34 @@
+/* ========================================
+ * Common Copy Button Pattern
+ * ======================================== */
+
+/* Shared copy button styling used across message and tool widgets */
+.copy-button {
+    layer: button;
+    dock: right;
+    height: 1;
+    width: 8;
+    min-width: 8;
+    margin: 0;
+    padding: 0;
+    background: $secondary;
+    color: $text;
+    border: none;
+
+    &:hover {
+        background: $secondary-lighten-1;
+    }
+
+    &:focus {
+        background: $secondary-lighten-1;
+        text-style: bold;
+    }
+}
+
+/* ========================================
+ * Core Widgets
+ * ======================================== */
+
 AppFooter {
     dock: bottom;
     height: auto;
