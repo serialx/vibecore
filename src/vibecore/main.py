@@ -36,7 +36,11 @@ class AppIsExiting(Exception):
 
 
 class VibecoreApp(App):
-    """A Textual app to manage stopwatches."""
+    """Terminal UI application for AI agent interaction.
+
+    Provides a rich TUI for streaming AI agent responses, displaying tool
+    execution results, and managing conversation history via session storage.
+    """
 
     CSS_PATH: ClassVar = [
         "widgets/core.tcss",
