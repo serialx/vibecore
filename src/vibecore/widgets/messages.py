@@ -32,8 +32,11 @@ class MessageHeader(Widget):
         Construct a MessageHeader.
 
         Args:
+            prefix: The prefix character/string to display before the text (e.g., ">", "⏺", "!").
             text: The text to display.
-            **kwargs: Additional keyword arguments for Static.
+            status: The status of the message, controls visual styling and blinking behavior.
+            use_markdown: Whether to render the text as markdown.
+            **kwargs: Additional keyword arguments for Widget.
         """
         super().__init__(**kwargs)
         self.prefix = prefix
