@@ -248,6 +248,17 @@ class LoadingWidget(Widget):
         escape_message: str = "esc to interrupt",
         **kwargs,
     ) -> None:
+        """
+        Initialize the LoadingWidget.
+
+        Args:
+            status: The main status text to display next to the spinner.
+            show_time: Whether to display elapsed time in the metadata section.
+            show_metadata: Whether to display the metadata section at all.
+            metadata: Additional metadata text to display in the metadata section.
+            escape_message: Text shown to indicate how to interrupt the operation.
+            **kwargs: Additional keyword arguments for Widget.
+        """
         super().__init__(**kwargs)
         self.status = status
         self.show_time = show_time
