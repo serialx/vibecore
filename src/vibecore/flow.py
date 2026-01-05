@@ -201,11 +201,7 @@ class VibecoreTextualRunner(VibecoreRunner[AppAwareContext, TWorkflowReturn]):
         self.app_ready_event.set()
 
     async def _run_app(self) -> None:
-        """Run the apps message loop.
-
-        Args:
-            app: App to run.
-        """
+        """Run the app's message loop using self.app."""
         with self.app._context():
             try:
                 self.app._loop = asyncio.get_running_loop()
