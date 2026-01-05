@@ -74,7 +74,9 @@ class ExpandableMarkdown(Widget):
         Initialize the ExpandableMarkdown widget.
 
         Args:
-            code: The full code to display
+            code: The text content to display. When language is specified, this is
+                wrapped in a fenced code block with syntax highlighting. When language
+                is empty string, this is rendered as plain markdown without a code block.
             language: Programming language for syntax highlighting (empty string for plain markdown)
             truncated_lines: Number of lines to show when collapsed
             **kwargs: Additional keyword arguments for Widget
