@@ -37,27 +37,48 @@ vibecore/
 │   ├── settings.py          # Configuration with Pydantic
 │   ├── flow.py              # Flow mode for programmatic conversation control
 │   ├── agents/              # Agent configurations & handoffs
-│   │   └── default.py       # Main agent with tool integrations
+│   │   ├── default.py       # Main agent with tool integrations
+│   │   ├── prompts.py       # Agent prompt templates
+│   │   └── task.py          # Task agent for sub-agent workflows
+│   ├── auth/                # Authentication system (OAuth/PKCE)
+│   │   ├── config.py        # Auth configuration
+│   │   ├── interceptor.py   # HTTP interceptor for auth
+│   │   ├── manager.py       # Auth manager orchestration
+│   │   ├── models.py        # Auth data models
+│   │   ├── oauth_flow.py    # OAuth flow implementation
+│   │   ├── pkce.py          # PKCE utilities
+│   │   ├── storage.py       # Token storage
+│   │   └── token_manager.py # Token lifecycle management
+│   ├── mcp/                 # Model Context Protocol integration
+│   │   ├── manager.py       # MCP server management
+│   │   └── server_wrapper.py # MCP server wrapper
 │   ├── models/              # LLM provider integrations
-│   │   └── anthropic.py     # Claude model support via LiteLLM
+│   │   ├── anthropic.py     # Claude model support via LiteLLM
+│   │   └── anthropic_auth.py # Anthropic authentication
 │   ├── handlers/            # Stream processing handlers
 │   │   └── stream_handler.py # Handle streaming agent responses
 │   ├── session/             # Session management
 │   │   ├── jsonl_session.py # JSONL-based conversation storage
 │   │   ├── loader.py        # Session loading logic
-│   │   └── file_lock.py     # File locking for concurrent access
+│   │   ├── file_lock.py     # File locking for concurrent access
+│   │   └── path_utils.py    # Session path utilities
 │   ├── widgets/             # Custom Textual UI components
 │   │   ├── core.py          # Base widgets & layouts
 │   │   ├── messages.py      # Message display components
+│   │   ├── tool_messages.py # Tool-specific message widgets
 │   │   ├── expandable.py    # Expandable content widgets
+│   │   ├── feedback.py      # User feedback widgets
 │   │   ├── info.py          # Information display widgets
 │   │   ├── tool_message_factory.py  # Factory for creating tool messages
 │   │   ├── core.tcss        # Core styling
 │   │   ├── messages.tcss    # Message-specific styles
+│   │   ├── tool_messages.tcss # Tool message styles
 │   │   ├── expandable.tcss  # Expandable widget styles
+│   │   ├── feedback.tcss    # Feedback widget styles
 │   │   └── info.tcss        # Info widget styles
 │   ├── tools/               # Extensible tool system
 │   │   ├── base.py          # Tool interfaces & protocols
+│   │   ├── path_validator.py # Path confinement validation
 │   │   ├── file/            # File manipulation tools
 │   │   │   ├── tools.py     # Tool definitions
 │   │   │   ├── executor.py  # Execution logic
@@ -68,18 +89,34 @@ vibecore/
 │   │   ├── python/          # Python code interpreter
 │   │   │   ├── tools.py     # Tool definitions
 │   │   │   ├── manager.py   # Execution environment manager
+│   │   │   ├── helpers.py   # Python execution helpers
 │   │   │   └── backends/    # Execution backends
-│   │   └── todo/            # Task management system
+│   │   ├── todo/            # Task management system
+│   │   │   ├── tools.py     # Tool definitions
+│   │   │   ├── manager.py   # Todo list manager
+│   │   │   └── models.py    # Data models
+│   │   ├── task/            # Sub-agent task execution
+│   │   │   ├── tools.py     # Tool definitions
+│   │   │   └── executor.py  # Task execution logic
+│   │   ├── websearch/       # Web search tools
+│   │   │   ├── tools.py     # Tool definitions
+│   │   │   ├── executor.py  # Search execution
+│   │   │   ├── base.py      # Base search interface
+│   │   │   ├── models.py    # Search data models
+│   │   │   └── ddgs/        # DuckDuckGo backend
+│   │   └── webfetch/        # Web fetch tools
 │   │       ├── tools.py     # Tool definitions
-│   │       ├── manager.py   # Todo list manager
-│   │       └── models.py    # Data models
+│   │       ├── executor.py  # Fetch execution
+│   │       └── models.py    # Fetch data models
 │   ├── utils/               # Utility modules
 │   │   └── text.py          # Text processing utilities
 │   └── prompts/             # System prompts & instructions
 │       └── common_system_prompt.txt
-├── examples/                # Example flows and agent applications  
+├── examples/                # Example flows and agent applications
 │   ├── basic.py             # Simple single-agent flow example
-│   └── customer_service.py  # Multi-agent system with handoffs
+│   ├── basic_cli.py         # CLI-based flow example
+│   ├── customer_service.py  # Multi-agent system with handoffs
+│   └── feedback_demo.py     # User feedback collection demo
 ├── tests/                   # Comprehensive test suite
 ├── pyproject.toml           # Project configuration & dependencies
 ├── uv.lock                  # Locked dependencies
