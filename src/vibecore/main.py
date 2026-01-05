@@ -66,13 +66,11 @@ class VibecoreApp(App):
         runner: "VibecoreTextualRunner[TWorkflowReturn]",
         show_welcome: bool = True,
     ) -> None:
-        """Initialize the Vibecore app with context and agent.
+        """Initialize the Vibecore app.
 
         Args:
-            context: The VibecoreContext instance
-            agent: The Agent instance to use
-            session_id: Optional session ID to load existing session
-            show_welcome: Whether to show the welcome message (default: True)
+            runner: The VibecoreTextualRunner instance that manages workflow execution.
+            show_welcome: Whether to show the welcome message (default: True).
         """
         self.runner = runner
         if runner.context:
