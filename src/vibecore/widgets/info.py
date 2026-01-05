@@ -13,10 +13,10 @@ VIBECORE_LOGO = """
 
 
 class Welcome(Widget):
-    """A simple input box widget."""
+    """Welcome message widget displaying the Vibecore logo and greeting."""
 
     def compose(self) -> ComposeResult:
-        """Create child widgets for the input box."""
+        """Create child widgets for the welcome message."""
         yield Static(f"[$primary]{VIBECORE_LOGO}[/]", classes="logo")
         yield Static("Welcome to [$text-primary][b]Vibecore[/b][/]!", classes="title")
         yield Static(
